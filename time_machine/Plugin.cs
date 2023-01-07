@@ -6,7 +6,6 @@ using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
 using Wish;
-using Sirenix.Serialization;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.time_machine", "Time Machine", "0.0.1")]
@@ -43,8 +42,8 @@ public class Plugin : BaseUnityPlugin {
 		m_hotkey_time_stop_toggle = this.Config.Bind<string>("General", "Time Start/Stop Toggle Hotkey", "Alpha0,Keypad0", "Comma-separated list of Unity Keycodes, any of which will toggle the passage of time.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
 		m_hotkey_time_speed_up = this.Config.Bind<string>("General", "Time Speed Up Hotkey", "Equals,KeypadPlus", "Comma-separated list of Unity Keycodes, any of which will increase the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
 		m_hotkey_time_speed_down = this.Config.Bind<string>("General", "Time Speed Down Hotkey", "Minus,KeypadMinus", "Comma-separated list of Unity Keycodes, any of which will decrease the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-		m_time_speed = this.Config.Bind<float>("General", "Initial Time Speed", 0.5f, "Initial time speed (float, 0.5f == 40min, 1.66f == 15 min).");
-		m_time_speed_delta = this.Config.Bind<float>("General", "Time Speed Delta", 0.1f, "Change in time speed with each up/down hotkey tick (float).");
+		m_time_speed = this.Config.Bind<float>("General", "Initial Time Speed", 0.25f, "Initial time speed (float, 0.5f == 40min, 1.66f == 15 min).");
+		m_time_speed_delta = this.Config.Bind<float>("General", "Time Speed Delta", 0.05f, "Change in time speed with each up/down hotkey tick (float).");
 		m_hotkeys = new Dictionary<int, List<KeyCode>>();
 		set_hotkey(m_hotkey_modifier.Value, HOTKEY_MODIFIER);
 		set_hotkey(m_hotkey_time_stop_toggle.Value, HOTKEY_TIME_STOP_TOGGLE);
@@ -109,7 +108,8 @@ public class Plugin : BaseUnityPlugin {
 				m_time_speed.Value -= m_time_speed_delta.Value;
 				changed = true;
 			}
-			if (m_time_speed.Value < 0f) {
+			m_time_speed.Value = (float) System.Math.Round(m_time_speed.Value, 3);
+			if (m_time_speed.Value < 0.0001f) {
 				m_time_speed.Value = 0f;
 			}
 			if (changed) {
