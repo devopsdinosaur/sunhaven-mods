@@ -6,6 +6,9 @@ using HarmonyLib;
 using UnityEngine;
 using System.Collections.Generic;
 using Wish;
+using TMPro;
+using DG.Tweening;
+using System;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.time_machine", "Time Machine", "0.0.1")]
@@ -129,6 +132,53 @@ public class Plugin : BaseUnityPlugin {
 
 		private static bool Prefix(ref float __result) {
 			__result = Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier;
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(DayCycle), "UpdateTimeText")]
+	class HarmonyPatch_DayCycle {
+
+		private const float CHECK_FREQUENCY = 1.0f;
+		private static float m_elapsed = 0f;
+		private static DateTime m_last_system_time = DateTime.MinValue;
+		private static DateTime m_last_game_time = DateTime.MinValue;
+		private static string m_time_factor_string = "";
+
+		private static bool Prefix(
+			ref DayCycle __instance, 
+			ref TextMeshProUGUI ____timeTMP, 
+			ref Tween ___shakeTimeTween, 
+			ref Vector2 ___originalTimePosition,
+			ref Transform ____timeBar
+		) {
+			if ((m_elapsed += Time.fixedDeltaTime) >= CHECK_FREQUENCY) {
+				m_elapsed = 0f;
+				if (m_last_system_time != DateTime.MinValue) {
+					m_time_factor_string = "[" + Math.Round((__instance.Time - m_last_game_time).TotalMinutes / (DateTime.Now - m_last_system_time).TotalSeconds, 2).ToString() + " m/s]";					
+				}
+				m_last_system_time = DateTime.Now;
+				m_last_game_time = __instance.Time;
+			}
+			____timeTMP.text =
+				(__instance.Time.Hour >= 22 || __instance.Time.Hour <= 0 ? "<color=red>" : "") +
+				__instance.Time.ToString("hh:mm tt") +
+				m_time_factor_string;
+			
+			// the shake drives me nuts
+			
+			//if (__instance.Time.Hour >= 23 || __instance.Time.Hour <= 0) {
+			//	if (___shakeTimeTween == null) {
+			//		___shakeTimeTween = ____timeTMP.transform.DOShakePosition(1f, 0.75f, 20, 90f, snapping: false, fadeOut: false).SetLoops(-1);
+			//	}
+			//} else {
+			//	if (___shakeTimeTween != null) {
+			//		___shakeTimeTween.Kill();
+			//		____timeTMP.transform.localPosition = ___originalTimePosition;
+			//	}
+			//	___shakeTimeTween = null;
+			//}
+			____timeBar.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(180f, -180f, ((float) __instance.Time.Hour + (float) __instance.Time.Minute / 60f - 6f + 1f) / 20f));
 			return false;
 		}
 	}
