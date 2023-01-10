@@ -163,47 +163,5 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 	}
-
-	[HarmonyPatch(typeof(MainMenuController), "HomeMenu")]
-	class HarmonyPatch_MainMenuController_HomeMenu {
-
-		private static Transform m_play_button = null;
-		private static int m_latest_save_index = -1;
-
-		public static bool enum_ancestors_callback(Transform transform) {
-			if (transform.name.StartsWith("PlayButton")) {
-				if (transform.GetChild(0).GetComponent<TextMeshProUGUI>().text == "Play") {
-					m_play_button = transform;
-					return false;
-				}
-			}
-			return true;
-		}
-
-		private static void Postfix(ref MainMenuController __instance, ref GameObject ___homeMenu, ref GameObject ___loadCharacterMenu) {
-			string saves_dir = Path.Combine(Application.persistentDataPath, "Saves");
-			DateTime latest_timestamp = DateTime.Now;
-			string full_path;
-			GameObject continue_button = null;
-
-			if (m_play_button != null || !Directory.Exists(saves_dir)) {
-				return;
-			}
-			for (int index = 0; index < GameSave.Instance.Saves.Count; index++) {
-				full_path = Path.Combine(saves_dir, GameSave.Instance.Saves[index].fileName);
-				if (m_latest_save_index == -1 || File.GetLastWriteTime(full_path) > latest_timestamp) {
-					m_latest_save_index = index;
-					latest_timestamp = File.GetLastWriteTime(full_path);
-				}
-			}
-			Plugin.enum_ancestors(___homeMenu.transform, enum_ancestors_callback);
-			if (m_latest_save_index == -1 || m_play_button == null) {
-				return;
-			}
-			list_component_types(m_play_button);
-			continue_button = GameObject.Instantiate<GameObject>(m_play_button.gameObject, m_play_button.parent);
-			continue_button.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Continue";
-			
-		}
-	}
+	
 }
