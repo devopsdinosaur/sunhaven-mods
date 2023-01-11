@@ -140,7 +140,24 @@ public class Plugin : BaseUnityPlugin {
 				return;
 			}
 			Plugin.enum_ancestors(____actionBarPanel.parent, enum_ancestors_callback);
-			Plugin.list_component_types(m_trash_button);
+			//Plugin.list_component_types(m_trash_button);
+			/*[Info: DEBUGGING] UnityEngine.RectTransform
+			[Info: DEBUGGING] Wish.TrashSlot
+			[Info: DEBUGGING] UnityEngine.CanvasRenderer
+			[Info: DEBUGGING] UnityEngine.UI.Image
+			[Info: DEBUGGING] Wish.NavigationElement
+			[Info: DEBUGGING] Wish.UIButton
+			[Info: DEBUGGING] Wish.Popup
+			[Info: DEBUGGING] Wish.Popup*/
+			foreach (Component component in m_trash_button.GetComponents<Component>()) {
+				if (component is Popup) {
+					Popup popup = (Popup) component;
+					if (popup.text != "") {
+						popup.text = "Sell Item";
+						popup.description = "Drop an item here to sell it for full price!";
+					}
+				}
+			}
 		}
 	}
 }

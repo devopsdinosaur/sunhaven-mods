@@ -7,7 +7,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using Wish;
 using TMPro;
-using DG.Tweening;
 using System;
 
 
@@ -31,6 +30,7 @@ public class Plugin : BaseUnityPlugin {
 	private static Dictionary<int, List<KeyCode>> m_hotkeys = null;
 
 	public static float m_time_stop_multiplier = 1f;
+	public static bool m_is_ui_hidden = false;
 
 
 	public Plugin() {
@@ -116,11 +116,11 @@ public class Plugin : BaseUnityPlugin {
 				m_time_speed.Value = 0f;
 			}
 			if (changed) {
-				notify("Time Machine Notification - time_speed (" + 
+				notify("time_speed (" + 
 					m_time_speed.Value + 
 					") * on_off_multiplier (" + 
 					m_time_stop_multiplier + 
-					") == " + Settings.DaySpeedMultiplier
+					") == " + Settings.DaySpeedMultiplier + " (real sec / game min)"
 				);
 			}
 		}
@@ -131,7 +131,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Wish_Settings_DaySpeedMultiplier {
 
 		private static bool Prefix(ref float __result) {
-			__result = Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier;
+			__result = (m_is_ui_hidden ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
 			return false;
 		}
 	}
@@ -148,8 +148,6 @@ public class Plugin : BaseUnityPlugin {
 		private static bool Prefix(
 			ref DayCycle __instance, 
 			ref TextMeshProUGUI ____timeTMP, 
-			ref Tween ___shakeTimeTween, 
-			ref Vector2 ___originalTimePosition,
 			ref Transform ____timeBar
 		) {
 			if ((m_elapsed += Time.fixedDeltaTime) >= CHECK_FREQUENCY) {
@@ -164,22 +162,24 @@ public class Plugin : BaseUnityPlugin {
 				(__instance.Time.Hour >= 22 || __instance.Time.Hour <= 0 ? "<color=red>" : "") +
 				__instance.Time.ToString("hh:mm tt") +
 				m_time_factor_string;
-			
-			// the shake drives me nuts
-			
-			//if (__instance.Time.Hour >= 23 || __instance.Time.Hour <= 0) {
-			//	if (___shakeTimeTween == null) {
-			//		___shakeTimeTween = ____timeTMP.transform.DOShakePosition(1f, 0.75f, 20, 90f, snapping: false, fadeOut: false).SetLoops(-1);
-			//	}
-			//} else {
-			//	if (___shakeTimeTween != null) {
-			//		___shakeTimeTween.Kill();
-			//		____timeTMP.transform.localPosition = ___originalTimePosition;
-			//	}
-			//	___shakeTimeTween = null;
-			//}
 			____timeBar.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(180f, -180f, ((float) __instance.Time.Hour + (float) __instance.Time.Minute / 60f - 6f + 1f) / 20f));
 			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(GameManager), "DisableUI")]
+	class HarmonyPatch_GameManager_DisableUI {
+
+		private static void Postfix() {
+			Plugin.m_is_ui_hidden = true;
+		}
+	}
+
+	[HarmonyPatch(typeof(GameManager), "EnableUI")]
+	class HarmonyPatch_GameManager_EnableUI {
+
+		private static void Postfix() {
+			Plugin.m_is_ui_hidden = false;
 		}
 	}
 }
