@@ -160,4 +160,23 @@ public class Plugin : BaseUnityPlugin {
 			}
 		}
 	}
+
+	[HarmonyPatch(typeof(TrashSlot), "OnPointerDown")]
+	class HarmonyPatch_TrashSlot_OnPointerDown {
+
+		private static bool Prefix(ref TrashSlot __instance) {
+			ItemIcon currentItemIcon = Inventory.CurrentItemIcon;
+			if (!(currentItemIcon == null)) {
+				ItemData itemData = ItemDatabase.GetItemData(currentItemIcon.item);
+				if (itemData.category != ItemCategory.Quest && itemData.canTrash) {
+					Item item = itemData.GetItem();
+					Player.Instance.AddMoneyAndRegisterSource(item.SellPrice(item.), data.item.ID(), data.amount, MoneySource.ShippingPortal, playAudio: true);
+					
+					currentItemIcon.RemoveItemIcon();
+					__instance.inventory.UpdateInventory();
+				}
+			}
+			return false;
+		}
+	}
 }
