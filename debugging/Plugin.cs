@@ -165,18 +165,31 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_TrashSlot_OnPointerDown {
 
 		private static bool Prefix(ref TrashSlot __instance) {
-			ItemIcon currentItemIcon = Inventory.CurrentItemIcon;
-			if (!(currentItemIcon == null)) {
-				ItemData itemData = ItemDatabase.GetItemData(currentItemIcon.item);
-				if (itemData.category != ItemCategory.Quest && itemData.canTrash) {
-					Item item = itemData.GetItem();
-					Player.Instance.AddMoneyAndRegisterSource(item.SellPrice(item.), data.item.ID(), data.amount, MoneySource.ShippingPortal, playAudio: true);
-					
-					currentItemIcon.RemoveItemIcon();
-					__instance.inventory.UpdateInventory();
-				}
+			ItemIcon icon = Inventory.CurrentItemIcon;
+			if (icon == null) {
+				return false;
 			}
+			ItemData data = ItemDatabase.GetItemData(icon.item);
+			if (data.category == ItemCategory.Quest || !data.canTrash) {
+				return false;
+			}
+			Item item = data.GetItem();
+			Player.Instance.AddMoneyAndRegisterSource(item.SellPrice(icon.amount), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+			Player.Instance.AddOrbsAndRegisterSource(item.OrbSellPrice(icon.amount), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+			Player.Instance.AddTicketsAndRegisterSource(item.TicketSellPrice(icon.amount), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+			icon.RemoveItemIcon();
+			__instance.inventory.UpdateInventory();
 			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(ItemDatabase), "ConstructDatabase", new[] {typeof(IList<ItemData>)})]
+	class HarmonyPatch_ItemDatabase_ConstructDatabase {
+
+		private static void Postfix() {
+			foreach (int id in ItemDatabase.ids.Values) {
+				ItemDatabase.items[id].stackSize = 9999;
+			}
 		}
 	}
 }

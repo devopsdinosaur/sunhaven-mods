@@ -29,6 +29,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_MainMenuController_HomeMenu {
 
 		private static GameObject m_continue_button = null;
+		private static bool m_is_first_load = true;
 
 		private static void Postfix(MainMenuController __instance, ref GameObject ___homeMenu) {
 			string saves_dir = Path.Combine(Application.persistentDataPath, "Saves");
@@ -56,9 +57,12 @@ public class Plugin : BaseUnityPlugin {
 			m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				__instance.PlayGame(latest_save_index);
 			});
-			foreach (string arg in System.Environment.GetCommandLineArgs()) {
-				if (arg.ToLower() == "--continue") {
-					__instance.PlayGame(latest_save_index);
+			if (m_is_first_load) {
+				m_is_first_load = false;
+				foreach (string arg in System.Environment.GetCommandLineArgs()) {
+					if (arg.ToLower() == "--continue") {
+						__instance.PlayGame(latest_save_index);
+					}
 				}
 			}
 		}

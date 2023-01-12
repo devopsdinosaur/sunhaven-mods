@@ -78,6 +78,12 @@
     <Reference Include="UnityEngine.UI">
       <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
     </Reference>
+    <Reference Include="ZeroFormatter">
+      <HintPath>..\libs\ZeroFormatter.dll</HintPath>
+    </Reference>
+    <Reference Include="ZeroFormatter.Interfaces">
+      <HintPath>..\libs\ZeroFormatter.Interfaces.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
