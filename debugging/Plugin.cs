@@ -11,6 +11,7 @@ using System;
 using TMPro;
 using System.IO;
 using UnityEngine.Events;
+using DG.Tweening;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.debugging", "DEBUGGING", "0.0.1")]
@@ -48,7 +49,7 @@ public class Plugin : BaseUnityPlugin {
 		return true;
 	}
 
-	public static bool enum_ancestors(Transform parent, Func<Transform, bool> callback) {
+	public static bool e__result_ancestors(Transform parent, Func<Transform, bool> callback) {
 		Transform child;
 		for (int index = 0; index < parent.childCount; index++) {
 			child = parent.GetChild(index);
@@ -57,7 +58,7 @@ public class Plugin : BaseUnityPlugin {
 					return false;
 				}
 			}
-			enum_ancestors(child, callback);
+			e__result_ancestors(child, callback);
 		}
 		return true;
 	}
@@ -87,7 +88,7 @@ public class Plugin : BaseUnityPlugin {
 
 		private static Transform m_income_tmp = null;
 
-		public static bool enum_ancestors_callback(Transform transform) {
+		public static bool e__result_ancestors_callback(Transform transform) {
 			TextMeshProUGUI tmp = transform.GetComponent<TextMeshProUGUI>();
 			if (tmp != null && tmp.text.StartsWith("<sprite=\"gold_icon\"")) {
 				return false;
@@ -97,7 +98,7 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		private static void Postfix(FarmSellingCrate __instance, GameObject ___ui,	Inventory ___sellingInventory) {
-			Plugin.enum_ancestors(___ui.transform, enum_ancestors_callback);
+			Plugin.e__result_ancestors(___ui.transform, e__result_ancestors_callback);
 			if (m_income_tmp == null) {
 				return;
 			}
@@ -127,7 +128,7 @@ public class Plugin : BaseUnityPlugin {
 
 		private static Transform m_trash_button = null;
 
-		public static bool enum_ancestors_callback(Transform transform) {
+		public static bool e__result_ancestors_callback(Transform transform) {
 			if (transform.name == "TrashButton") {
 				m_trash_button = transform;
 				return false;
@@ -139,7 +140,7 @@ public class Plugin : BaseUnityPlugin {
 			if (m_trash_button != null) {
 				return;
 			}
-			Plugin.enum_ancestors(____actionBarPanel.parent, enum_ancestors_callback);
+			Plugin.e__result_ancestors(____actionBarPanel.parent, e__result_ancestors_callback);
 			//Plugin.list_component_types(m_trash_button);
 			/*[Info: DEBUGGING] UnityEngine.RectTransform
 			[Info: DEBUGGING] Wish.TrashSlot
@@ -190,6 +191,256 @@ public class Plugin : BaseUnityPlugin {
 			foreach (int id in ItemDatabase.ids.Values) {
 				ItemDatabase.items[id].stackSize = 9999;
 			}
+		}
+	}
+
+	[HarmonyPatch(typeof(SkillStats), "GetStat")]
+	class HarmonyPatch_SkillStats_GetStat {
+
+		private static bool Prefix(StatType stat, ref float __result) {
+			if (stat != StatType.Movespeed) {
+				return true;
+			}
+			__result = 0.5f;
+			if (GameSave.Exploration.GetNode("Exploration2a")) {
+				__result += 0.02f + 0.02f * (float) GameSave.Exploration.GetNodeAmount("Exploration2a");
+			}
+			if (Player.Instance.Mounted && GameSave.Exploration.GetNode("Exploration8a")) {
+				__result += 0.04f * (float) GameSave.Exploration.GetNodeAmount("Exploration8a");
+			}
+			if (GameSave.Exploration.GetNode("Exploration5a") && SingletonBehaviour<TileManager>.Instance.GetTileInfo(Player.Instance.Position) != 0) {
+				__result += 0.05f + 0.05f * (float) GameSave.Exploration.GetNodeAmount("Exploration5a");
+			}
+			if (GameSave.Exploration.GetNode("Exploration6a") && Time.time < Player.Instance.lastPickupTime + 3.5f) {
+				__result += 0.1f * (float) GameSave.Exploration.GetNodeAmount("Exploration6a");
+			}
+			if (Time.time < Player.Instance.lastPickaxeTime + 2.5f) {
+				__result += Player.Instance.MiningStats.GetStat(StatType.MovementSpeedAfterRock);
+			}
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(HelpTooltips), "SendNotification")]
+	class HarmonyPatch_HelpTooltips_SendNotification {
+
+		private static bool Prefix(string title) {
+			return title != "Exiting Mines";
+		}
+	}
+
+	[HarmonyPatch(typeof(FishingRod), "UseDown1")]
+	class HarmonyPatch_FishingRod_UseDown1 {
+
+		private static bool Prefix(
+			FishingRod __instance, 
+			Player ___player, 
+			bool ____canUseFishingRod,
+			bool ____fishing,
+			bool ___wonMiniGame,
+			float ___hitSweetSpot
+		) {
+			if (!___player.IsOwner || !____canUseFishingRod || __instance.Reeling) {
+				return false;
+			}
+			if (____fishing) {
+				if (!__instance.ReadyForFish) {
+					return false;
+				}
+				if ((bool) __instance.CurrentFish) {
+					___wonMiniGame = true;
+					___hitSweetSpot = 1f;
+				} else {
+					___wonMiniGame = false;
+					___hitSweetSpot = 0f;
+					CancelFishingAnimation();
+				}
+			} else if (AttemptToUseTool()) {
+				Vector2 vector2 = GetOffset();
+				if (!_startCastingLine && Attack(vector2)) {
+					StartCast();
+				}
+			}
+		}
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(Griffon), "Interact")]
+	class HarmonyPatch_Griffon_Interact {
+
+		private static bool Prefix(ref bool ___interacting, ref bool ___active, bool ___sunHaven, Animator ___animator) {
+			if (DialogueController.Instance.DialogueOnGoing) {
+				return false;
+			}
+			___interacting = true;
+			DialogueController.Instance.CancelDialogue(animate: false);
+			DialogueController.Instance.SetDefaultBox("Griffon");
+			if (SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("Griffon")) {
+				if (___active) {
+					if (!SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("TalkedToMinesWilt")) {
+						if (ScenePortalManager.ActiveSceneName.Equals("NelvariMinesEntrance")) {
+							DialogueController.Instance.PushDialogue(new DialogueNode {
+								dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+								responses = new Dictionary<int, Response> {{
+									1,
+									new Response {
+										responseText = () => "Fly to Sun Haven Farm",
+										action = delegate {
+											DOVirtual.DelayedCall(1.25f, delegate
+											{
+												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+											});
+										},
+										enabled = true
+									}
+								}, {
+								2,
+								new Response {
+									responseText = () => "Fly to Nel'Vari Farm",
+									action = delegate {
+										DOVirtual.DelayedCall(1.25f, delegate
+										{
+											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+										});
+									},
+									enabled = true
+								}
+							}, {
+								3,
+								new Response {
+									responseText = () => "Never mind",
+									action = null
+								}
+							}
+							}});
+							return false;
+						}
+						DialogueController.Instance.PushDialogue(new DialogueNode {
+							dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+							responses = new Dictionary<int, Response>
+							{{
+								1,
+								new Response {
+									responseText = () => ___sunHaven ? "Fly to Nel'Vari Farm" : "Fly to Sun Haven Farm",
+									action = delegate {
+										DOVirtual.DelayedCall(1.25f, delegate {
+											if (!___sunHaven) {
+												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+											} else {
+												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+											}
+										});
+									},
+									enabled = true
+								}
+							}, {
+								3,
+								new Response {
+									responseText = () => "Never mind",
+									action = null
+								}
+							}}
+						});
+						return false;
+					}
+					if (ScenePortalManager.ActiveSceneName.Equals("NelvariMinesEntrance")) {
+						DialogueController.Instance.PushDialogue(new DialogueNode {
+							dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+							responses = new Dictionary<int, Response> {{
+								1,
+								new Response {
+									responseText = () => "Fly to Sun Haven Farm",
+									action = delegate {
+										DOVirtual.DelayedCall(1.25f, delegate {
+											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+										});
+									},
+									enabled = true
+								}
+							}, {
+								2,
+								new Response {
+									responseText = () => "Fly to Nel'Vari Farm",
+									action = delegate {
+										DOVirtual.DelayedCall(1.25f, delegate {
+											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+										});
+									},
+									enabled = true
+								}
+							}, {
+								3,
+								new Response {
+									responseText = () => "Never mind",
+									action = null
+								}
+							}}
+						});
+						return false;
+					}
+					DialogueController.Instance.PushDialogue(new DialogueNode {
+						dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+						responses = new Dictionary<int, Response> {{
+							1,
+							new Response {
+								responseText = () => ___sunHaven ? "Fly to Nel'Vari Farm" : "Fly to Sun Haven Farm",
+								action = delegate {
+									DOVirtual.DelayedCall(1.25f, delegate {
+										if (!___sunHaven) {
+											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+										} else {
+											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+										}
+									});
+								},
+								enabled = true
+							}
+						}, {
+							2,
+							new Response {
+								responseText = () => "Fly to Nel'Vari Mines",
+								action = delegate {
+									DOVirtual.DelayedCall(1.25f, delegate {
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(154.1667f, 157.2463f), "NelvariMinesEntrance");
+									});
+								},
+								enabled = true
+							}
+						}, {
+							3,
+							new Response {
+								responseText = () => "Never mind",
+								action = null
+							}
+						}
+					}});
+				} else {
+					DialogueController.Instance.PushDialogue(new DialogueNode {
+						dialogueText = new List<string> { "<i>(The griffon doesn't seem to even notice you, maybe it's best to leave it alone for right now.)</i>" },
+						responses = new Dictionary<int, Response> {{
+							2,
+							new Response {
+								responseText = () => "Pet the Griffon",
+								action = delegate {
+									___animator.SetTrigger("Pet");
+								}
+							}
+						}, {
+							3,
+							new Response {
+								responseText = () => "Never mind",
+								action = null
+							}
+						}
+					}});
+				}
+			} else {
+				DialogueController.Instance.PushDialogue(new DialogueNode {
+					dialogueText = new List<string> { "<i>(The griffon doesn't seem to even notice you, maybe it's best to leave it alone for right now.)</i>" }
+				});
+			}
+			return false;
 		}
 	}
 }
