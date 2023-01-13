@@ -273,36 +273,9 @@ public class Plugin : BaseUnityPlugin {
 	}
 	*/
 
-	/*
-	class ReallyHungryFish : Fish {
+	
 
-		public void TargetBobber(Collider2D collider, Bobber bobber) {
-			if (GameManager.Multiplayer) {
-				onTargetBobber?.Invoke();
-			}
-			float min = 1.25f;
-			float max = 4.75f;
-			float num = 1f;
-			_pathMoveSpeed = 1.25f;
-			if (SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.Professions[ProfessionType.Fishing].GetNode("Fishing1b")) {
-				float t = (8f - (collider.transform.position - bobber.transform.position).magnitude) / 8f;
-				num = Mathf.Lerp(1f, 0.4f, t);
-				_pathMoveSpeed = Mathf.Lerp(1.25f, 1.6f, t);
-			}
-			_targetBobber = bobber;
-			bobber.FishingRod.TargetFish = this;
-			_goToBobberTween = DOVirtual.DelayedCall(UnityEngine.Random.Range(min, max) / (float) bobber.FishingRod.fishAttractionRate * num, delegate
-			{
-				SetTarget(collider.transform.position, 1f);
-			});
-			onDestinationReached = (UnityAction) Delegate.Combine(onDestinationReached, (UnityAction) delegate
-			{
-				biteRoutine = StartCoroutine(BiteRoutine());
-			});
-		}
 
-	}
-	*/
 
 	/*
 	[HarmonyPatch(typeof(Fish), "BiteRoutine")]

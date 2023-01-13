@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.2.32516.85
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32510.428
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "time_machine", "time_machine\time_machine.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B7D}"
 EndProject
@@ -16,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "always_open", "always_open\always_open.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B78}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "continue_button", "continue_button\continue_button.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B77}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "easy_fishing", "easy_fishing\easy_fishing.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -51,6 +53,10 @@ Global
 		{C02752A4-076A-4A11-9DFE-109FDA154B77}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C02752A4-076A-4A11-9DFE-109FDA154B77}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C02752A4-076A-4A11-9DFE-109FDA154B77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C02752A4-076A-4A11-9DFE-109FDA154B68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C02752A4-076A-4A11-9DFE-109FDA154B68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C02752A4-076A-4A11-9DFE-109FDA154B68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C02752A4-076A-4A11-9DFE-109FDA154B68}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
