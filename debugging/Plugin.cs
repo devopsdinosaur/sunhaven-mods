@@ -229,6 +229,7 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
+	/*
 	[HarmonyPatch(typeof(FishingRod), "UseDown1")]
 	class HarmonyPatch_FishingRod_UseDown1 {
 
@@ -237,11 +238,17 @@ public class Plugin : BaseUnityPlugin {
 			Player ___player, 
 			bool ____canUseFishingRod,
 			bool ____fishing,
-			bool ___wonMiniGame,
-			float ___hitSweetSpot
+			ref bool ___wonMiniGame,
+			ref float ___hitSweetSpot,
+			bool ____startCastingLine
 		) {
+			string[] METHOD_NAMES = new string[] {"CancelFishingAnimation", "AttemptToUseTool", "GetOffset", "StartCast", "Attack"};
 			if (!___player.IsOwner || !____canUseFishingRod || __instance.Reeling) {
 				return false;
+			}
+			Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
+			foreach (string name in METHOD_NAMES) {
+				methods[name] = __instance.GetType().GetTypeInfo().GetDeclaredMethod(name);
 			}
 			if (____fishing) {
 				if (!__instance.ReadyForFish) {
@@ -253,18 +260,93 @@ public class Plugin : BaseUnityPlugin {
 				} else {
 					___wonMiniGame = false;
 					___hitSweetSpot = 0f;
-					CancelFishingAnimation();
+					methods["CancelFishingAnimation"].Invoke(__instance, new object[] {});
 				}
-			} else if (AttemptToUseTool()) {
-				Vector2 vector2 = GetOffset();
-				if (!_startCastingLine && Attack(vector2)) {
-					StartCast();
+			} else if ((bool) methods["AttemptToUseTool"].Invoke(__instance, new object[] {})) {
+				Vector2 vector2 = (Vector2) methods["GetOffset"].Invoke(__instance, new object[] {});
+				if (!____startCastingLine && (bool) methods["Attack"].Invoke(__instance, new object[] {vector2})) {
+					methods["StartCast"].Invoke(__instance, new object[] {});
 				}
 			}
-		}
 			return false;
 		}
 	}
+	*/
+
+	/*
+	class ReallyHungryFish : Fish {
+
+		public void TargetBobber(Collider2D collider, Bobber bobber) {
+			if (GameManager.Multiplayer) {
+				onTargetBobber?.Invoke();
+			}
+			float min = 1.25f;
+			float max = 4.75f;
+			float num = 1f;
+			_pathMoveSpeed = 1.25f;
+			if (SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.Professions[ProfessionType.Fishing].GetNode("Fishing1b")) {
+				float t = (8f - (collider.transform.position - bobber.transform.position).magnitude) / 8f;
+				num = Mathf.Lerp(1f, 0.4f, t);
+				_pathMoveSpeed = Mathf.Lerp(1.25f, 1.6f, t);
+			}
+			_targetBobber = bobber;
+			bobber.FishingRod.TargetFish = this;
+			_goToBobberTween = DOVirtual.DelayedCall(UnityEngine.Random.Range(min, max) / (float) bobber.FishingRod.fishAttractionRate * num, delegate
+			{
+				SetTarget(collider.transform.position, 1f);
+			});
+			onDestinationReached = (UnityAction) Delegate.Combine(onDestinationReached, (UnityAction) delegate
+			{
+				biteRoutine = StartCoroutine(BiteRoutine());
+			});
+		}
+
+	}
+	*/
+
+	/*
+	[HarmonyPatch(typeof(Fish), "BiteRoutine")]
+	class HarmonyPatch_Fish_BiteRoutine {
+
+		private static bool Prefix(
+			Fish __instance, 
+			Bobber ____targetBobber, 
+			ref Tween ___fishRunAwayTween, 
+			bool ___canBite,
+
+		) {
+			if (!base.isActiveAndEnabled) {
+				yield break;
+			}
+			float seconds = UnityEngine.Random.Range(0.1f, 0.2f);
+			yield return new WaitForSeconds(seconds);
+			____targetBobber.Bite();
+			____targetBobber.FishingRod.HasFish(__instance);
+			___fishRunAwayTween = DOVirtual.DelayedCall(0.66f, delegate {
+				if (!(____targetBobber != null) || !____targetBobber.FishingRod.Reeling) {
+					__instance.Flee();
+					___canBite = false;
+					DOVirtual.DelayedCall(4f, delegate
+					{
+						___canBite = true;
+					});
+					if (____targetBobber != null) {
+						if (____targetBobber.FishingRod.CurrentFish == __instance) {
+							____targetBobber.FishingRod.CurrentFish = null;
+						}
+						if (____targetBobber.FishingRod.TargetFish == __instance) {
+							____targetBobber.FishingRod.TargetFish = null;
+						}
+					}
+					__instance.SetTarget(__instance.transform.position + new Vector3(UnityEngine.Random.Range(-1f, 1f), UnityEngine.Random.Range(-1f, 1f)).normalized * 2.25f, 0f);
+					____targetBobber?.FailMiniGame();
+					____targetBobber = null;
+				}
+			});
+			return false;
+		}
+	}
+	*/
 
 	[HarmonyPatch(typeof(Griffon), "Interact")]
 	class HarmonyPatch_Griffon_Interact {
