@@ -1,5 +1,4 @@
-﻿
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using Wish;
@@ -24,8 +23,10 @@ public class Plugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(ScenePortalSpot), "Awake")]
 	class HarmonyPatch_ScenePortalSpot_Awake {
 
-		private static void Postfix(ref ScenePortalSpot __instance, ref bool ___hasOpenAndCloseTime) {
+		private static void Postfix(ref ScenePortalSpot __instance, ref bool ___hasOpenAndCloseTime, ref bool ___hasRelationshipRequirement) {
 			___hasOpenAndCloseTime = false;
+			___hasRelationshipRequirement = false;
 		}
 	}
+
 }
