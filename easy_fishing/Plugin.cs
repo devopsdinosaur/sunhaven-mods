@@ -40,7 +40,7 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 	}
-
+	
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
 
@@ -49,12 +49,9 @@ public class Plugin : BaseUnityPlugin {
 			// thereby bypassing the SmallBite() nibbles and always going for full Bite()
 			m_do_force_chance = (__instance.UseItem.Using && __instance.UseItem is FishingRod);
 			m_chance_result = false;
-			if (!((bool) m_fishing_rod.CurrentFish)) {
-				return;
-			}
 		}
 	}
-
+	
 	[HarmonyPatch(typeof(FishSpawnManager), "Start")]
 	class HarmonyPatch_FishSpawnManager_Start {
 

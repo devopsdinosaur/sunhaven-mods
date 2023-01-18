@@ -332,73 +332,7 @@ public class Plugin : BaseUnityPlugin {
 			DialogueController.Instance.CancelDialogue(animate: false);
 			DialogueController.Instance.SetDefaultBox("Griffon");
 			if (SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("Griffon")) {
-				if (___active) {
-					if (!SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("TalkedToMinesWilt")) {
-						if (ScenePortalManager.ActiveSceneName.Equals("NelvariMinesEntrance")) {
-							DialogueController.Instance.PushDialogue(new DialogueNode {
-								dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
-								responses = new Dictionary<int, Response> {{
-									1,
-									new Response {
-										responseText = () => "Fly to Sun Haven Farm",
-										action = delegate {
-											DOVirtual.DelayedCall(1.25f, delegate
-											{
-												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
-											});
-										},
-										enabled = true
-									}
-								}, {
-								2,
-								new Response {
-									responseText = () => "Fly to Nel'Vari Farm",
-									action = delegate {
-										DOVirtual.DelayedCall(1.25f, delegate
-										{
-											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
-										});
-									},
-									enabled = true
-								}
-							}, {
-								3,
-								new Response {
-									responseText = () => "Never mind",
-									action = null
-								}
-							}
-							}});
-							return false;
-						}
-						DialogueController.Instance.PushDialogue(new DialogueNode {
-							dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
-							responses = new Dictionary<int, Response>
-							{{
-								1,
-								new Response {
-									responseText = () => ___sunHaven ? "Fly to Nel'Vari Farm" : "Fly to Sun Haven Farm",
-									action = delegate {
-										DOVirtual.DelayedCall(1.25f, delegate {
-											if (!___sunHaven) {
-												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
-											} else {
-												SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
-											}
-										});
-									},
-									enabled = true
-								}
-							}, {
-								3,
-								new Response {
-									responseText = () => "Never mind",
-									action = null
-								}
-							}}
-						});
-						return false;
-					}
+				if (!SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("TalkedToMinesWilt")) {
 					if (ScenePortalManager.ActiveSceneName.Equals("NelvariMinesEntrance")) {
 						DialogueController.Instance.PushDialogue(new DialogueNode {
 							dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
@@ -407,36 +341,39 @@ public class Plugin : BaseUnityPlugin {
 								new Response {
 									responseText = () => "Fly to Sun Haven Farm",
 									action = delegate {
-										DOVirtual.DelayedCall(1.25f, delegate {
+										DOVirtual.DelayedCall(1.25f, delegate
+										{
 											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
 										});
 									},
 									enabled = true
 								}
 							}, {
-								2,
-								new Response {
-									responseText = () => "Fly to Nel'Vari Farm",
-									action = delegate {
-										DOVirtual.DelayedCall(1.25f, delegate {
-											SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
-										});
-									},
-									enabled = true
-								}
-							}, {
-								3,
-								new Response {
-									responseText = () => "Never mind",
-									action = null
-								}
-							}}
-						});
+							2,
+							new Response {
+								responseText = () => "Fly to Nel'Vari Farm",
+								action = delegate {
+									DOVirtual.DelayedCall(1.25f, delegate
+									{
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+									});
+								},
+								enabled = true
+							}
+						}, {
+							3,
+							new Response {
+								responseText = () => "Never mind",
+								action = null
+							}
+						}
+						}});
 						return false;
 					}
 					DialogueController.Instance.PushDialogue(new DialogueNode {
 						dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
-						responses = new Dictionary<int, Response> {{
+						responses = new Dictionary<int, Response>
+						{{
 							1,
 							new Response {
 								responseText = () => ___sunHaven ? "Fly to Nel'Vari Farm" : "Fly to Sun Haven Farm",
@@ -452,12 +389,36 @@ public class Plugin : BaseUnityPlugin {
 								enabled = true
 							}
 						}, {
-							2,
+							3,
 							new Response {
-								responseText = () => "Fly to Nel'Vari Mines",
+								responseText = () => "Never mind",
+								action = null
+							}
+						}}
+					});
+					return false;
+				}
+				if (ScenePortalManager.ActiveSceneName.Equals("NelvariMinesEntrance")) {
+					DialogueController.Instance.PushDialogue(new DialogueNode {
+						dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+						responses = new Dictionary<int, Response> {{
+							1,
+							new Response {
+								responseText = () => "Fly to Sun Haven Farm",
 								action = delegate {
 									DOVirtual.DelayedCall(1.25f, delegate {
-										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(154.1667f, 157.2463f), "NelvariMinesEntrance");
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+									});
+								},
+								enabled = true
+							}
+						}, {
+							2,
+							new Response {
+								responseText = () => "Fly to Nel'Vari Farm",
+								action = delegate {
+									DOVirtual.DelayedCall(1.25f, delegate {
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
 									});
 								},
 								enabled = true
@@ -468,28 +429,46 @@ public class Plugin : BaseUnityPlugin {
 								responseText = () => "Never mind",
 								action = null
 							}
-						}
-					}});
-				} else {
-					DialogueController.Instance.PushDialogue(new DialogueNode {
-						dialogueText = new List<string> { "<i>(The griffon doesn't seem to even notice you, maybe it's best to leave it alone for right now.)</i>" },
-						responses = new Dictionary<int, Response> {{
-							2,
-							new Response {
-								responseText = () => "Pet the Griffon",
-								action = delegate {
-									___animator.SetTrigger("Pet");
-								}
-							}
-						}, {
-							3,
-							new Response {
-								responseText = () => "Never mind",
-								action = null
-							}
-						}
-					}});
+						}}
+					});
+					return false;
 				}
+				DialogueController.Instance.PushDialogue(new DialogueNode {
+					dialogueText = new List<string> { " <i>(The griffon acknowledges you with a friendly gaze.)</i>" },
+					responses = new Dictionary<int, Response> {{
+						1,
+						new Response {
+							responseText = () => ___sunHaven ? "Fly to Nel'Vari Farm" : "Fly to Sun Haven Farm",
+							action = delegate {
+								DOVirtual.DelayedCall(1.25f, delegate {
+									if (!___sunHaven) {
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(295.5f, 143.7195f), "2playerfarm");
+									} else {
+										SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(130.9583f, 102.4126f), "NelvariFarm");
+									}
+								});
+							},
+							enabled = true
+						}
+					}, {
+						2,
+						new Response {
+							responseText = () => "Fly to Nel'Vari Mines",
+							action = delegate {
+								DOVirtual.DelayedCall(1.25f, delegate {
+									SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(154.1667f, 157.2463f), "NelvariMinesEntrance");
+								});
+							},
+							enabled = true
+						}
+					}, {
+						3,
+						new Response {
+							responseText = () => "Never mind",
+							action = null
+						}
+					}
+				}});
 			} else {
 				DialogueController.Instance.PushDialogue(new DialogueNode {
 					dialogueText = new List<string> { "<i>(The griffon doesn't seem to even notice you, maybe it's best to leave it alone for right now.)</i>" }

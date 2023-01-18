@@ -31,22 +31,17 @@ public class Plugin : BaseUnityPlugin {
 		const float CHECK_FREQUENCY = 1.0f;
 		static float m_elapsed = 0f;
 
-		private static void Postfix(ref Player __instance) {
+		private static bool Prefix(ref Player __instance) {
 			if ((m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
-				return;
+				return true;
 			}
 			m_elapsed = 0f;
 			foreach (Vector2Int pos in TileManager.Instance.farmingData.Keys) {
 				if (TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
-					if (GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out var crop)) {
-						if (crop.IsOnFire) {
-							crop.PutOutFire();
-						}
-						crop.Water();
-					}
-					TileManager.Instance.SetFarmTileFromRPC(pos, ScenePortalManager.ActiveSceneIndex, FarmingTileInfo.Watered);
+					TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
 				}
 			}
+			return true;
 		}
 	}
 
