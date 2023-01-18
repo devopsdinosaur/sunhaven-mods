@@ -10,10 +10,10 @@ using TMPro;
 using System;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_machine", "Time Machine", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.1")]
 public class Plugin : BaseUnityPlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_machine");
+	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
 	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<string> m_hotkey_modifier;
@@ -38,7 +38,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_machine v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");

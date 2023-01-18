@@ -1,13 +1,10 @@
 ﻿
 using BepInEx;
 using BepInEx.Logging;
+using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
-using DG.Tweening;
-using UnityEngine;
-using UnityEngine.Events;
 using System;
-using System.Reflection;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.easy_fishing", "Easy Fishing", "0.0.1")]
@@ -19,6 +16,15 @@ public class Plugin : BaseUnityPlugin {
 	public static bool m_chance_result = false;
 	public static FishingRod m_fishing_rod = null;
 	public static bool m_ready_for_fish = true;
+	public static bool m_in_cast_bar = false;
+
+	private static ConfigEntry<bool> m_enabled;
+	private static ConfigEntry<bool> m_no_more_nibbles;
+	private static ConfigEntry<int> m_cast_speed;
+	private static ConfigEntry<float> m_spawn_multiplier;
+	private static ConfigEntry<int> m_spawn_limit;
+	private static ConfigEntry<float> m_minigame_max_speed;
+	private static ConfigEntry<float> m_minigame_winarea_size_multiplier;
 
 	public Plugin() {
 	}
@@ -27,13 +33,20 @@ public class Plugin : BaseUnityPlugin {
 		Plugin.logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.easy_fishing v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
+		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+		m_no_more_nibbles = this.Config.Bind<bool>("General", "No More Nibbles", true, "If true then fish will bite every time.");
+		m_cast_speed = this.Config.Bind<int>("General", "Cast Speed", 20, "Fishing rod progress bar cast speed (int, kind of an arbitrary value, 20 is a good number [note that the fishing perk for faster cast speed is ignored in favor of this, so you can use my other mod to reset that one away])");
+		m_spawn_multiplier = this.Config.Bind<float>("General", "Spawn Multiplier", 50f, "Global fish spawn multiplier (float, set this to a high value (50+) to keep the pools filling up when fishing)");
+		m_spawn_limit = this.Config.Bind<int>("General", "Spawn Limit", 100, "Limit to number of fish in current zone (int, set this to a high value (50+) to keep the pools filling up when fishing)");
+		m_minigame_max_speed = this.Config.Bind<float>("General", "Minigame Max Speed", 0.5f, "Maximum speed for slider in minigame (float between 0-1f, set to a lower number to make it easier)");
+		m_minigame_winarea_size_multiplier = this.Config.Bind<float>("General", "Minigame Win Area Size Multiplier", 2f, "Multiplier to increase/decrease the size of the win/perfect area (float, set this to a huge number and the entire bar will be the perfect zone)");
 	}
 
 	[HarmonyPatch(typeof(Utilities), "Chance")]
 	class HarmonyPatch_Utilities_Chance {
 
 		private static bool Prefix(ref bool __result) {
-			if (m_do_force_chance) {
+			if (m_enabled.Value && m_no_more_nibbles.Value && m_do_force_chance) {
 				__result = m_chance_result;
 				return false;
 			}
@@ -47,8 +60,10 @@ public class Plugin : BaseUnityPlugin {
 		private static void Postfix(ref Player __instance) {
 			// if fishing then force the Utilities.Chance method to return false,
 			// thereby bypassing the SmallBite() nibbles and always going for full Bite()
-			m_do_force_chance = (__instance.UseItem.Using && __instance.UseItem is FishingRod);
-			m_chance_result = false;
+			if (m_enabled.Value) {
+				m_do_force_chance = (__instance.UseItem.Using && __instance.UseItem is FishingRod);
+				m_chance_result = false;
+			}
 		}
 	}
 	
@@ -56,8 +71,10 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_FishSpawnManager_Start {
 
 		private static void Postfix(ref int ___spawnLimit) {
-			FishSpawnManager.fishSpawnGlobalMultiplier = 50f;
-			___spawnLimit = 50;
+			if (m_enabled.Value) {
+				FishSpawnManager.fishSpawnGlobalMultiplier = m_spawn_multiplier.Value;
+				___spawnLimit = m_spawn_limit.Value;
+			}
 		}
 	}
 
@@ -69,16 +86,14 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	public static bool m_in_cast_bar = false;
-
 	[HarmonyPatch(typeof(Profession), "GetNodeAmount")]
 	class HarmonyPatch_Profession_GetNodeAmount {
 
 		private static bool Prefix(string node, ref int __result) {
 			// yes, this is hacky, but it's easier than messing with all
 			// the reflection crap required to do it cleanly in FishingRod.Use1
-			if (m_in_cast_bar && node == "Fishing3b") {
-				__result = 20;
+			if (m_enabled.Value && m_in_cast_bar && node == "Fishing3b") {
+				__result = m_cast_speed.Value;
 				return false;
 			}
 			return true;
@@ -98,73 +113,15 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	/*
-	[HarmonyPatch(typeof(FishingRod))]
-	[HarmonyPatch("ReadyForFish", MethodType.Getter)]
-	class HarmonyPatch_FishingRod_ReadyForFish_Getter {
-
-		private static bool Prefix(ref bool __result) {
-			__result = m_ready_for_fish;
-			return false;
-		}
-	}
-
-	[HarmonyPatch(typeof(FishingRod))]
-	[HarmonyPatch("ReadyForFish", MethodType.Constructor)]
-	class HarmonyPatch_FishingRod_ReadyForFish_Setter {
-
-		private static bool Prefix(object[] __args, ref bool __result) {
-			__result = m_ready_for_fish = (bool) __args[0];
-			return false;
-		}
-	}
-	*/
-
-	/*
-	[HarmonyPatch(typeof(FishingRod), "ReelInFish")]
-	class HarmonyPatch_FishingRod_ReelInFish {
-
-		private static bool Prefix(
-			FishingRod __instance,
-			ref float ____frameRate,
-			ref bool ____fishing,
-			ref SwingAnimation ____swingAnimation,
-			ref Vector2Int ___pos,
-			ref float ____actionDelay
-		) {
-			____frameRate = 1f;
-			//m_ready_for_fish = false;
-			__instance.GetType().GetTypeInfo().GetField("Reeling", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(__instance, true);
-			____fishing = !____fishing;
-			____swingAnimation = (____fishing ? SwingAnimation.VerticalSlash : SwingAnimation.Pull);
-			Vector2Int mousePos = ___pos;
-			DOVirtual.DelayedCall(0.5f, delegate {
-				__instance.GetType().GetTypeInfo().GetMethod("Action", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {mousePos});
-			}, ignoreTimeScale: false);
-			__instance.GetType().GetTypeInfo().GetMethod("SendFishingState", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {3});
-			return false;
-		}
-	}
-	*/
-
-	[HarmonyPatch(typeof(Pickup), "SpawnInternal", new Type[] {
-		typeof(float), typeof(float), typeof(float), typeof(Item), 
-		typeof(int), typeof(bool), typeof(float), typeof(Pickup.BounceAnimation),
-		typeof(float), typeof(float), typeof(int), typeof(short)})]
-	class HarmonyPatch_Pickup_SpawnInternal {
-
-		private static void Postfix(Pickup.BounceAnimation bounceAnimation, ref Pickup __result) {
-			
-		}
-	}
-
 	[HarmonyPatch(typeof(Bobber), "GenerateWinArea")]
 	class HarmonyPatch_Bobber_GenerateWinArea {
 
 		private static bool Prefix(ref Bobber __instance, ref FishingMiniGame miniGame) {
-			miniGame.winAreaSize *= 50f;
-			miniGame.barMovementSpeed = 0.1f;
-			miniGame.sweetSpots[0].sweetSpotSize *= 50f;
+			if (m_enabled.Value) {
+				miniGame.winAreaSize = Math.Min(1f, miniGame.winAreaSize * m_minigame_winarea_size_multiplier.Value);
+				miniGame.barMovementSpeed = Math.Min(m_minigame_max_speed.Value, miniGame.barMovementSpeed);
+				miniGame.sweetSpots[0].sweetSpotSize = Math.Min(1f, miniGame.sweetSpots[0].sweetSpotSize * m_minigame_winarea_size_multiplier.Value);
+			}
 			return true;
 		}
 	}
