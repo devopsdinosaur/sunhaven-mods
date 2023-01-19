@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{DD798534-4ABB-4652-9965-2E8DC9E2370F}</ProjectGuid>
+    <ProjectGuid>{B9F5DCD2-B2B2-4AD1-9E83-BB9AFBCA68F1}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>devopsdinosaur.sunhaven.instant_text</RootNamespace>
-    <AssemblyName>devopsdinosaur.sunhaven.instant_text</AssemblyName>
+    <RootNamespace>devopsdinosaur.sunhaven.pickup_radius</RootNamespace>
+    <AssemblyName>devopsdinosaur.sunhaven.pickup_radius</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

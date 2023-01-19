@@ -1,10 +1,10 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Text;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.no_more_keys", "No More Keys", "0.0.1")]
@@ -13,6 +13,10 @@ public class Plugin : BaseUnityPlugin {
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_keys");
 	public static ManualLogSource logger;
 
+	private static ConfigEntry<bool> m_enabled;
+	private static ConfigEntry<bool> m_no_keys_for_chests;
+	private static ConfigEntry<bool> m_no_keys_for_mine_doors;
+	private static ConfigEntry<bool> m_no_keys_for_wilt;
 
 	public Plugin() {
 	}
@@ -21,13 +25,17 @@ public class Plugin : BaseUnityPlugin {
 		Plugin.logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_keys v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
+		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+		m_no_keys_for_chests = this.Config.Bind<bool>("General", "No Keys for Chests", true, "If true then keys are not required for chests (will display image but won't check/use key)");
+		m_no_keys_for_mine_doors = this.Config.Bind<bool>("General", "No Keys for Mine Doors", true, "If true then all doors in the Sun Haven mine will be open");
+		m_no_keys_for_wilt = this.Config.Bind<bool>("General", "No Keys for Wilt", true, "If true then you cruelly trick the poor slow tree guy into thinking you're giving him keys (shame on you!)");
 	}
 
 	[HarmonyPatch(typeof(HelpTooltips), "SendNotification")]
 	class HarmonyPatch_HelpTooltips_SendNotification {
 
 		private static bool Prefix(string title) {
-			return title != "Exiting Mines";
+			return (m_enabled.Value ? title != "Exiting Mines" : true);
 		}
 	}
 
@@ -35,7 +43,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_GameSave_GetProgressBoolWorld {
 
 		private static bool Prefix(string progressID, ref bool __result) {
-			if (progressID.StartsWith("minesUnlock") && !progressID.EndsWith("Temp")) {
+			if (m_enabled.Value && m_no_keys_for_mine_doors.Value && progressID.StartsWith("minesUnlock") && !progressID.EndsWith("Temp")) {
 				__result = true;
 				return false;
 			}
@@ -47,6 +55,9 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_WiltMinesCutscene_CheckHasKey {
 
 		private static bool Prefix(ref WiltMinesCutscene __instance, string optionText, int keyType, ref bool[] ___hasKeyType, ref string __result) {
+			if (!m_enabled.Value || !m_no_keys_for_wilt.Value) {
+				return true;
+			}
 			string item_string = "";
 			___hasKeyType[keyType] = true;
 			switch (keyType) {
@@ -73,6 +84,9 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		private static bool Prefix(ref WiltMinesCutscene __instance, int keyType, ref string __result) {
+			if (!m_enabled.Value || !m_no_keys_for_wilt.Value) {
+				return true;
+			}
 			float num = Random.Range(0f, 99f);
 			switch (keyType) {
 			case 0:
@@ -93,8 +107,10 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_OneTimeChest_Awake {
 
 		private static bool Prefix(ref ItemData ___requiredKey, ref Image ___keyImage) {
-			___requiredKey = null;
-			___keyImage = null;
+			if (m_enabled.Value && m_no_keys_for_chests.Value) {
+				___requiredKey = null;
+				___keyImage = null;
+			}
 			return true;
 		}
 	}

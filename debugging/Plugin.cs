@@ -82,40 +82,38 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(SkillStats), "GetStat")]
-	class HarmonyPatch_SkillStats_GetStat {
+	[HarmonyPatch(typeof(Player), "RequestSleep")]
+	class HarmonyPatch_Player_RequestSleep {
 
-		private static bool Prefix(StatType stat, ref float __result) {
-			if (stat != StatType.Movespeed) {
-				return true;
-			}
-			__result = 0.7f;
-			if (GameSave.Exploration.GetNode("Exploration2a")) {
-				__result += 0.02f + 0.02f * (float) GameSave.Exploration.GetNodeAmount("Exploration2a");
-			}
-			if (Player.Instance.Mounted && GameSave.Exploration.GetNode("Exploration8a")) {
-				__result += 0.04f * (float) GameSave.Exploration.GetNodeAmount("Exploration8a");
-			}
-			if (GameSave.Exploration.GetNode("Exploration5a") && SingletonBehaviour<TileManager>.Instance.GetTileInfo(Player.Instance.Position) != 0) {
-				__result += 0.05f + 0.05f * (float) GameSave.Exploration.GetNodeAmount("Exploration5a");
-			}
-			if (GameSave.Exploration.GetNode("Exploration6a") && Time.time < Player.Instance.lastPickupTime + 3.5f) {
-				__result += 0.1f * (float) GameSave.Exploration.GetNodeAmount("Exploration6a");
-			}
-			if (Time.time < Player.Instance.lastPickaxeTime + 2.5f) {
-				__result += Player.Instance.MiningStats.GetStat(StatType.MovementSpeedAfterRock);
-			}
+		private static bool Prefix(Player __instance, Bed bed, ref bool ____paused, ref UnityAction ___OnUnpausePlayer) {
+			DialogueController.Instance.SetDefaultBox();
+			DialogueController.Instance.PushDialogue(new DialogueNode {
+				dialogueText = new List<string> { "Would you like to sleep?" },
+				responses = new Dictionary<int, Response> {{
+					0,
+					new Response
+					{
+						responseText = () => "Yes",
+						action = delegate {
+							__instance.GetType().GetTypeInfo().GetMethod("StartSleep", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {bed});
+						}
+					}
+				}, {
+					1,
+					new Response
+					{
+						responseText = () => "No",
+						action = delegate {
+							DialogueController.Instance.CancelDialogue(animate: true, null, showActionBar: true);
+						}
+					}
+				}
+			}});
+			____paused = true;
+			___OnUnpausePlayer = (UnityAction) Delegate.Combine(___OnUnpausePlayer, (UnityAction) delegate {
+				DialogueController.Instance.CancelDialogue();
+			});
 			return false;
 		}
 	}
-
-	[HarmonyPatch(typeof(DialogueController), "Awake")]
-	class HarmonyPatch_DialogueController_Awake {
-
-		private static bool Prefix(ref float ____dialogueScrollSpeed) {
-			____dialogueScrollSpeed = 99999f;
-			return true;
-		}
-	}
-
 }
