@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{75EFC0E0-3DA9-47B8-8D3E-8F95C62C4C61}</ProjectGuid>
+    <ProjectGuid>{C02752A4-076A-4A11-9DFE-109FDA154B78}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>devopsdinosaur.sunhaven.no_more_keys</RootNamespace>
-    <AssemblyName>devopsdinosaur.sunhaven.no_more_keys</AssemblyName>
+    <RootNamespace>devopsdinosaur.sunhaven.instant_text</RootNamespace>
+    <AssemblyName>devopsdinosaur.sunhaven.instant_text</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>

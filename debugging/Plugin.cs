@@ -78,9 +78,6 @@ public class Plugin : BaseUnityPlugin {
 			GameSave.Instance.SetProgressBoolCharacter("WithergateMask1", value: true);
 			GameSave.Instance.SetProgressBoolCharacter("SunArmor", value: true);
 			GameSave.Instance.SetProgressBoolCharacter("GoldRecord", value: true);
-
-			
-
 			return true;
 		}
 	}
@@ -109,6 +106,15 @@ public class Plugin : BaseUnityPlugin {
 				__result += Player.Instance.MiningStats.GetStat(StatType.MovementSpeedAfterRock);
 			}
 			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(DialogueController), "Awake")]
+	class HarmonyPatch_DialogueController_Awake {
+
+		private static bool Prefix(ref float ____dialogueScrollSpeed) {
+			____dialogueScrollSpeed = 99999f;
+			return true;
 		}
 	}
 
