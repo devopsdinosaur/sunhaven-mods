@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Wish;
 using TMPro;
 using System;
+using System.Reflection;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.1")]
@@ -131,6 +132,9 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Wish_Settings_DaySpeedMultiplier {
 
 		private static bool Prefix(ref float __result) {
+			if (!m_enabled.Value) {
+				return true;
+			}
 			__result = (m_is_ui_hidden ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
 			return false;
 		}
@@ -150,6 +154,9 @@ public class Plugin : BaseUnityPlugin {
 			ref TextMeshProUGUI ____timeTMP, 
 			ref Transform ____timeBar
 		) {
+			if (!m_enabled.Value) {
+				return true;
+			}
 			if ((m_elapsed += Time.fixedDeltaTime) >= CHECK_FREQUENCY) {
 				m_elapsed = 0f;
 				if (m_last_system_time != DateTime.MinValue) {
@@ -180,6 +187,70 @@ public class Plugin : BaseUnityPlugin {
 
 		private static void Postfix() {
 			Plugin.m_is_ui_hidden = false;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "Craft")]
+	class HarmonyPatch_CraftingTable_Craft {
+
+		protected static float TimeFromDate(DateTime date) {
+			return (float) (date.Minute + date.Hour * 60 + date.Day * 24 * 60) + (float) date.Second / 60f + (float) (date.Year * 28 * 24 * 60);
+		}
+
+		private static bool Prefix(
+			ref CraftingTable __instance, 
+			Recipe recipe, 
+			int amount, 
+			CraftingTableData ___craftingData,
+			ref float ___queueTime,
+			float ___craftSpeedMultiplier
+		) {
+			if (!m_enabled.Value) {
+				return true;
+			}
+			Inventory inventory = Player.Instance.Inventory;
+			if (!__instance.CanCraft(recipe, amount, inventory)) {
+				return false;
+			}
+			if (___craftingData.items.Count <= 0) {
+				___queueTime = 0f;
+			}
+			if (___queueTime <= 0f) {
+				___craftingData.timeStart = TimeFromDate(SingletonBehaviour<DayCycle>.Instance.Time);
+			}
+			for (int i = 0; i < amount; i++) {
+				List<ItemAmount> list = new List<ItemAmount>();
+				foreach (ItemInfo item2 in recipe.Input) {
+					if (item2.item.name == "Mana") {
+						int num = recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item);
+						Player.Instance.UseMana(num);
+					} else {
+						List<ItemAmount> collection = inventory.RemoveItem(item2.item.id, recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item));
+						list.AddRange(collection);
+					}
+				}
+				Item item = recipe.output.item.GenerateItem(list);
+				float multiplier = ___craftSpeedMultiplier * ((GameSave.CurrentCharacter.race == 0) ? 1.2f : 1f);
+				float craftTime = recipe.GetHoursToCraft(multiplier) / Plugin.m_time_speed.Value;
+				ItemCraftInfo itemCraftInfo = new ItemCraftInfo {
+					item = item,
+					craftTime = craftTime,
+					amount = recipe.output.amount,
+					input = list
+				};
+				___craftingData.items.Add(itemCraftInfo);
+				___queueTime += itemCraftInfo.craftTime;
+			}
+			recipe.Craft();
+			__instance.GetType().GetTypeInfo().GetMethod("SetupCraftingQueue", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
+			if (recipe is SkillTomeRecipe) {
+				__instance.Initialize();
+			} else {
+				__instance.Refresh();
+			}
+			__instance.SaveMeta();
+			__instance.SendNewMeta(__instance.meta);
+			return false;
 		}
 	}
 }

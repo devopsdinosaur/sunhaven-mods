@@ -116,4 +116,31 @@ public class Plugin : BaseUnityPlugin {
 			return false;
 		}
 	}
+
+	[HarmonyPatch(typeof(CraftingTable), "Awake")]
+	class HarmonyPatch_CraftingTable_Awake {
+
+		private static bool Prefix(ref float ___craftSpeedMultiplier) {
+			// the CraftSpeedMultiplier property multiplies this by 1.2 for humans,
+			// so this grants the 20% to the other races
+			___craftSpeedMultiplier = (GameSave.CurrentCharacter.race != (int) Race.Human ? 1.2f : 1f);
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(SkillStats), "GetStat")]
+	class HarmonyPatch_SkillStats_GetStat {
+
+		private static bool Prefix(StatType stat, ref float __result, ref float ___lastJumpTimer) {
+			if (stat == StatType.CrossbowPower) {
+				__result = 0f;
+				if (GameSave.Combat.GetNode("Combat3b") && Time.time <= ___lastJumpTimer + 2f) {
+					__result += (float) GameSave.Combat.GetNodeAmount("Combat3b") * 0.05f;
+				}
+				__result += 0.1f;
+				return false;
+			}
+			return true;
+		}
+	}
 }

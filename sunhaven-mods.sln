@@ -33,6 +33,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "speed_boost", "movement_spe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "pickup_radius", "pickup_radius\pickup_radius.csproj", "{B9F5DCD2-B2B2-4AD1-9E83-BB9AFBCA68F1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "action_speed", "action_speed\action_speed.csproj", "{95872C88-DF15-43D1-A84D-457768332399}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_speed", "craft_speed\craft_speed.csproj", "{4263458B-1406-493F-9B6F-B55BF9388CC1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +103,14 @@ Global
 		{B9F5DCD2-B2B2-4AD1-9E83-BB9AFBCA68F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9F5DCD2-B2B2-4AD1-9E83-BB9AFBCA68F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9F5DCD2-B2B2-4AD1-9E83-BB9AFBCA68F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95872C88-DF15-43D1-A84D-457768332399}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95872C88-DF15-43D1-A84D-457768332399}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95872C88-DF15-43D1-A84D-457768332399}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95872C88-DF15-43D1-A84D-457768332399}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
