@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32510.428
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "skill_reset", "skill_reset\skill_reset.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B7C}"
 EndProject
@@ -36,6 +36,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "action_speed", "action_speed\action_speed.csproj", "{95872C88-DF15-43D1-A84D-457768332399}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_speed", "craft_speed\craft_speed.csproj", "{4263458B-1406-493F-9B6F-B55BF9388CC1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_from_storage", "craft_from_storage\craft_from_storage.csproj", "{664A6420-D6FA-4912-AD51-20001886F81E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +113,10 @@ Global
 		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4263458B-1406-493F-9B6F-B55BF9388CC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{664A6420-D6FA-4912-AD51-20001886F81E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{664A6420-D6FA-4912-AD51-20001886F81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{664A6420-D6FA-4912-AD51-20001886F81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{664A6420-D6FA-4912-AD51-20001886F81E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
