@@ -99,11 +99,13 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		public bool can_craft(Recipe recipe, int amount) {
-
+			return false;
 		}
 
 		public List<ItemAmount> remove_item(int id, int amount = 1, int slot = 0) {
+			List<ItemAmount> items = new List<ItemAmount>();
 
+			return items;
 		}
 	}
 
@@ -210,10 +212,11 @@ public class Plugin : BaseUnityPlugin {
 
 		private static bool Prefix(
 			ref CraftingTable __instance,
-			ref Recipe recipe,
-			ref int amount,
-			ref CraftingTableData ___craftingData,
-			ref float ___queueTime
+			Recipe recipe,
+			int amount,
+			CraftingTableData ___craftingData,
+			ref float ___queueTime,
+			float ___craftSpeedMultiplier
 		) {
 			if (!m_enabled.Value) {
 				return true;
@@ -239,25 +242,26 @@ public class Plugin : BaseUnityPlugin {
 					}
 				}
 				Item item = recipe.output.item.GenerateItem(list);
-				float craftTime = recipe.GetHoursToCraft(CraftSpeedMultiplier) * Settings.DaySpeedMultiplier;
+				float multiplier = ___craftSpeedMultiplier * ((GameSave.CurrentCharacter.race == (int) Race.Human) ? 1.2f : 1f);
+				float craftTime = recipe.GetHoursToCraft(multiplier) * Settings.DaySpeedMultiplier;
 				ItemCraftInfo itemCraftInfo = new ItemCraftInfo {
 					item = item,
 					craftTime = craftTime,
 					amount = recipe.output.amount,
 					input = list
 				};
-				craftingData.items.Add(itemCraftInfo);
-				queueTime += itemCraftInfo.craftTime;
+				___craftingData.items.Add(itemCraftInfo);
+				___queueTime += itemCraftInfo.craftTime;
 			}
 			recipe.Craft();
-			SetupCraftingQueue();
+			__instance.GetType().GetTypeInfo().GetMethod("SetupCraftingQueue", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
 			if (recipe is SkillTomeRecipe) {
-				Initialize();
+				__instance.Initialize();
 			} else {
-				Refresh();
+				__instance.Refresh();
 			}
-			SaveMeta();
-			SendNewMeta(base.meta);
+			__instance.SaveMeta();
+			__instance.SendNewMeta(__instance.meta);
 			return false;
 		}
 	}

@@ -24,10 +24,21 @@ public class Plugin : BaseUnityPlugin {
 	public Plugin() {
 	}
 
+	private static bool enum_descendants_callback(Transform transform) {
+		logger.LogInfo(transform);
+		return true;
+	}
+
 	private void Awake() {
 		Plugin.logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.debugging v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
+
+		foreach (string key in BepInEx.Bootstrap.Chainloader.PluginInfos.Keys) {
+			PluginInfo plugin_info = BepInEx.Bootstrap.Chainloader.PluginInfos[key];
+			logger.LogInfo(key + " - " + plugin_info.ToString());
+		}
+
 	}
 
 	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
