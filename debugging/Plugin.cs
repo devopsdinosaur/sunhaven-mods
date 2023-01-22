@@ -128,15 +128,6 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Inventory), "TransferPlayerSimilarToOtherInventory")]
-	class HarmonyPatch_Inventory_TransferPlayerSimilarToOtherInventory {
-
-		private static bool Prefix(ref Inventory __instance, Inventory otherInventory) {
-			__instance.TransferSimilarToOtherInventory(otherInventory);
-			return false;
-		}
-	}
-
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]
 	class HarmonyPatch_CraftingTable_Awake {
 

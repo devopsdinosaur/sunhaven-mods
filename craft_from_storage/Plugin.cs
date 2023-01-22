@@ -18,6 +18,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<bool> m_use_inventory_first;
+	private static ConfigEntry<bool> m_transfer_from_action_bar;
 
 	public Plugin() {
 	}
@@ -28,6 +29,7 @@ public class Plugin : BaseUnityPlugin {
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
+		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
 	}
 
 	public class OmniChest {
@@ -35,6 +37,7 @@ public class Plugin : BaseUnityPlugin {
 		private static OmniChest m_instance = null;
 		private List<int> m_added_hashes = null;
 		private Dictionary<int, List<SlotItemData>> m_items = null;
+		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = 0f;
 		private string m_chest_interact_text;
@@ -68,25 +71,6 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 
-		public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
-			Transform child;
-			string indent_string = "";
-			for (int counter = 0; counter < indent; counter++) {
-				indent_string += " => ";
-			}
-			for (int index = 0; index < parent.childCount; index++) {
-				child = parent.GetChild(index);
-				logger.LogInfo(indent_string + child.gameObject.name);
-				if (callback != null) {
-					if (callback(child) == false) {
-						return false;
-					}
-				}
-				list_descendants(child, callback, indent + 1);
-			}
-			return true;
-		}
-
 		private void create_transfer_button(Transform chest_transform, Inventory player_inventory) {
 			GameObject chest_transfer_similar_button = null;
 			GameObject sort_button = null;
@@ -112,6 +96,18 @@ public class Plugin : BaseUnityPlugin {
 			this.m_transfer_similar_button.GetComponent<RectTransform>().position =
 				sort_button.GetComponent<RectTransform>().position +
 				Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 3;
+			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
+				this.transfer_similar_items(player_inventory);
+			});
+		}
+
+		public void transfer_similar_items(Inventory player_inventory) {
+			foreach (Inventory inventory in this.m_inventories) {
+				if (inventory == player_inventory) {
+					continue;
+				}
+				player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
+			}
 		}
 
 		public void refresh(Inventory player_inventory) {
@@ -122,6 +118,7 @@ public class Plugin : BaseUnityPlugin {
 			int hash = 0;
 			this.m_added_hashes = new List<int>();
 			this.m_items = new Dictionary<int, List<SlotItemData>>();
+			this.m_inventories = new List<Inventory>();
 			if (m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
 			}
@@ -141,9 +138,13 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
 			}
+			Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
+			popup.text = "Zone Send Similar";
+			popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
 		}
 
 		private void add_inventory(Inventory inventory) {
+			this.m_inventories.Add(inventory);
 			foreach (SlotItemData item in inventory.Items) {
 				if (!this.m_items.ContainsKey(item.id)) {
 					this.m_items[item.id] = new List<SlotItemData>();
@@ -357,6 +358,18 @@ public class Plugin : BaseUnityPlugin {
 			__instance.SaveMeta();
 			__instance.SendNewMeta(__instance.meta);
 			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(Inventory), "TransferPlayerSimilarToOtherInventory")]
+	class HarmonyPatch_Inventory_TransferPlayerSimilarToOtherInventory {
+
+		private static bool Prefix(ref Inventory __instance, Inventory otherInventory) {
+			if (m_enabled.Value && m_transfer_from_action_bar.Value) {
+				__instance.TransferSimilarToOtherInventory(otherInventory);
+				return false;
+			}
+			return true;
 		}
 	}
 }
