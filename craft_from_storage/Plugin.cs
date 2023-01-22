@@ -38,6 +38,7 @@ public class Plugin : BaseUnityPlugin {
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = 0f;
 		private string m_chest_interact_text;
+		private GameObject m_transfer_similar_button = null;
 
 		public static OmniChest Instance {
 			get {
@@ -51,6 +52,66 @@ public class Plugin : BaseUnityPlugin {
 			// distinction.  This is a string and not a const because I assume the game will
 			// eventually have localization and I'll just localize it here.
 			this.m_chest_interact_text = "Chest";
+		}
+
+		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
+			Transform child;
+			for (int index = 0; index < parent.childCount; index++) {
+				child = parent.GetChild(index);
+				if (callback != null) {
+					if (callback(child) == false) {
+						return false;
+					}
+				}
+				enum_descendants(child, callback);
+			}
+			return true;
+		}
+
+		public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
+			Transform child;
+			string indent_string = "";
+			for (int counter = 0; counter < indent; counter++) {
+				indent_string += " => ";
+			}
+			for (int index = 0; index < parent.childCount; index++) {
+				child = parent.GetChild(index);
+				logger.LogInfo(indent_string + child.gameObject.name);
+				if (callback != null) {
+					if (callback(child) == false) {
+						return false;
+					}
+				}
+				list_descendants(child, callback, indent + 1);
+			}
+			return true;
+		}
+
+		private void create_transfer_button(Transform chest_transform, Inventory player_inventory) {
+			GameObject chest_transfer_similar_button = null;
+			GameObject sort_button = null;
+
+			bool __enum_descendants_callback_find_same_button__(Transform transform) {
+				if (transform.name == "TransferSimilarToChestButton") {
+					chest_transfer_similar_button = transform.gameObject;
+					return false;
+				}
+				return true;
+			}
+			bool __enum_descendants_callback_find_sort_button__(Transform transform) {
+				if (transform.name == "SortButton") {
+					sort_button = transform.gameObject;
+					return false;
+				}
+				return true;
+			}
+
+			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
+			enum_descendants(player_inventory.transform, __enum_descendants_callback_find_sort_button__);
+			this.m_transfer_similar_button = GameObject.Instantiate<GameObject>(chest_transfer_similar_button, sort_button.transform.parent);
+			this.m_transfer_similar_button.GetComponent<RectTransform>().position =
+				sort_button.GetComponent<RectTransform>().position +
+				Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 3;
 		}
 
 		public void refresh(Inventory player_inventory) {
@@ -69,6 +130,9 @@ public class Plugin : BaseUnityPlugin {
 					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
 						(string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value) == this.m_chest_interact_text
 					) {
+						if (this.m_transfer_similar_button == null) {
+							this.create_transfer_button(kvp.Value.transform, player_inventory);
+						}
 						this.m_added_hashes.Add(hash);
 						this.add_inventory((Inventory) kvp.Value.GetType().GetTypeInfo().GetField("sellingInventory", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value));
 					}
@@ -99,12 +163,42 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		public bool can_craft(Recipe recipe, int amount) {
-			return false;
+			foreach (ItemInfo item in recipe.Input) {
+				if (item.item.name == "Mana") {
+					if (Player.Instance.Mana <= (float) recipe.ModifiedAmount(item.amount, item.item, recipe.output.item) * amount) {
+						return false;
+					}
+				} else if (!this.m_items.ContainsKey(item.item.id)) {
+					return false;
+				} else {
+					int counter = 0;
+					foreach (SlotItemData data in this.m_items[item.item.id]) {
+						if ((counter += data.amount) >= amount) {
+							break;
+						}
+					}
+					if (counter < amount) {
+						return false;
+					}
+				}
+			}
+			return true;
 		}
 
 		public List<ItemAmount> remove_item(int id, int amount = 1, int slot = 0) {
 			List<ItemAmount> items = new List<ItemAmount>();
 
+			// note: this function assumes can_craft() was first called, so it
+			// does not do any checks for item existence.
+			foreach (SlotItemData data in this.m_items[id]) {
+				foreach (ItemAmount item_amount in data.slot.inventory.RemoveItem(id, amount)) {
+					amount -= item_amount.amount;
+					items.Add(item_amount);
+				}
+				if (amount <= 0) {
+					break;
+				}
+			}
 			return items;
 		}
 	}
@@ -221,7 +315,7 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_enabled.Value) {
 				return true;
 			}
-			if (OmniChest.Instance.can_craft(recipe, amount)) {
+			if (!OmniChest.Instance.can_craft(recipe, amount)) {
 				return false;
 			}
 			if (___craftingData.items.Count <= 0) {
