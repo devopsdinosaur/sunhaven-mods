@@ -65,7 +65,9 @@ public class Plugin : BaseUnityPlugin {
 				short key = item.Key;
 				foreach (KeyValuePair<KeyTuple<ushort, ushort>, byte> item2 in item.Value.ToList()) {
 					Vector2Int position = new Vector2Int(item2.Key.Item1, item2.Key.Item2);
-					SingletonBehaviour<TileManager>.Instance.Water(position, key);
+					if (TileManager.Instance.IsWaterable(position) && !TileManager.Instance.IsWatered(position)) {
+						TileManager.Instance.Water(position, key);
+					}
 				}
 			}
 			return false;
