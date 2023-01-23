@@ -15,6 +15,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
 	public static ManualLogSource logger;
+	public static BaseUnityPlugin m_time_management_plugin = null;
 
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<bool> m_use_inventory_first;
@@ -339,6 +340,14 @@ public class Plugin : BaseUnityPlugin {
 				Item item = recipe.output.item.GenerateItem(list);
 				float multiplier = ___craftSpeedMultiplier * ((GameSave.CurrentCharacter.race == (int) Race.Human) ? 1.2f : 1f);
 				float craftTime = recipe.GetHoursToCraft(multiplier) * Settings.DaySpeedMultiplier;
+				if (craftTime < 0.001) {
+					if (m_time_management_plugin == null) {
+						foreach (string key in BepInEx.Bootstrap.Chainloader.PluginInfos.Keys) {
+							if (key == "devopsdinosaur.sunhaven.time_management"
+						}
+
+					}
+				}
 				ItemCraftInfo itemCraftInfo = new ItemCraftInfo {
 					item = item,
 					craftTime = craftTime,

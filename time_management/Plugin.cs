@@ -32,12 +32,18 @@ public class Plugin : BaseUnityPlugin {
 
 	public static float m_time_stop_multiplier = 1f;
 	public static bool m_is_ui_hidden = false;
-
+	private static Plugin m_instance;
+	public static Plugin Instance {
+		get {
+			return m_instance;
+		}
+	}
 
 	public Plugin() {
 	}
 
 	private void Awake() {
+		m_instance = this;
 		Plugin.logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
@@ -127,6 +133,10 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
+	private void update_transform_hack() {
+		this.transform.position = new Vector3(Plugin.m_time_speed.Value, Plugin.m_time_stop_multiplier);
+	}
+
 	[HarmonyPatch(typeof(Settings))]
 	[HarmonyPatch("DaySpeedMultiplier", MethodType.Getter)]
 	class HarmonyPatch_Wish_Settings_DaySpeedMultiplier {
@@ -136,6 +146,7 @@ public class Plugin : BaseUnityPlugin {
 				return true;
 			}
 			__result = (m_is_ui_hidden ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
+			Plugin.Instance.update_transform_hack();
 			return false;
 		}
 	}
