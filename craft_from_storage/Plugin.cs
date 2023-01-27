@@ -15,9 +15,9 @@ public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
 	public static ManualLogSource logger;
-	public static BaseUnityPlugin m_time_management_plugin = null;
-
+	
 	private static ConfigEntry<bool> m_enabled;
+	private static ConfigEntry<string> m_chest_interact_strings;
 	private static ConfigEntry<bool> m_use_inventory_first;
 	private static ConfigEntry<bool> m_transfer_from_action_bar;
 
@@ -29,6 +29,7 @@ public class Plugin : BaseUnityPlugin {
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
 		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
 		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
 	}
@@ -41,7 +42,7 @@ public class Plugin : BaseUnityPlugin {
 		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = 0f;
-		private string m_chest_interact_text;
+		private List<string> m_chest_interact_strings = null;
 		private GameObject m_transfer_similar_button = null;
 
 		public static OmniChest Instance {
@@ -51,11 +52,10 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		private OmniChest() {
-			// Need to check Chest.interactText to make sure it's not one of the other random
-			// world "chests" (i.e. snaccoons).  It's hacky, but there seems to be no other
-			// distinction.  This is a string and not a const because I assume the game will
-			// eventually have localization and I'll just localize it here.
-			this.m_chest_interact_text = "Chest";
+			this.m_chest_interact_strings = new List<string>();
+			foreach (string value in Plugin.m_chest_interact_strings.Value.Split(',')) {
+				this.m_chest_interact_strings.Add(value);
+			}
 		}
 
 		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
@@ -126,7 +126,7 @@ public class Plugin : BaseUnityPlugin {
 			foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
 				if (kvp.Value is Chest) {
 					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
-						(string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value) == this.m_chest_interact_text
+						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
 					) {
 						if (this.m_transfer_similar_button == null) {
 							this.create_transfer_button(kvp.Value.transform, player_inventory);
@@ -340,14 +340,6 @@ public class Plugin : BaseUnityPlugin {
 				Item item = recipe.output.item.GenerateItem(list);
 				float multiplier = ___craftSpeedMultiplier * ((GameSave.CurrentCharacter.race == (int) Race.Human) ? 1.2f : 1f);
 				float craftTime = recipe.GetHoursToCraft(multiplier) * Settings.DaySpeedMultiplier;
-				if (craftTime < 0.001) {
-					if (m_time_management_plugin == null) {
-						foreach (string key in BepInEx.Bootstrap.Chainloader.PluginInfos.Keys) {
-							if (key == "devopsdinosaur.sunhaven.time_management"
-						}
-
-					}
-				}
 				ItemCraftInfo itemCraftInfo = new ItemCraftInfo {
 					item = item,
 					craftTime = craftTime,

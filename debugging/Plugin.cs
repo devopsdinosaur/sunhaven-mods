@@ -12,6 +12,7 @@ using TMPro;
 using System.IO;
 using UnityEngine.Events;
 using DG.Tweening;
+using Mirror;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.debugging", "DEBUGGING", "0.0.1")]
@@ -80,19 +81,6 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Player), "Awake")]
-	class HarmonyPatch_Player_Awake {
-
-		private static bool Prefix() {
-			GameSave.Instance.SetProgressBoolCharacter("BabyDragon", value: true);
-			GameSave.Instance.SetProgressBoolCharacter("BabyTiger", value: true);
-			GameSave.Instance.SetProgressBoolCharacter("WithergateMask1", value: true);
-			GameSave.Instance.SetProgressBoolCharacter("SunArmor", value: true);
-			GameSave.Instance.SetProgressBoolCharacter("GoldRecord", value: true);
-			return true;
-		}
-	}
-
 	[HarmonyPatch(typeof(Player), "RequestSleep")]
 	class HarmonyPatch_Player_RequestSleep {
 
@@ -128,6 +116,10 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
+	// ======================================================================================
+	// Stuff for granting all race implicits
+	// ======================================================================================
+
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]
 	class HarmonyPatch_CraftingTable_Awake {
 
@@ -154,4 +146,38 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 	}
+
+	// ======================================================================================
+	// ======================================================================================
+
+	/*
+	[HarmonyPatch(typeof(LiamWheatCutscene), "OnEnable")]
+	class HarmonyPatch_LiamWheatCutscene_OnEnable {
+
+		private static bool Prefix() {
+			return false;
+		}
+	}
+	*/
+
+	[HarmonyPatch(typeof(LiamWheat), "ReceiveDamage")]
+	class HarmonyPatch_LiamWheatReceiveDamage {
+
+		private static bool Prefix(ref LiamWheat __instance, ref DamageHit __result) {
+			AudioManager.Instance.PlayOneShot(SingletonBehaviour<Prefabs>.Instance.cropHit, __instance.transform.position);
+			UnityEngine.Object.Destroy(__instance.gameObject);
+			__result = new DamageHit {
+				hit = true,
+				damageTaken = 1f
+			};
+			Pickup.Spawn(
+				__instance.transform.position.x + 0.5f, 
+				__instance.transform.position.y + 0.707106769f, 
+				__instance.transform.position.z, 
+				ItemID.Wheat
+			);
+			return false;
+		}
+	}
+
 }
