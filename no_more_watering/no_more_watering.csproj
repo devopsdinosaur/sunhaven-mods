@@ -78,6 +78,10 @@
     <Reference Include="UnityEngine.UI">
       <HintPath>..\libs\UnityEngine.UI.dll</HintPath>
     </Reference>
+    <Reference Include="ZeroFormatter, Version=1.6.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\ZeroFormatter.dll</HintPath>
+    </Reference>
     <Reference Include="ZeroFormatter.Interfaces">
       <HintPath>..\libs\ZeroFormatter.Interfaces.dll</HintPath>
     </Reference>

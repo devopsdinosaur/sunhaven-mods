@@ -10,7 +10,7 @@ using System.Linq;
 using ZeroFormatter;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.3")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -36,7 +36,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.3 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
@@ -94,15 +94,17 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Crop), "AddScarecrowEffects")]
-	class HarmonyPatch_Crop_AddScarecrowEffects {
+	[HarmonyPatch(typeof(Crop), "UpdateMetaOvernight")]
+	class HarmonyPatch_Crop_UpdateMetaOvernight {
 
-		private static bool Prefix(ref Crop __instance) {
+		private static bool Prefix(ref DecorationPositionData decorationData, ref Crop __instance) {
 			if (!m_enabled.Value) {
 				return true;
 			}
-			if (__instance.data.scareCrowEffects == null) {
+			if (!Decoration.DeserializeMeta(decorationData.meta, ref __instance.data)) {
 				__instance.data.scareCrowEffects = new List<ScareCrowEffect>();
+				__instance.data.dayPlanted = DayCycle.Day;
+				__instance.data.stage = 0;
 			}
 			if (m_scarecrow.Value) {
 				__instance.data.scareCrowEffects.Add(ScareCrowEffect.BasicSpring);
@@ -126,6 +128,51 @@ public class Plugin : BaseUnityPlugin {
 			if (m_totem_withergate.Value) {
 				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Withergate);
 			}
+			if (m_totem_royal.Value) {
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Royal);
+			}
+			decorationData.meta = ZeroFormatterSerializer.Serialize(__instance.data);
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "GetNearbyScarecrowEffects")]
+	class HarmonyPatch_Crop_GetNearbyScarecrowEffects {
+
+		private static bool Prefix(ref Crop __instance) {
+			if (!m_enabled.Value) {
+				return true;
+			}
+			if (m_scarecrow.Value) {
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.BasicSpring);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.BasicSummer);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.BasicFall);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.BasicWinter);
+			}
+			if (m_totem_seasons.Value) {
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Spring);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Summer);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Fall);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Winter);
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Fire);
+			}
+			if (m_totem_royal.Value) {
+				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Royal);
+			}
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "AddScarecrowEffects")]
+	class HarmonyPatch_Crop_AddScarecrowEffects {
+
+		private static bool Prefix(ref Crop __instance) {
+			if (!m_enabled.Value) {
+				return true;
+			}
+			if (__instance.data.scareCrowEffects == null) {
+				__instance.data.scareCrowEffects = new List<ScareCrowEffect>();
+			}
 			if (m_totem_exploration.Value) {
 				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Exploration);
 			}
@@ -141,10 +188,22 @@ public class Plugin : BaseUnityPlugin {
 			if (m_totem_fishing.Value) {
 				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Fishing);
 			}
-			if (m_totem_royal.Value) {
-				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Royal);
-			}
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "CanBePlacedBecauseScarecrowNearby")]
+	class HarmonyPatch_Crop_CanBePlacedBecauseScarecrowNearby {
+
+		private static bool Prefix(ref Crop __instance, ref bool __result) {
+			if (!m_enabled.Value) {
+				return true;
+			}
+			__result =
+				(m_totem_sunhaven.Value && __instance.SeedData.farmType == FarmType.Normal) ||
+				(m_totem_nelvari.Value && __instance.SeedData.farmType == FarmType.Nelvari) ||
+				(m_totem_withergate.Value && __instance.SeedData.farmType == FarmType.Withergate);
+			return !__result;
 		}
 	}
 }
