@@ -8,9 +8,10 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using ZeroFormatter;
+using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.4")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -30,13 +31,16 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_totem_combat;
 	private static ConfigEntry<bool> m_totem_fishing;
 	private static ConfigEntry<bool> m_totem_royal;
+	private static ConfigEntry<bool> m_fertilize_earth2;
+	private static ConfigEntry<bool> m_fertilize_fire2;
+	private static ConfigEntry<bool> m_hide_fertilizer_particles;
 
 	public Plugin() {
 	}
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.3 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.4 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
@@ -52,6 +56,42 @@ public class Plugin : BaseUnityPlugin {
 		m_totem_combat = this.Config.Bind<bool>("General", "Everywhere Totem: Combat", false, "If true then all crops will be covered by the Combat totem aura (crops grant +2 experience for this skill)");
 		m_totem_fishing = this.Config.Bind<bool>("General", "Everywhere Totem: Fishing", false, "If true then all crops will be covered by the Fishing totem aura (crops grant +2 experience for this skill)");
 		m_totem_royal = this.Config.Bind<bool>("General", "Everywhere Totem: Royal", false, "If true then all crops will be covered by the Royal totem aura (crops produce gold)");
+		m_fertilize_earth2 = this.Config.Bind<bool>("General", "Fertilize Earth2", false, "If true then all crops will be automatically fertilized with Earth Fertilizer 2 (can be combined with Fertilize Fire2 [combined fertilizer will produce a white floating particle])");
+		m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
+		m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
+	}
+
+	private static void update_tile(Vector2Int pos, bool do_water) {
+		if (!GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
+			if (TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
+				TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
+			}
+			return;
+		}
+		if (do_water && !crop.data.watered) {
+			if (crop.data.onFire) {
+				crop.PutOutFire();
+			}
+			crop.Water();
+			TileManager.Instance.SetFarmTileFromRPC(pos, ScenePortalManager.ActiveSceneIndex, FarmingTileInfo.Watered);
+			TileManager.onFarm?.Invoke(pos, ScenePortalManager.ActiveSceneIndex, 3);
+		}
+		if (m_fertilize_earth2.Value && crop.data.fertilizerType == FertilizerType.None) {
+			crop.Fertilize(FertilizerType.Earth2);
+		}
+		if (m_fertilize_fire2.Value && crop.data.fertilizerType == FertilizerType.None) {
+			crop.Fertilize(FertilizerType.Fire2);
+		}
+		if (crop.data.fertilizerType == FertilizerType.None) {
+			return;
+		}
+		GameObject _fertilized = (GameObject) crop.GetType().GetTypeInfo().GetField("_fertilized", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(crop);
+		ParticleSystem.MainModule main = _fertilized.GetComponent<ParticleSystem>().main;
+		if (m_hide_fertilizer_particles.Value) {
+			_fertilized.SetActive(false);
+		} else if (m_fertilize_earth2.Value && m_fertilize_fire2.Value) {
+			main.startColor = new Color(1f, 1f, 1f);
+		}
 	}
 
 	[HarmonyPatch(typeof(Player), "Update")]
@@ -66,9 +106,7 @@ public class Plugin : BaseUnityPlugin {
 			}
 			m_elapsed = 0f;
 			foreach (Vector2Int pos in TileManager.Instance.farmingData.Keys) {
-				if (TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
-					TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
-				}
+				update_tile(pos, m_water_during_day.Value);
 			}
 			return true;
 		}
@@ -87,12 +125,6 @@ public class Plugin : BaseUnityPlugin {
 					Vector2Int position = new Vector2Int(item2.Key.Item1, item2.Key.Item2);
 					if (TileManager.Instance.IsWaterable(position) && !TileManager.Instance.IsWatered(position)) {
 						TileManager.Instance.Water(position, key);
-						if (GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(position.x * 6, position.y * 6, 0), out var crop)) {
-							crop.Fertilize(FertilizerType.Earth2);
-							crop.Fertilize(FertilizerType.Fire2);
-							crop.Fertilize(FertilizerType.Water2);
-							logger.LogInfo(crop._cropItem.FormattedName);
-						}
 					}
 				}
 			}
@@ -210,6 +242,49 @@ public class Plugin : BaseUnityPlugin {
 				(m_totem_nelvari.Value && __instance.SeedData.farmType == FarmType.Nelvari) ||
 				(m_totem_withergate.Value && __instance.SeedData.farmType == FarmType.Withergate);
 			return !__result;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "GetDropAmount")]
+	class HarmonyPatch_Crop_GetDropAmount {
+
+		private static bool Prefix(ref Crop __instance, ref float __result) {
+			if (!(m_enabled.Value && m_fertilize_earth2.Value)) {
+				return true;
+			}
+			float num = UnityEngine.Random.Range(__instance._seedItem.dropRange.x, __instance._seedItem.dropRange.y) + 0.25f;
+			if (__instance.data.scareCrowEffects != null) {
+				num += (float) __instance.data.scareCrowEffects.Count((ScareCrowEffect effect) => effect == ScareCrowEffect.Spring) * 0.04f;
+			}
+			int nodeAmount = GameSave.Farming.GetNodeAmount("Farming8a");
+			if (nodeAmount > 0 && __instance.data.fertilizerType != 0) {
+				num += 0.04f * (float) nodeAmount;
+			}
+			if (GameSave.Farming.GetNodeAmount("Farming6a") > 0) {
+				num += 0.02f + 0.02f * (float) nodeAmount;
+			}
+			__result = num + Player.Instance.GetStat(StatType.ExtraCropChance);
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "AdjustedDaysToGrow")]
+	class HarmonyPatch_Crop_AdjustedDaysToGrow {
+
+		private static bool Prefix(int i, ref Crop __instance, ref int __result) {
+			if (!(m_enabled.Value && m_fertilize_fire2.Value)) {
+				return true;
+			}
+			float num = __instance._seedItem.cropStages[i + 1].daysToGrow;
+			float num2 = 1f;
+			if (__instance.data != null) {
+				if (__instance.data.scareCrowEffects != null && __instance.data.scareCrowEffects.Count > 0) {
+					num2 += (float) __instance.data.scareCrowEffects.Count((ScareCrowEffect effect) => effect == ScareCrowEffect.Fire) * 0.15f;
+				}
+				num /= num2 + 0.5f;
+			}
+			__result = Mathf.CeilToInt(num);
+			return false;
 		}
 	}
 }
