@@ -41,7 +41,7 @@ public class Plugin : BaseUnityPlugin {
 		private Dictionary<int, List<SlotItemData>> m_items = null;
 		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
-		private float m_elapsed = 0f;
+		private float m_elapsed = CHECK_FREQUENCY;
 		private List<string> m_chest_interact_strings = null;
 		private GameObject m_transfer_similar_button = null;
 

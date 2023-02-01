@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_from_storage", "craft
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kickstarter", "kickstarter\kickstarter.csproj", "{745A063F-8298-41FE-A9F5-12311F00A110}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "quality_of_life", "quality_of_life\quality_of_life.csproj", "{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,10 @@ Global
 		{745A063F-8298-41FE-A9F5-12311F00A110}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{745A063F-8298-41FE-A9F5-12311F00A110}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{745A063F-8298-41FE-A9F5-12311F00A110}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

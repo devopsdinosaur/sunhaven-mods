@@ -155,7 +155,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_DayCycle {
 
 		private const float CHECK_FREQUENCY = 1.0f;
-		private static float m_elapsed = 0f;
+		private static float m_elapsed = CHECK_FREQUENCY;
 		private static DateTime m_last_system_time = DateTime.MinValue;
 		private static DateTime m_last_game_time = DateTime.MinValue;
 		private static string m_time_factor_string = "";

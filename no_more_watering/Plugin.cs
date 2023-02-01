@@ -58,7 +58,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Player_Update {
 
 		const float CHECK_FREQUENCY = 1.0f;
-		static float m_elapsed = 0f;
+		static float m_elapsed = CHECK_FREQUENCY;
 
 		private static bool Prefix(ref Player __instance) {
 			if (!m_enabled.Value || !m_water_during_day.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
