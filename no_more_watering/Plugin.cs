@@ -87,6 +87,12 @@ public class Plugin : BaseUnityPlugin {
 					Vector2Int position = new Vector2Int(item2.Key.Item1, item2.Key.Item2);
 					if (TileManager.Instance.IsWaterable(position) && !TileManager.Instance.IsWatered(position)) {
 						TileManager.Instance.Water(position, key);
+						if (GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(position.x * 6, position.y * 6, 0), out var crop)) {
+							crop.Fertilize(FertilizerType.Earth2);
+							crop.Fertilize(FertilizerType.Fire2);
+							crop.Fertilize(FertilizerType.Water2);
+							logger.LogInfo(crop._cropItem.FormattedName);
+						}
 					}
 				}
 			}
