@@ -17,6 +17,7 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_no_keys_for_chests;
 	private static ConfigEntry<bool> m_no_keys_for_mine_doors;
 	private static ConfigEntry<bool> m_no_keys_for_wilt;
+	private static ConfigEntry<bool> m_no_tickets_for_gerald;
 
 	public Plugin() {
 	}
@@ -29,6 +30,7 @@ public class Plugin : BaseUnityPlugin {
 		m_no_keys_for_chests = this.Config.Bind<bool>("General", "No Keys for Chests", true, "If true then keys are not required for chests (will display image but won't check/use key)");
 		m_no_keys_for_mine_doors = this.Config.Bind<bool>("General", "No Keys for Mine Doors", true, "If true then all doors in the Sun Haven mine will be open");
 		m_no_keys_for_wilt = this.Config.Bind<bool>("General", "No Keys for Wilt", true, "If true then you cruelly trick the poor slow tree guy into thinking you're giving him keys (shame on you!)");
+		m_no_tickets_for_gerald = this.Config.Bind<bool>("General", "No Tickets for Gerald", true, "If true then you give fake tickets to Gerald in Withergate");
 	}
 
 	[HarmonyPatch(typeof(HelpTooltips), "SendNotification")]
@@ -112,6 +114,58 @@ public class Plugin : BaseUnityPlugin {
 				___keyImage = null;
 			}
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(GeraldMinesCutscene), "CheckHasKey")]
+	class HarmonyPatch_GeraldMinesCutscene_CheckHasKey {
+
+		private static bool Prefix(ref GeraldMinesCutscene __instance, string optionText, int keyType, ref bool[] ___hasKeyType, ref string __result) {
+			if (!m_enabled.Value || !m_no_tickets_for_gerald.Value) {
+				return true;
+			}
+			string item_string = "";
+			___hasKeyType[keyType] = true;
+			switch (keyType) {
+			case 0: item_string = "<color=\"green\">Economy</color> (small mine)"; break;
+			case 1: item_string = "<color=\"purple\">First Class</color> (medium mine)"; break;
+			case 2: item_string = "<color=\"yellow\">Kingly</color> (large mine)"; break;
+			}
+			__result = "[ Jedi mind trick a fake ** " + item_string + " ** ticket for Gerald ]";
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(GeraldMinesCutscene), "DetermineMineSize")]
+	class HarmonyPatch_GeraldMinesCutscene_DetermineMineSize {
+
+		private static bool IsValueBetween(float p1, float p2, float m) {
+			if (!(p1 < m) || !(m < p2)) {
+				if (p2 < m) {
+					return m < p1;
+				}
+				return false;
+			}
+			return true;
+		}
+
+		private static bool Prefix(ref GeraldMinesCutscene __instance, int keyType, ref string __result) {
+			if (!m_enabled.Value || !m_no_tickets_for_gerald.Value) {
+				return true;
+			}
+			float num = Random.Range(0f, 99f);
+			switch (keyType) {
+			case 0:
+				__result = ((num <= 49f) ? "Small" : (IsValueBetween(50f, 74f, num) ? "Medium" : (IsValueBetween(75f, 99f, num) ? "Large" : "Error")));
+				break;
+			case 1:
+				__result = ((num <= 14f) ? "Small" : (IsValueBetween(15f, 64f, num) ? "Medium" : (IsValueBetween(65f, 99f, num) ? "Large" : "Error")));
+				break;
+			case 2:
+				__result = ((num <= 19f) ? "Medium" : (IsValueBetween(20f, 99f, num) ? "Large" : "Error"));
+				break;
+			}
+			return false;
 		}
 	}
 }

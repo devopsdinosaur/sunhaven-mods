@@ -190,6 +190,8 @@ public class Plugin : BaseUnityPlugin {
 		public const float MAX_VALUE = 20f;
 		public const float MAX_TICK = MAX_VALUE / TICK;
 
+		//public void create_settings_slider
+
 		public void adjust_dayspeed_slider(float value, Slider slider, TextMeshProUGUI label) {
 			slider.minValue = 0f;
 			slider.maxValue = MAX_TICK;
@@ -201,78 +203,13 @@ public class Plugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(PlayerSettings), "SetupUI")]
 	class HarmonyPatch_PlayerSettings_SetupUI {
 
-		/*
-		private static bool Prefix(
-			ref PlayerSettings __instance,
-			ref Slider ____masterVolumeSlider,
-			ref Slider ____musicVolumeSlider,
-			ref Slider ____soundEffectsVolumeSlider,
-			ref Slider ____ambientVolumeSlider,
-			ref TextMeshProUGUI ___masterVolumeTMP,
-			ref TextMeshProUGUI ___musicVolumeTMP,
-			ref TextMeshProUGUI ___soundEffectsVolumeTMP,
-			ref TextMeshProUGUI ___ambientVolumeTMP,
-			ref Slider ___zoomSlider,
-			ref TextMeshProUGUI ___zoomTMP,
-			ref Slider ___daySpeedSlider,
-			ref TextMeshProUGUI ___daySpeedTMP,
-			ref Toggle ___fullscreenToggle,
-			ref Toggle ___pauseDuringDialogue,
-			ref Toggle ___skipTutorials,
-			ref int ___targetFrameRate,
-			ref Resolution[] ___resolutions,
-			TMP_Dropdown ____resolutionDropdown
-		) {
-
-			//return true;
-
-			//___daySpeedSlider.maxValue = 10;
-			____masterVolumeSlider.value = Settings.MasterAudioLevel;
-			____musicVolumeSlider.value = Settings.MusicAudioLevel;
-			____soundEffectsVolumeSlider.value = Settings.SoundEffectsAudioLevel;
-			____ambientVolumeSlider.value = Settings.AmbientSoundAudioLevel;
-			___masterVolumeTMP.text = Settings.MasterAudioLevel.FormatToPercentage();
-			___musicVolumeTMP.text = Settings.MusicAudioLevel.FormatToPercentage();
-			___soundEffectsVolumeTMP.text = Settings.SoundEffectsAudioLevel.FormatToPercentage();
-			___ambientVolumeTMP.text = Settings.AmbientSoundAudioLevel.FormatToPercentage();
-			___zoomSlider.value = Mathf.InverseLerp(4f, 2f, Settings.Zoom);
-			___zoomTMP.text = Settings.Zoom + "x";
-			___daySpeedSlider.value = Mathf.InverseLerp(1f, 4f, Settings.DaySpeed);
-			___daySpeedTMP.text = "Who knows!?"; //GetTimeByDaySpeed();
-			___fullscreenToggle.isOn = Settings.Resolution.z == 1;
-			___pauseDuringDialogue.SetIsOnWithoutNotify(Settings.PauseDuringDialogue);
-			___skipTutorials.SetIsOnWithoutNotify(Settings.SkipTutorials);
-			__instance.GetType().GetTypeInfo().GetMethod("SetCheatsEnabled", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-			___targetFrameRate = Settings.Resolution.w;
-			Application.targetFrameRate = ___targetFrameRate;
-			___resolutions = Screen.resolutions;
-			____resolutionDropdown.ClearOptions();
-			List<string> list = new List<string>();
-			int value = 0;
-			for (int i = 0; i < ___resolutions.Length; i++) {
-				string item = ___resolutions[i].width + " x " + ___resolutions[i].height + " (" + ___resolutions[i].refreshRate + ")";
-				list.Add(item);
-				if (___resolutions[i].width == Screen.width && ___resolutions[i].height == Screen.height) {
-					value = i;
-				}
-			}
-			____resolutionDropdown.AddOptions(list);
-			____resolutionDropdown.RefreshShownValue();
-			____resolutionDropdown.value = value;
-			__instance.GetType().GetTypeInfo().GetMethod("SetupKeybindButtons", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-			__instance.CloseKeyBindsPanel();
-			__instance.CloseConfirmCheatMenu();
-			Settings.WriteSettingsToFile();
-			return false;
-		}
-		*/
-
 		private static void Postfix(
 			ref PlayerSettings __instance,
 			ref Slider ___daySpeedSlider,
 			ref TextMeshProUGUI ___daySpeedTMP
 		) {
-			SimulationClock.Instance.adjust_dayspeed_slider(2f, ___daySpeedSlider, ___daySpeedTMP);
+			___daySpeedTMP.color = new Color(1, 0, 0);
+			//SimulationClock.Instance.adjust_dayspeed_slider(2f, ___daySpeedSlider, ___daySpeedTMP);
 		}
 	}
 
@@ -285,8 +222,8 @@ public class Plugin : BaseUnityPlugin {
 			ref Slider ___daySpeedSlider,
 			ref TextMeshProUGUI ___daySpeedTMP
 		) {
-			SimulationClock.Instance.adjust_dayspeed_slider(value, ___daySpeedSlider, ___daySpeedTMP);
-			return false;
+			//SimulationClock.Instance.adjust_dayspeed_slider(value, ___daySpeedSlider, ___daySpeedTMP);
+			return true;
 		}
 	}
 }
