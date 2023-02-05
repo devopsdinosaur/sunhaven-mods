@@ -226,4 +226,112 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 	}
+
+	[HarmonyPatch(typeof(Pickaxe), "Action")]
+	class HarmonyPatch_Pickaxe_Action {
+
+		private const float POWER_MULTIPLIER = 5f;
+		private const float AOE_RANGE_MULTIPLIER = 2f;
+
+		private static bool Prefix(
+			ref Pickaxe __instance,
+			ref Decoration ____currentDecoration,
+			ref Player ___player,
+			ref float ____power,
+			ref PickaxeType ___pickaxeType,
+			ref int ____breakingPower
+		) {
+			if (!((bool) ____currentDecoration && ____currentDecoration is Rock rock)) {
+				return true;
+			}
+			bool is_crit = Utilities.Chance(___player.GetStat(StatType.MiningCrit));
+			float damage = (is_crit ? (____power * 2f) : ____power);
+			damage *= UnityEngine.Random.Range(0.75f, 1.25f);
+			damage *= 1f + ___player.GetStat(StatType.MiningDamage);
+			if (SceneSettingsManager.Instance.GetCurrentSceneSettings != null && SceneSettingsManager.Instance.GetCurrentSceneSettings.townType == TownType.Nelvari && ___pickaxeType == PickaxeType.Nelvari) {
+				damage *= 1.3f;
+			}
+			if (SceneSettingsManager.Instance.GetCurrentSceneSettings != null && SceneSettingsManager.Instance.GetCurrentSceneSettings.townType == TownType.Withergate && ___pickaxeType == PickaxeType.Withergate) {
+				damage *= 1.3f;
+			}
+			foreach (Rock rock2 in Utilities.CircleCast<Rock>(rock.Center, 3f * AOE_RANGE_MULTIPLIER)) {
+				if (rock2 != null) {
+					hit_rock(rock2, damage, ____breakingPower, is_crit);
+				}
+			}
+			return true;
+		}
+
+		private static void hit_rock(Rock rock, float damage, float _breakingPower, bool is_crit) {
+			Vector3 position = rock.Position + new Vector3(0.5f, -0.15f, -1f);
+			ParticleManager.Instance.InstantiateParticle(((ParticleSystem) rock.GetType().GetTypeInfo().GetField("_breakParticle", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(rock)), position);
+			((Transform) rock.GetType().GetTypeInfo().GetField("graphics", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(rock)).DOScale(new Vector3(1.1f, 0.9f, 1f), 0.35f).From().SetEase(Ease.OutBounce);
+			if (_breakingPower < (float) rock.GetType().GetTypeInfo().GetField("requiredPower", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(rock)) {
+				return;
+			}
+			FieldInfo current_health_info = rock.GetType().GetTypeInfo().GetField("_currentHealth", BindingFlags.Instance | BindingFlags.NonPublic);
+			return;
+			float current_health = (float) current_health_info.GetValue(rock) - damage;
+			current_health_info.SetValue(rock, current_health);
+			FieldInfo heal_tween_info = rock.GetType().GetTypeInfo().GetField("healTween", BindingFlags.Instance | BindingFlags.NonPublic);
+			Tween heal_tween = (Tween) heal_tween_info.GetValue(rock);
+			heal_tween.Kill();
+			FloatingTextManager.Instance.SpawnFloatingDamageText((int) damage, position, DamageType.Player, is_crit);
+			Slider _healthSlider = (Slider) rock.GetType().GetTypeInfo().GetField("_healthSlider", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(rock);
+			if ((bool) _healthSlider) {
+				_healthSlider.gameObject.SetActive(value: true);
+				_healthSlider.DOValue(Mathf.Clamp(current_health / (float) rock.GetType().GetTypeInfo().GetField("_health", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(rock), 0f, 1f), 0.125f);
+				DOVirtual.DelayedCall(20f, delegate {
+					if ((bool) _healthSlider) {
+						_healthSlider.gameObject.SetActive(value: false);
+					}
+				});
+			}
+			/*
+				healTween = DOVirtual.DelayedCall(20f, delegate
+				{
+					if ((bool) _healthSlider) {
+						_healthSlider.gameObject.SetActive(value: false);
+					}
+				});
+			} else if (isHeavystone) {
+				if (!SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("Heavystone")) {
+					SingletonBehaviour<HelpTooltips>.Instance.SendNotification("Heavystone", "<color=#39CCFF>Heavystone</color> Deposits are a lot tougher than normal stone! You'll need <color=#39CCFF>a stronger tool</color> to break them!", new List<(Transform, Vector3, Direction)>(), 35, delegate
+					{
+						SingletonBehaviour<HelpTooltips>.Instance.CompleteNotification(35);
+						SingletonBehaviour<GameSave>.Instance.SetProgressBoolCharacter("Heavystone", value: true);
+					});
+				}
+				SingletonBehaviour<NotificationStack>.Instance.SendNotification("You'll need <color=#39CCFF>a stronger tool</color> to break <color=#39CCFF>Heavystone</color> Deposits!");
+			}
+			if (_currentHealth <= 0f) {
+				Die(hitFromLocalPlayer, homeIn, rustyKeyDropMultiplier, brokeUsingPickaxe);
+			} else if ((bool) _rockHitSound) {
+				AudioManager.Instance.PlayOneShot(_rockHitSound, base.transform.position);
+			}
+			*/
+		}
+	}
+
+	[HarmonyPatch(typeof(Rock), "Die")]
+	class HarmonyPatch_Rock_Die {
+
+		private static bool Prefix(
+			ref bool hitFromLocalPlayer,
+			ref bool homeIn, 
+			ref float rustyKeyDropMultiplier, 
+			ref bool brokeUsingPickaxe,
+			ref Rock __instance,
+			ref AudioClip ____rockBreakSound
+		) {
+			logger.LogInfo("Rock.Die - pos: " + __instance.Position);
+			if ((bool) ____rockBreakSound) {
+				AudioManager.Instance.PlayOneShot(____rockBreakSound, __instance.transform.position);
+			}
+			if (hitFromLocalPlayer) {
+				__instance.GetType().GetTypeInfo().GetMethod("HandleRockDrop", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {homeIn, rustyKeyDropMultiplier, brokeUsingPickaxe});
+			}
+			return false;
+		}
+	}
 }
