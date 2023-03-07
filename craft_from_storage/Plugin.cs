@@ -10,7 +10,7 @@ using TMPro;
 using System;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.5")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -26,7 +26,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.4 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.5 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin {
 	public class OmniChest {
 
 		private static OmniChest m_instance = null;
+		private List<int> m_added_hashes = null;
 		private Dictionary<int, List<SlotItemData>> m_items = null;
 		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
@@ -114,34 +115,26 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
 				return;
 			}
-			GameObject decorations_parent = GameObject.Find("[DECORATIONS]");
-			if (decorations_parent == null) {
-				foreach (GameObject top_object in GameObject.FindObjectsOfType<GameObject>()) {
-					if ((decorations_parent = top_object.transform.Find("[DECORATIONS]")?.gameObject) != null) {
-						break;
-					}
-				}
-			}
 			m_elapsed = 0f;
+			int hash = 0;
+			this.m_added_hashes = new List<int>();
 			this.m_items = new Dictionary<int, List<SlotItemData>>();
 			this.m_inventories = new List<Inventory>();
 			if (m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
 			}
-			if (decorations_parent != null) {
-
-				bool __enum_descendants_callback_find_chest__(Transform transform) {
-					Chest chest = transform.gameObject.GetComponent<Chest>();
-					if (chest != null && this.m_chest_interact_strings.Contains((string) chest.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(chest))) {
+			foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
+				if (kvp.Value is Chest) {
+					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
+						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
+					) {
 						if (this.m_transfer_similar_button == null) {
-							this.create_transfer_button(transform, player_inventory);
+							this.create_transfer_button(kvp.Value.transform, player_inventory);
 						}
-						this.add_inventory(chest.sellingInventory);
+						this.m_added_hashes.Add(hash);
+						this.add_inventory(((Chest) kvp.Value).sellingInventory);
 					}
-					return true;
 				}
-				
-				enum_descendants(decorations_parent.transform, __enum_descendants_callback_find_chest__);
 			}
 			if (!m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
@@ -221,12 +214,11 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(CraftingTable), "CanCraft")]
-	class HarmonyPatch_CraftingTable_CanCraft {
+	[HarmonyPatch(typeof(CraftingTable), "Interact")]
+	class HarmonyPatch_CraftingTable_Interact {
 
-		private static bool Prefix(Recipe recipe, int amount, Inventory inventory, ref bool __result) {
-			__result = OmniChest.Instance.can_craft(recipe, amount);
-			return false;
+		private static void Postfix() {
+			
 		}
 	}
 
