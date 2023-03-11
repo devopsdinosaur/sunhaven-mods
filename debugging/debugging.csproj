@@ -68,6 +68,9 @@
     <Reference Include="Mirror">
       <HintPath>..\libs\Mirror.dll</HintPath>
     </Reference>
+    <Reference Include="QFSW.QC">
+      <HintPath>..\libs\QFSW.QC.dll</HintPath>
+    </Reference>
     <Reference Include="Sirenix.Serialization">
       <HintPath>..\libs\Sirenix.Serialization.dll</HintPath>
     </Reference>
