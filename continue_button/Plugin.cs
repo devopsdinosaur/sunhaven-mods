@@ -54,6 +54,12 @@ public class Plugin : BaseUnityPlugin {
 			m_continue_button = GameObject.Instantiate<GameObject>(play_button.gameObject, play_button.parent);
 			m_continue_button.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Continue";
 			m_continue_button.transform.SetAsFirstSibling();
+			
+			//enables using the keyboard or a controller to use the up/down keys/buttons to select the continue button
+			NavigationElement navElement = playButton.gameObject.GetComponent<NavigationElement>();
+        		navElement.up = m_continue_button.GetComponent<NavigationElement>();
+        		m_continue_button.GetComponent<NavigationElement>().down = navElement;
+			
 			m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				__instance.PlayGame(latest_save_index);
 			});
