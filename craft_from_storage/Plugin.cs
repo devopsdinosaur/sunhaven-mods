@@ -10,7 +10,7 @@ using TMPro;
 using System;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.6")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -26,7 +26,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.4 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.6 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
@@ -37,6 +37,7 @@ public class Plugin : BaseUnityPlugin {
 	public class OmniChest {
 
 		private static OmniChest m_instance = null;
+		private List<int> m_added_hashes = null;
 		private Dictionary<int, List<SlotItemData>> m_items = null;
 		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
@@ -114,34 +115,26 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
 				return;
 			}
-			GameObject decorations_parent = GameObject.Find("[DECORATIONS]");
-			if (decorations_parent == null) {
-				foreach (GameObject top_object in GameObject.FindObjectsOfType<GameObject>()) {
-					if ((decorations_parent = top_object.transform.Find("[DECORATIONS]")?.gameObject) != null) {
-						break;
-					}
-				}
-			}
 			m_elapsed = 0f;
+			int hash = 0;
+			this.m_added_hashes = new List<int>();
 			this.m_items = new Dictionary<int, List<SlotItemData>>();
 			this.m_inventories = new List<Inventory>();
 			if (m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
 			}
-			if (decorations_parent != null) {
-
-				bool __enum_descendants_callback_find_chest__(Transform transform) {
-					Chest chest = transform.gameObject.GetComponent<Chest>();
-					if (chest != null && this.m_chest_interact_strings.Contains((string) chest.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(chest))) {
+			foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
+				if (kvp.Value is Chest) {
+					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
+						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
+					) {
 						if (this.m_transfer_similar_button == null) {
-							this.create_transfer_button(transform, player_inventory);
+							this.create_transfer_button(kvp.Value.transform, player_inventory);
 						}
-						this.add_inventory(chest.sellingInventory);
+						this.m_added_hashes.Add(hash);
+						this.add_inventory(((Chest) kvp.Value).sellingInventory);
 					}
-					return true;
 				}
-				
-				enum_descendants(decorations_parent.transform, __enum_descendants_callback_find_chest__);
 			}
 			if (!m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);
@@ -164,8 +157,30 @@ public class Plugin : BaseUnityPlugin {
 			}
 		}
 
+		public int get_fish_rarity_amount(ItemRarity rarity) {
+            int amount = 0;
+			foreach (int id in this.m_items.Keys) {
+				foreach (SlotItemData item in this.m_items[id]) {
+					if (item.item is FishItem fish_item && ItemDatabase.GetItemData(fish_item.ID()).rarity.Equals(rarity)) {
+						amount += item.amount;
+					}
+				}
+			}
+			return amount;
+        }
+
 		public int get_item_amount(int id) {
 			int amount = 0;
+			switch (id) {
+			case 60000:	return GameSave.Coins;
+			case 60001:	return GameSave.Orbs;
+			case 60002:	return GameSave.Tickets;
+			case 60200:	return this.get_fish_rarity_amount(ItemRarity.Common);
+			case 60201:	return this.get_fish_rarity_amount(ItemRarity.Uncommon);
+			case 60202:	return this.get_fish_rarity_amount(ItemRarity.Rare);
+			case 60203:	return this.get_fish_rarity_amount(ItemRarity.Epic);
+			case 60204:	return this.get_fish_rarity_amount(ItemRarity.Legendary);
+			}
 			if (this.m_items.ContainsKey(id)) {
 				foreach (SlotItemData item in this.m_items[id]) {
 					amount += item.amount;
@@ -177,7 +192,11 @@ public class Plugin : BaseUnityPlugin {
 		public bool can_craft(Recipe recipe, int amount) {
 			foreach (ItemInfo item in recipe.Input) {
 				if (item.item.name == "Mana") {
-					if (Player.Instance.Mana <= (float) recipe.ModifiedAmount(item.amount, item.item, recipe.output.item) * amount) {
+					if (Player.Instance.Mana <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
+						return false;
+					}
+				} else if (item.item.name == "Health") {
+					if (Player.Instance.Health <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
 						return false;
 					}
 				} else if (!this.m_items.ContainsKey(item.item.id)) {
@@ -213,6 +232,25 @@ public class Plugin : BaseUnityPlugin {
 			}
 			return items;
 		}
+
+		public List<ItemAmount> remove_fish(ItemRarity rarity, int amount = 1) {
+            List<ItemAmount> items = new List<ItemAmount>();
+
+            foreach (int id in this.m_items.Keys) {
+                foreach (SlotItemData item in this.m_items[id]) {
+                    if (item.item is FishItem fish_item && ItemDatabase.GetItemData(fish_item.ID()).rarity.Equals(rarity)) {
+                        foreach (ItemAmount item_amount in item.slot.inventory.RemoveItem(id, amount)) {
+                            amount -= item_amount.amount;
+                            items.Add(item_amount);
+                        }
+                        if (amount <= 0) {
+                            return items;
+                        }
+                    }
+                }
+            }
+			return items;
+        }
 	}
 
 	[HarmonyPatch(typeof(Player), "FixedUpdate")]
@@ -224,12 +262,11 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(CraftingTable), "CanCraft")]
-	class HarmonyPatch_CraftingTable_CanCraft {
+	[HarmonyPatch(typeof(CraftingTable), "Interact")]
+	class HarmonyPatch_CraftingTable_Interact {
 
-		private static bool Prefix(Recipe recipe, int amount, Inventory inventory, ref bool __result) {
-			__result = OmniChest.Instance.can_craft(recipe, amount);
-			return false;
+		private static void Postfix() {
+			
 		}
 	}
 
@@ -241,14 +278,15 @@ public class Plugin : BaseUnityPlugin {
 				return true;
 			}
 			itemImage.Initialize(ItemDatabase.GetItemData(recipe.Input[index].item.id).GetItem());
-			int num = 0;
-			num = ((!(recipe.Input[index].item.name == "Mana")) ? 
-				OmniChest.Instance.get_item_amount(recipe.Input[index].item.id) : 
-				((int) Player.Instance.Mana)
-			);
-			int num2 = recipe.ModifiedAmount(recipe.Input[index].amount, recipe.Input[index].item, recipe.output.item);
-			itemImage.SetDisabled(num < num2);
-			itemImage.SetAmount(num.FormatWithCommas() + "/" + num2.FormatWithCommas(), num2);
+			int has_amount = 0;
+			switch (recipe.Input[index].item.name) {
+			case "Mana":	{ has_amount = (int) Player.Instance.Mana; break; }
+			case "Health":	{ has_amount = (int) Player.Instance.Health; break; }
+			default:		{ has_amount = OmniChest.Instance.get_item_amount(recipe.Input[index].item.id); break; }
+			}
+			int required_amount = recipe.ModifiedAmount(recipe.Input[index].amount, recipe.Input[index].item, recipe.output.item);
+			itemImage.SetDisabled(has_amount < required_amount);
+			itemImage.SetAmount(has_amount.FormatWithCommas() + "/" + required_amount.FormatWithCommas(), required_amount);
 			return false;
 		}
 	}
@@ -270,10 +308,14 @@ public class Plugin : BaseUnityPlugin {
 			}
 			int num = 999;
 			foreach (ItemInfo item in ___recipe.Input) {
-				int num2 = ((!(item.item.name == "Mana")) ? 
-					(OmniChest.Instance.get_item_amount(item.item.id) / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item)) : 
-					((int) Player.Instance.Mana / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item))
-				);
+				int num2;
+				if (item.item.name == "Mana") {
+					num2 = (int) Player.Instance.Mana / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
+				} else if (item.item.name == "Health") {
+					num2 = (int) Player.Instance.Health / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
+				} else {
+					num2 = OmniChest.Instance.get_item_amount(item.item.id) / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
+				}
 				if (num2 < num) {
 					num = num2;
 				}
@@ -341,10 +383,19 @@ public class Plugin : BaseUnityPlugin {
 				List<ItemAmount> list = new List<ItemAmount>();
 				foreach (ItemInfo item2 in recipe.Input) {
 					if (item2.item.name == "Mana") {
-						int num = recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item);
-						Player.Instance.UseMana(num);
-					} else {
-						List<ItemAmount> collection = OmniChest.Instance.remove_item(item2.item.id, recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item));
+						Player.Instance.UseMana(recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item));
+					} else if (item2.item.name == "Health") {
+                        Player.Instance.Health -= recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item);
+                    } else {
+                        List<ItemAmount> collection;
+						switch (item2.item.id) {
+						case 60200: { collection = OmniChest.Instance.remove_fish(ItemRarity.Common, item2.amount); break; }
+						case 60201: { collection = OmniChest.Instance.remove_fish(ItemRarity.Uncommon, item2.amount); break; }
+						case 60202: { collection = OmniChest.Instance.remove_fish(ItemRarity.Rare, item2.amount); break; }
+						case 60203: { collection = OmniChest.Instance.remove_fish(ItemRarity.Epic, item2.amount); break; }
+						case 60204: { collection = OmniChest.Instance.remove_fish(ItemRarity.Legendary, item2.amount); break; }
+						default:	{ collection = OmniChest.Instance.remove_item(item2.item.id, recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item)); break; }
+						}
 						list.AddRange(collection);
 					}
 				}

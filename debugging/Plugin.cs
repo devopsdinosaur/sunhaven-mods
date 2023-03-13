@@ -15,6 +15,7 @@ using UnityEngine.Events;
 using DG.Tweening;
 using Mirror;
 using UnityEngine.UI;
+using QFSW.QC;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.debugging", "DEBUGGING", "0.0.1")]
@@ -86,7 +87,15 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Player), "RequestSleep")]
+    [HarmonyPatch(typeof(PlayerSettings), "Initialize")]
+    class HarmonyPatch_PlayerSettings_Initialize {
+
+        private static void Postfix(PlayerSettings __instance) {
+            __instance.SetCheatsEnabled(true);
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), "RequestSleep")]
 	class HarmonyPatch_Player_RequestSleep {
 
 		private static bool Prefix(Player __instance, Bed bed, ref bool ____paused, ref UnityAction ___OnUnpausePlayer) {
