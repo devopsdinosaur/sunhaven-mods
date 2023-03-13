@@ -9,6 +9,7 @@ using Wish;
 using TMPro;
 using System;
 using System.Reflection;
+using System.Diagnostics;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.1")]
@@ -23,7 +24,9 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<string> m_hotkey_time_speed_down;
 	public static ConfigEntry<float> m_time_speed;
 	private static ConfigEntry<float> m_time_speed_delta;
-	
+	private static ConfigEntry<bool> m_show_time_factor;
+	private static ConfigEntry<bool> m_twenty_four_hour_format;
+
 	private const int HOTKEY_MODIFIER = 0;
 	private const int HOTKEY_TIME_STOP_TOGGLE = 1;
 	private const int HOTKEY_TIME_SPEED_UP = 2;
@@ -50,10 +53,12 @@ public class Plugin : BaseUnityPlugin {
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
 		m_hotkey_time_stop_toggle = this.Config.Bind<string>("General", "Time Start/Stop Toggle Hotkey", "Alpha0,Keypad0", "Comma-separated list of Unity Keycodes, any of which will toggle the passage of time.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-		m_hotkey_time_speed_up = this.Config.Bind<string>("General", "Time Speed Up Hotkey", "Equals,KeypadPlus", "Comma-separated list of Unity Keycodes, any of which will increase the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-		m_hotkey_time_speed_down = this.Config.Bind<string>("General", "Time Speed Down Hotkey", "Minus,KeypadMinus", "Comma-separated list of Unity Keycodes, any of which will decrease the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-		m_time_speed = this.Config.Bind<float>("General", "Initial Time Speed", 0.25f, "Initial time speed (float, 0.5f == 40min, 1.66f == 15 min).");
-		m_time_speed_delta = this.Config.Bind<float>("General", "Time Speed Delta", 0.05f, "Change in time speed with each up/down hotkey tick (float).");
+		m_hotkey_time_speed_up = this.Config.Bind<string>("General", "Time Scale Increment Hotkey", "Equals,KeypadPlus", "Comma-separated list of Unity Keycodes, any of which will increase the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
+		m_hotkey_time_speed_down = this.Config.Bind<string>("General", "Time Scale Decrement Hotkey", "Minus,KeypadMinus", "Comma-separated list of Unity Keycodes, any of which will decrease the time speed.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
+		m_time_speed = this.Config.Bind<float>("General", "Initial Time Scale", 0.25f, "Initial time scale (float, the default time scale equaling the number of game minutes that elapse per real-time second)");
+		m_time_speed_delta = this.Config.Bind<float>("General", "Time Scale Delta", 0.05f, "Change in time scale with each up/down hotkey tick (float).");
+		m_twenty_four_hour_format = this.Config.Bind<bool>("General", "24-hour Time Format", false, "If true then display time in 24-hour format, if false then display as game default AM/PM.");
+		m_show_time_factor = this.Config.Bind<bool>("General", "Display Time Scale", true, "If true then the game time display will show a '[XX m/s]' time factor postfix representing the current game speed in gametime minutes per realtime seconds.  This value is calculated every realtime second based on simulation time vs real time, so it will show that, for example, the clock pauses when the UI is displayed.  Some people might want the option to hide this, so it's here.");
 		m_hotkeys = new Dictionary<int, List<KeyCode>>();
 		set_hotkey(m_hotkey_modifier.Value, HOTKEY_MODIFIER);
 		set_hotkey(m_hotkey_time_stop_toggle.Value, HOTKEY_TIME_STOP_TOGGLE);
@@ -100,12 +105,9 @@ public class Plugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
 
-		private static void Postfix(ref Player __instance) {
-			if (!m_enabled.Value) {
-				return;
-			}
-			if (!is_modifier_hotkey_down()) {
-				return;
+		private static bool Prefix(ref Player __instance) {
+			if (!m_enabled.Value || !is_modifier_hotkey_down()) {
+				return true;
 			}
 			bool changed = false;
 			if (is_hotkey_down(HOTKEY_TIME_STOP_TOGGLE)) {
@@ -123,18 +125,10 @@ public class Plugin : BaseUnityPlugin {
 				m_time_speed.Value = 0f;
 			}
 			if (changed) {
-				notify("time_speed (" + 
-					m_time_speed.Value + 
-					") * on_off_multiplier (" + 
-					m_time_stop_multiplier + 
-					") == " + Settings.DaySpeedMultiplier + " (real sec / game min)"
-				);
+				notify("Time Factor: " + m_time_speed.Value + " (real sec / game min) [Paused: " + (m_time_stop_multiplier == 0f ? "True" : "False") + "]");
 			}
+			return true;
 		}
-	}
-
-	private void update_transform_hack() {
-		this.transform.position = new Vector3(Plugin.m_time_speed.Value, Plugin.m_time_stop_multiplier);
 	}
 
 	[HarmonyPatch(typeof(Settings))]
@@ -145,8 +139,13 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_enabled.Value) {
 				return true;
 			}
-			__result = (m_is_ui_hidden ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
-			Plugin.Instance.update_transform_hack();
+			MethodBase calling_method = new StackFrame(2).GetMethod();
+			ParameterInfo[] params_info = calling_method.GetParameters();
+			if (calling_method.Name == "Craft" || (calling_method.Name == "Prefix" && params_info.Length > 1 && params_info[1].ParameterType == typeof(Recipe))) {
+				__result = 1.0f - Plugin.m_time_speed.Value;
+			} else {
+				__result = (m_is_ui_hidden ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
+			}
 			return false;
 		}
 	}
@@ -178,8 +177,8 @@ public class Plugin : BaseUnityPlugin {
 			}
 			____timeTMP.text =
 				(__instance.Time.Hour >= 22 || __instance.Time.Hour <= 0 ? "<color=red>" : "") +
-				__instance.Time.ToString("hh:mm tt") +
-				m_time_factor_string;
+				__instance.Time.ToString((m_twenty_four_hour_format.Value ? "HH:mm" : "hh:mm tt")) +
+				(m_show_time_factor.Value ? m_time_factor_string : "");
 			____timeBar.rotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(180f, -180f, ((float) __instance.Time.Hour + (float) __instance.Time.Minute / 60f - 6f + 1f) / 20f));
 			return false;
 		}

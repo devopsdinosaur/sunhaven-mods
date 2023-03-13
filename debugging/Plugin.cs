@@ -200,33 +200,6 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(PlayerSettings), "SetupUI")]
-	class HarmonyPatch_PlayerSettings_SetupUI {
-
-		private static void Postfix(
-			ref PlayerSettings __instance,
-			ref Slider ___daySpeedSlider,
-			ref TextMeshProUGUI ___daySpeedTMP
-		) {
-			___daySpeedTMP.color = new Color(1, 0, 0);
-			//SimulationClock.Instance.adjust_dayspeed_slider(2f, ___daySpeedSlider, ___daySpeedTMP);
-		}
-	}
-
-	[HarmonyPatch(typeof(PlayerSettings), "SetDaySpeed")]
-	class HarmonyPatch_PlayerSettings_SetDaySpeed {
-
-		private static bool Prefix(
-			ref float value,
-			ref PlayerSettings __instance,
-			ref Slider ___daySpeedSlider,
-			ref TextMeshProUGUI ___daySpeedTMP
-		) {
-			//SimulationClock.Instance.adjust_dayspeed_slider(value, ___daySpeedSlider, ___daySpeedTMP);
-			return true;
-		}
-	}
-
 	[HarmonyPatch(typeof(Pickaxe), "Action")]
 	class HarmonyPatch_Pickaxe_Action {
 

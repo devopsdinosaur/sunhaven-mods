@@ -152,12 +152,15 @@ public class Plugin : BaseUnityPlugin {
 		}
 
 		private void add_inventory(Inventory inventory) {
-			this.m_inventories.Add(inventory);
-			foreach (SlotItemData item in inventory.Items) {
-				if (!this.m_items.ContainsKey(item.id)) {
-					this.m_items[item.id] = new List<SlotItemData>();
+			try {
+				this.m_inventories.Add(inventory);
+				foreach (SlotItemData item in inventory.Items) {
+					if (!this.m_items.ContainsKey(item.id)) {
+						this.m_items[item.id] = new List<SlotItemData>();
+					}
+					this.m_items[item.id].Add(item);
 				}
-				this.m_items[item.id].Add(item);
+			} catch (Exception e) {
 			}
 		}
 

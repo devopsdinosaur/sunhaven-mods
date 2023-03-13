@@ -61,7 +61,7 @@ public class Plugin : BaseUnityPlugin {
 			// if fishing then force the Utilities.Chance method to return false,
 			// thereby bypassing the SmallBite() nibbles and always going for full Bite()
 			if (m_enabled.Value) {
-				m_do_force_chance = (__instance.UseItem.Using && __instance.UseItem is FishingRod);
+				m_do_force_chance = (__instance.UseItem != null && __instance.UseItem.Using && __instance.UseItem is FishingRod);
 				m_chance_result = false;
 			}
 		}
