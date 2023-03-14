@@ -56,7 +56,7 @@ public class Plugin : BaseUnityPlugin {
 			m_continue_button.transform.SetAsFirstSibling();
 			
 			//enables using the keyboard or a controller to use the up/down keys/buttons to select the continue button
-			NavigationElement navElement = playButton.gameObject.GetComponent<NavigationElement>();
+			NavigationElement navElement = play_button.gameObject.GetComponent<NavigationElement>();
         		navElement.up = m_continue_button.GetComponent<NavigationElement>();
         		m_continue_button.GetComponent<NavigationElement>().down = navElement;
 			

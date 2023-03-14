@@ -253,6 +253,15 @@ public class Plugin : BaseUnityPlugin {
         }
 	}
 
+	[HarmonyPatch(typeof(CraftingTable), "CanCraft")]
+	class HarmonyPatch_CraftingTable_CanCraft {
+
+		private static bool Prefix(Recipe recipe, int amount, Inventory inventory, ref bool __result) {
+			__result = OmniChest.Instance.can_craft(recipe, amount);
+			return false;
+		}
+	}
+
 	[HarmonyPatch(typeof(Player), "FixedUpdate")]
 	class HarmonyPatch_Player_FixedUpdate {
 
