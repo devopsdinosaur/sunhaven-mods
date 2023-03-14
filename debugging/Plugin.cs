@@ -316,4 +316,261 @@ public class Plugin : BaseUnityPlugin {
 			return false;
 		}
 	}
+
+	[HarmonyPatch(typeof(PlayerAnimationLayers), "LateUpdate")]
+	class HarmonyPatch_PlayerAnimationLayers_LateUpdate {
+
+		private static PlayerAnimationLayers m_instance;
+		private static MethodInfo m_method_info_UpdateBodyPart;
+		private static Dictionary<int, bool> m_modified_textures = new Dictionary<int, bool>();
+
+		private static void UpdateBodyPart(MeshGenerator renderer, Sprite[] sprites, int index, Vector2 offset, float sortingOrder, float northSortingOrder, bool useChestDirection = false) {
+			m_method_info_UpdateBodyPart.Invoke(m_instance, new object[] {renderer, sprites, index, offset, sortingOrder, northSortingOrder, useChestDirection});
+		}
+
+		private static int GetAnimatedHatIndex(int headIndex, float randomTimeOffset, Player player) {
+			int num = (int) ((Time.timeSinceLevelLoad + randomTimeOffset + 1.25f) * 5f) % ((player.Velocity.magnitude > 0.1f || !player.Grounded) ? 4 : 20);
+			if (num >= 4) {
+				num = 0;
+			}
+			if ((player.Velocity.magnitude > 0.1f || !player.Grounded) && num == 0) {
+				num = 2;
+			}
+			return headIndex * 4 + num;
+		}
+
+		private static int GetAnimatedWingIndex(int spriteCount, int chestIndex, float randomTimeOffset, Player player) {
+			if (spriteCount == 12) {
+				if (player.Grounded) {
+					int num = (int) ((Time.timeSinceLevelLoad + randomTimeOffset) * 5f) % 20;
+					if (num == 3) {
+						num = 1;
+					}
+					if (num >= 4) {
+						num = 0;
+					}
+					return chestIndex * 3 + num;
+				}
+				return chestIndex * 3 + 2;
+			}
+			if (player.Grounded) {
+				int num2 = (int) ((Time.timeSinceLevelLoad + randomTimeOffset) * 5f) % 20;
+				if (num2 >= 4) {
+					num2 = 0;
+				}
+				return chestIndex * 4 + num2;
+			}
+			return chestIndex * 4 + 2;
+		}
+
+		private static void UpdateTransform(Transform trans, Vector2 offset, float sortingOrder, float northSortingOrder, Player player) {
+			trans.gameObject.SetActive(value: true);
+			trans.localPosition = new Vector3(offset.x, offset.y / 1.41421354f, (0f - offset.y) / 1.41421354f) * (1f / 24f);
+			float num = (0f - ((player.facingDirection == Direction.North) ? northSortingOrder : sortingOrder)) * 0.0001f;
+			trans.localPosition += new Vector3(0f, num, num);
+		}
+
+		private static void update_sprites(ref Sprite[] chest_sprites, ref Sprite[] chest_armor_sprites) {
+			
+			void morph_sprite(Sprite[] sprites, int index) {
+				try {
+					Sprite sprite = null;
+					Texture2D texture = null;
+					if (index >= sprites.Length || (texture = (sprite = sprites[index]).texture) == null || m_modified_textures.ContainsKey(texture.GetHashCode())) {
+						return;
+					}
+					m_modified_textures[texture.GetHashCode()] = true;
+					texture = texture.DeepClone();
+					m_modified_textures[texture.GetHashCode()] = true;
+					texture.SetPixel(texture.width / 2, texture.height / 2, Color.red);
+					sprites[index] = Sprite.Create(texture, sprite.rect, new Vector2(0.5f, 0.5f));
+				} catch (Exception e) {
+					logger.LogInfo(e);
+				}
+			}
+			
+			if (m_modified_textures.ContainsKey(chest_sprites.GetHashCode())) {
+				return;
+			}
+			Sprite[] new_sprites = chest_sprites.DeepClone();
+			chest_sprites = new_sprites;
+
+			//morph_sprite(chest_sprites, 0);
+
+		}
+
+		private static bool Prefix(
+			PlayerAnimationLayers __instance,
+			AnimationIndex ____topArmAnimations,
+			AnimationIndex ____bottomArmAnimations,
+			AnimationIndex ____headAnimations,
+			AnimationIndex ____chestAnimations,
+			AnimationIndex ____legAnimations,
+			AnimationIndex ____eyeAnimations,
+			AnimationIndex ____mouthAnimations,
+			MeshGenerator ____chest,
+			ref Sprite[] ____chestSprites,
+			MeshGenerator ____leg,
+			Sprite[] ____legSprites,
+			MeshGenerator ____head,
+			Sprite[] ____headSprites,
+			MeshGenerator ____topArms,
+			Sprite[] ____topArmSprites,
+			MeshGenerator ____bottomArm,
+			Sprite[] ____bottomArmSprites,
+			MeshGenerator ____mouth,
+			Sprite[] ____mouthSprites,
+			MeshGenerator ____eye,
+			Sprite[] ____eyeEmoteSprites,
+			Sprite[] ____eyeSprites,
+			MeshGenerator ____eyeGlow,
+			MeshGenerator ____gloves,
+			Sprite[] ____glovesSprites,
+			MeshGenerator ____backGloves,
+			Sprite[] ____backGlovesSprites,
+			MeshGenerator ____sleeves,
+			Sprite[] ____sleevesSprites,
+			MeshGenerator ____backSleeves,
+			Sprite[] ____backSleevesSprites,
+			MeshGenerator ____hair,
+			Sprite[] ____hairSprites,
+			MeshGenerator ____hairGlow,
+			MeshGenerator ____hat,
+			Sprite[] ____hatSprites,
+			MeshGenerator ____hatGlow,
+			MeshGenerator ____ears,
+			Sprite[] ____earsSprites,
+			MeshGenerator ____chestArmor,
+			ref Sprite[] ____chestArmorSprites,
+			MeshGenerator ____pants,
+			Sprite[] ____pantsSprites,
+			MeshGenerator ____back,
+			Sprite[] ____backSprites,
+			MeshGenerator ____wingGlow,
+			MeshGenerator ____tail,
+			Sprite[] ____tailSprites,
+			MeshGenerator ____overlay,
+			Sprite[] ____overlaySprites,
+			MeshGenerator ____face,
+			Sprite[] ____faceSprites,
+			float ___randomTimeOffset,
+			Player ____player,
+			HatType ____hatType,
+			Transform ____useItem
+		) {
+			m_instance = __instance;
+			m_method_info_UpdateBodyPart = __instance.GetType().GetTypeInfo().GetMethod("UpdateBodyPart", BindingFlags.Instance | BindingFlags.NonPublic);
+			update_sprites(____chestSprites, ____chestArmorSprites);
+			//update_sprite(Vector2.left, ____chestSprites[3]);
+			//update_sprite(Vector2.left, ____chestArmorSprites[3]);
+			__instance.transform.localPosition = new Vector3(__instance.Offset.x, __instance.Offset.y / 1.41421354f, (0f - __instance.Offset.y) / 1.41421354f);
+			__instance.topArmIndex = ____topArmAnimations.index;
+			__instance.bottomArmIndex = ____bottomArmAnimations.index;
+			__instance.armOffset = ____topArmAnimations.offset;
+			__instance.headIndex = ____headAnimations.index;
+			__instance.headOffset = ____headAnimations.offset;
+			__instance.chestIndex = ____chestAnimations.index;
+			__instance.chestOffset = ____chestAnimations.offset;
+			__instance.legIndex = ____legAnimations.index;
+			__instance.legOffset = ____legAnimations.offset;
+			__instance.eyeIndex = ____eyeAnimations.index;
+			__instance.eyeOffset = ____eyeAnimations.offset;
+			__instance.mouthIndex = ____mouthAnimations.index;
+			__instance.mouthOffset = ____mouthAnimations.offset;
+			if (__instance.rotateChestDirection) {
+				switch (__instance.headIndex) {
+				case 0: { __instance.headIndex = 3; break; }
+				case 1: { __instance.headIndex = 0; break; }
+				case 2: { __instance.headIndex = 1; break; }
+				case 3: { __instance.headIndex = 2; break; }
+				}
+			}
+			if (__instance.grabAnimation) {
+				switch (__instance.headIndex) {
+				case 0: { __instance.topArmIndex = 10; __instance.legIndex = 2; break; }
+				case 1: { __instance.topArmIndex = 25; __instance.legIndex = 8; break; }
+				case 2: { __instance.topArmIndex = 40; __instance.legIndex = 14; break; }
+				case 3: { __instance.topArmIndex = 55; __instance.legIndex = 20; break; }
+				}
+			}
+			if (__instance.race == 3) {
+				__instance.GetType().GetTypeInfo().GetMethod("HandleNageAnimations", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
+				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 8f, 8f);
+				UpdateBodyPart(____leg, ____legSprites, __instance.legIndex, __instance.legOffset, 9f, 9f);
+			} else {
+				____leg.Squares = new List<Square> {
+					new Square {
+						TopLeft = new Vector3(-20f, 52f, 52f),
+						TopRight = new Vector3(20f, 52f, 52f),
+						BotLeft = new Vector3(-20f, 0f, 0f),
+						BotRight = new Vector3(20f, 0f, 0f)
+					}
+				};
+				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 10f, 10f);
+				UpdateBodyPart(____leg, ____legSprites, __instance.legIndex, __instance.legOffset, 9f, 9f);
+			}
+			UpdateBodyPart(____head, ____headSprites, __instance.headIndex, __instance.headOffset, 14f, 14f);
+			UpdateBodyPart(____topArms, ____topArmSprites, __instance.topArmIndex, __instance.chestOffset, 21f, 21f);
+			UpdateBodyPart(____bottomArm, ____bottomArmSprites, __instance.bottomArmIndex, __instance.chestOffset, 6f, 6f);
+			UpdateBodyPart(____mouth, ____mouthSprites, __instance.mouthIndex, __instance.headOffset, 17f, 17f);
+			if (__instance.eyeIndex >= 12) {
+				UpdateBodyPart(____eye, ____eyeEmoteSprites, __instance.eyeIndex - 12, __instance.headOffset, (__instance.race == 4) ? 33 : 18, 18f);
+			} else {
+				UpdateBodyPart(____eye, ____eyeSprites, __instance.eyeIndex, __instance.headOffset, (__instance.race == 4) ? 33 : 18, 18f);
+			}
+			UpdateBodyPart(____eyeGlow, ____eyeSprites, (__instance.eyeIndex == -1) ? (-1) : (__instance.eyeIndex + 12), __instance.headOffset, 21f, 21f);
+			UpdateBodyPart(____gloves, ____glovesSprites, __instance.topArmIndex, __instance.chestOffset, 22f, 22f);
+			UpdateBodyPart(____backGloves, ____backGlovesSprites, __instance.bottomArmIndex, __instance.chestOffset, 8f, 8f);
+			UpdateBodyPart(____sleeves, ____sleevesSprites, __instance.topArmIndex, __instance.chestOffset, 23f, 23f);
+			UpdateBodyPart(____backSleeves, ____backSleevesSprites, __instance.bottomArmIndex, __instance.chestOffset, 12f, 12f);
+			int animatedHairIndex = __instance.headIndex;
+			if (__instance.race == 4) {
+				UpdateBodyPart(____hair, ____hairSprites, __instance.headIndex * 5 + (int) (Time.timeSinceLevelLoad * 6f) % 5, __instance.headOffset, 19f, 28f);
+				UpdateBodyPart(____hairGlow, ____hairSprites, __instance.headIndex * 5 + (int) (Time.timeSinceLevelLoad * 6f) % 5 + 20, __instance.headOffset, 22f, 29f);
+			} else {
+				if (____hairSprites != null) {
+					if (____hairSprites.Length == 24 || ____hairSprites.Length == 20) {
+						animatedHairIndex = GetAnimatedHatIndex(__instance.headIndex, ___randomTimeOffset, ____player);
+					}
+					switch (____hatType) {
+					default:				{ UpdateBodyPart(____hair, ____hairSprites, animatedHairIndex, __instance.headOffset, 19f, 28f); break; }
+					case HatType.Hat:		{ UpdateBodyPart(____hair, ____hairSprites, __instance.headIndex + 16, __instance.headOffset, 19f, 28f); break; }
+					case HatType.Helmet:	{ UpdateBodyPart(____hair, null, __instance.headIndex, __instance.headOffset, 19f, 28f); break; }
+					}
+				}
+				UpdateBodyPart(____hairGlow, ____hairSprites, -1, __instance.headOffset, 22f, 29f);
+			}
+			____hair.SetDefault();
+			UpdateBodyPart(____hat, ____hatSprites, (____hatSprites.Length == 16) ? GetAnimatedHatIndex(__instance.headIndex, ___randomTimeOffset, ____player) : __instance.headIndex, __instance.headOffset, 20f, (____hatType == HatType.Horns) ? 18 : 29);
+			____hat.SetDefault();
+			UpdateBodyPart(____hatGlow, ____hatSprites, (____hatSprites.Length == 8) ? (__instance.chestIndex + 4) : (-1), __instance.headOffset, 21f, 30f);
+			____hatGlow.SetDefault();
+			int index = __instance.headIndex;
+			if (____hatType == HatType.Helmet) {
+				index = -1;
+			}
+			if (__instance.race == 1 || __instance.race == 2) {
+				UpdateBodyPart(____ears, ____earsSprites, index, __instance.headOffset, 21f, 15f);
+			} else {
+				UpdateBodyPart(____ears, ____earsSprites, index, __instance.headOffset, 15f, 15f);
+			}
+			UpdateBodyPart(... use modified chest sprites here ... ____chestArmor, ____chestArmorSprites, __instance.chestIndex, __instance.chestOffset, 13f, 13f);
+			if (__instance.race == 3) {
+				UpdateBodyPart(____pants, null, __instance.legIndex, __instance.legOffset, 11f, 11f);
+			} else {
+				UpdateBodyPart(____pants, ____pantsSprites, __instance.legIndex, __instance.legOffset, 11f, 11f);
+			}
+			int animatedWingIndex = GetAnimatedWingIndex(____backSprites.Length, __instance.chestIndex, ___randomTimeOffset, ____player);
+			UpdateBodyPart(____back, ____backSprites, animatedWingIndex, __instance.chestOffset, 1f, 31f, useChestDirection: true);
+			____back.SetDefault();
+			UpdateBodyPart(____wingGlow, ____backSprites, animatedWingIndex + 16, __instance.chestOffset, 2f, 32f, useChestDirection: true);
+			UpdateBodyPart(____tail, ____tailSprites, (____tailSprites != null && ____tailSprites.Length > 4) ? (__instance.chestIndex * 4 + (int) (Time.timeSinceLevelLoad * 4f) % 4) : __instance.chestIndex, __instance.legOffset, 2f, 27.5f, useChestDirection: true);
+			UpdateBodyPart(____overlay, ____overlaySprites, 0, __instance.legOffset, 50f, 50f);
+			UpdateBodyPart(____face, (__instance.faceOnTopOfHair && ____hatType == HatType.Helmet) ? null : ____faceSprites, __instance.headIndex, __instance.headOffset, __instance.faceOnTopOfHair ? 20 : 16, __instance.faceBehindHairWhenFacingNorth ? 29.5f : 16f);
+			if (____useItem != null) {
+				UpdateTransform(____useItem, __instance.chestOffset + new Vector2(0f, 15f), 20.5f, 0f, ____player);
+			}
+			return false;
+		}
+	}
 }
