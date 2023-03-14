@@ -9,7 +9,7 @@ using System.IO;
 using TMPro;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.2")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.continue_button");
@@ -21,7 +21,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.continue_button v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.continue_button v0.0.2 loaded.");
 		this.m_harmony.PatchAll();
 	}
 

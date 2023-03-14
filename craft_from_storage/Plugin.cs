@@ -10,7 +10,7 @@ using TMPro;
 using System;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.6")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.7")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -26,7 +26,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.6 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.7 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
@@ -153,7 +153,7 @@ public class Plugin : BaseUnityPlugin {
 					}
 					this.m_items[item.id].Add(item);
 				}
-			} catch (Exception e) {
+			} catch (Exception) {
 			}
 		}
 
