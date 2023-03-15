@@ -11,7 +11,7 @@ using ZeroFormatter;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.5")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -34,13 +34,14 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_fertilize_earth2;
 	private static ConfigEntry<bool> m_fertilize_fire2;
 	private static ConfigEntry<bool> m_hide_fertilizer_particles;
+	private static ConfigEntry<bool> m_any_season_planting;
 
 	public Plugin() {
 	}
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.4 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.5 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
@@ -59,6 +60,7 @@ public class Plugin : BaseUnityPlugin {
 		m_fertilize_earth2 = this.Config.Bind<bool>("General", "Fertilize Earth2", false, "If true then all crops will be automatically fertilized with Earth Fertilizer 2 (can be combined with Fertilize Fire2 [combined fertilizer will produce a white floating particle])");
 		m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
 		m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
+		m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
 	}
 
 	private static void update_tile(Vector2Int pos, bool do_water) {
@@ -285,6 +287,18 @@ public class Plugin : BaseUnityPlugin {
 			}
 			__result = Mathf.CeilToInt(num);
 			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(Seeds), "Use1")]
+	class HarmonyPatch_Seeds_Use1 {
+
+		private static bool Prefix(SeedData ____seedItem) {
+			if (!(m_enabled.Value && m_any_season_planting.Value)) {
+				return true;
+			}
+			____seedItem.seasons = new List<Season> {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
+			return true;
 		}
 	}
 }

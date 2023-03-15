@@ -324,7 +324,7 @@ public class Plugin : BaseUnityPlugin {
 		private static MethodInfo m_method_info_UpdateBodyPart;
 		private static Dictionary<int, bool> m_modified_textures = new Dictionary<int, bool>();
 
-		private static void UpdateBodyPart(MeshGenerator renderer, Sprite[] sprites, int index, Vector2 offset, float sortingOrder, float northSortingOrder, bool useChestDirection = false) {
+		private static void UpdateBodyPart(MeshGenerator renderer, Sprite[] sprites, int index, Vector2 offset, float sortingOrder, float northSortingOrder, bool useChestDirection = false, bool is_chest_sprites = false) {
 			m_method_info_UpdateBodyPart.Invoke(m_instance, new object[] {renderer, sprites, index, offset, sortingOrder, northSortingOrder, useChestDirection});
 		}
 
@@ -460,9 +460,6 @@ public class Plugin : BaseUnityPlugin {
 		) {
 			m_instance = __instance;
 			m_method_info_UpdateBodyPart = __instance.GetType().GetTypeInfo().GetMethod("UpdateBodyPart", BindingFlags.Instance | BindingFlags.NonPublic);
-			update_sprites(____chestSprites, ____chestArmorSprites);
-			//update_sprite(Vector2.left, ____chestSprites[3]);
-			//update_sprite(Vector2.left, ____chestArmorSprites[3]);
 			__instance.transform.localPosition = new Vector3(__instance.Offset.x, __instance.Offset.y / 1.41421354f, (0f - __instance.Offset.y) / 1.41421354f);
 			__instance.topArmIndex = ____topArmAnimations.index;
 			__instance.bottomArmIndex = ____bottomArmAnimations.index;
@@ -495,7 +492,7 @@ public class Plugin : BaseUnityPlugin {
 			}
 			if (__instance.race == 3) {
 				__instance.GetType().GetTypeInfo().GetMethod("HandleNageAnimations", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 8f, 8f);
+				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 8f, 8f, true);
 				UpdateBodyPart(____leg, ____legSprites, __instance.legIndex, __instance.legOffset, 9f, 9f);
 			} else {
 				____leg.Squares = new List<Square> {
@@ -506,7 +503,7 @@ public class Plugin : BaseUnityPlugin {
 						BotRight = new Vector3(20f, 0f, 0f)
 					}
 				};
-				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 10f, 10f);
+				UpdateBodyPart(____chest, ____chestSprites, __instance.chestIndex, __instance.chestOffset, 10f, 10f, false, true);
 				UpdateBodyPart(____leg, ____legSprites, __instance.legIndex, __instance.legOffset, 9f, 9f);
 			}
 			UpdateBodyPart(____head, ____headSprites, __instance.headIndex, __instance.headOffset, 14f, 14f);
@@ -554,7 +551,7 @@ public class Plugin : BaseUnityPlugin {
 			} else {
 				UpdateBodyPart(____ears, ____earsSprites, index, __instance.headOffset, 15f, 15f);
 			}
-			UpdateBodyPart(... use modified chest sprites here ... ____chestArmor, ____chestArmorSprites, __instance.chestIndex, __instance.chestOffset, 13f, 13f);
+			UpdateBodyPart(____chestArmor, ____chestArmorSprites, __instance.chestIndex, __instance.chestOffset, 13f, 13f, false, true);
 			if (__instance.race == 3) {
 				UpdateBodyPart(____pants, null, __instance.legIndex, __instance.legOffset, 11f, 11f);
 			} else {
