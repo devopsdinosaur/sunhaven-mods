@@ -100,11 +100,13 @@ public class Plugin : BaseUnityPlugin {
 			}
 
 			void create_navigation_button(string text, int index) {
-				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, chest_title.transform.parent);
+				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, chest_title.transform);
 				TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
+				Rect chest_title_rect = chest_title.GetComponent<RectTransform>().rect;
+				RectTransform obj_rect_transform = obj.GetComponent<RectTransform>();
 				tmp.text = text;
 				if (index == PREV) {
-					obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
+					obj_rect_transform.position = new Vector2(chest_title_rect.x - obj_rect_transform.rect.width, chest_title_rect.y);
 					//obj.transform.position = chest_title.transform.position + Vector3.left * obj.GetComponent<RectTransform>().rect.width;
 				} else {
 					obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(1, 0);
