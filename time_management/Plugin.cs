@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.3")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -50,7 +50,7 @@ public class Plugin : BaseUnityPlugin {
 	private void Awake() {
 		m_instance = this;
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.2 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.3 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
@@ -148,18 +148,21 @@ public class Plugin : BaseUnityPlugin {
 			if (!m_enabled.Value) {
 				return true;
 			}
-			if (!m_use_time_scale.Value) {
-				if (m_pause_in_ui.Value && !m_is_ui_visible) {
-					__result = 0f;
-					return false;
-				}
-				return true;
-			}
 			MethodBase calling_method = new StackFrame(2).GetMethod();
 			ParameterInfo[] params_info = calling_method.GetParameters();
 			if (calling_method.Name == "Craft" || (calling_method.Name == "Prefix" && params_info.Length > 1 && params_info[1].ParameterType == typeof(Recipe))) {
+				if (!m_use_time_scale.Value) {
+					return true;
+				}
 				__result = 1.0f - Plugin.m_time_speed.Value;
 			} else {
+				if (!m_use_time_scale.Value) {
+					if (m_pause_in_ui.Value && !m_is_ui_visible) {
+						__result = 0f;
+						return false;
+					}
+					return true;
+				}
 				__result = (m_pause_in_ui.Value && !m_is_ui_visible ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
 			}
 			return false;

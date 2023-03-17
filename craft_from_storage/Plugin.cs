@@ -44,6 +44,9 @@ public class Plugin : BaseUnityPlugin {
 		private float m_elapsed = CHECK_FREQUENCY;
 		private List<string> m_chest_interact_strings = null;
 		private GameObject m_transfer_similar_button = null;
+		private const int PREV = 0;
+		private const int NEXT = 1;
+		private GameObject[] m_chest_navigate_buttons = new GameObject[2];
 
 		public static OmniChest Instance {
 			get {
@@ -72,23 +75,41 @@ public class Plugin : BaseUnityPlugin {
 			return true;
 		}
 
-		private void create_transfer_button(Transform chest_transform, Inventory player_inventory) {
+		private void create_buttons(Transform chest_transform, Inventory player_inventory) {
 			GameObject chest_transfer_similar_button = null;
 			GameObject sort_button = null;
+			GameObject backpack_title = null;
+			GameObject chest_title = null;
 
 			bool __enum_descendants_callback_find_same_button__(Transform transform) {
 				if (transform.name == "TransferSimilarToChestButton") {
 					chest_transfer_similar_button = transform.gameObject;
-					return false;
+				} else if (transform.name == "InputField (TMP)") {
+					chest_title = transform.gameObject;
 				}
 				return true;
 			}
+
 			bool __enum_descendants_callback_find_sort_button__(Transform transform) {
-				if (transform.name == "SortButton") {
-					sort_button = transform.gameObject;
-					return false;
+				if (sort_button == null && transform.name == "SortButton") {
+					sort_button = transform.gameObject; 
+				} else if (backpack_title == null && transform.name == "BackbackTitleTMP") {
+					backpack_title = transform.gameObject;
 				}
 				return true;
+			}
+
+			void create_navigation_button(string text, int index) {
+				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, chest_title.transform.parent);
+				TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
+				tmp.text = text;
+				if (index == PREV) {
+					obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(0, 0);
+					//obj.transform.position = chest_title.transform.position + Vector3.left * obj.GetComponent<RectTransform>().rect.width;
+				} else {
+					obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(1, 0);
+					//obj.transform.position = chest_title.transform.position + Vector3.right * (chest_title.GetComponent<RectTransform>().rect.width + obj.GetComponent<RectTransform>().rect.width);
+				}
 			}
 
 			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
@@ -100,6 +121,8 @@ public class Plugin : BaseUnityPlugin {
 			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				this.transfer_similar_items(player_inventory);
 			});
+			create_navigation_button("<Prev", PREV);
+			create_navigation_button("Next>", NEXT);
 		}
 
 		public void transfer_similar_items(Inventory player_inventory) {
@@ -128,8 +151,9 @@ public class Plugin : BaseUnityPlugin {
 					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
 						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
 					) {
+						this.testing((Chest) kvp.Value);
 						if (this.m_transfer_similar_button == null) {
-							this.create_transfer_button(kvp.Value.transform, player_inventory);
+							this.create_buttons(kvp.Value.transform, player_inventory);
 						}
 						this.m_added_hashes.Add(hash);
 						this.add_inventory(((Chest) kvp.Value).sellingInventory);
@@ -142,6 +166,19 @@ public class Plugin : BaseUnityPlugin {
 			Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
 			popup.text = "Zone Send Similar";
 			popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
+		}
+
+		public Chest m_food_chest = null;
+
+		private void testing(Chest chest) {
+			ChestData chest_data = (ChestData) chest.GetType().GetTypeInfo().GetField("data", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(chest);
+			if (chest_data != null && chest_data.name == "Food") {
+				m_food_chest = chest;
+			}
+		}
+
+		private void open_chest(Chest chest) {
+
 		}
 
 		private void add_inventory(Inventory inventory) {
