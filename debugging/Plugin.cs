@@ -322,9 +322,51 @@ public class Plugin : BaseUnityPlugin {
 
 		private static PlayerAnimationLayers m_instance;
 		private static MethodInfo m_method_info_UpdateBodyPart;
-		private static Dictionary<int, bool> m_modified_textures = new Dictionary<int, bool>();
+		private static Dictionary<int, Sprite[]> m_morphed_chest_sprites = new Dictionary<int, Sprite[]>();
+		
+		private static Sprite[] morph_chest_sprites(Sprite[] original_sprites) {
+			try {
+				int hash = original_sprites.GetHashCode();
+				if (m_morphed_chest_sprites.ContainsKey(hash)) {
+					return m_morphed_chest_sprites[hash];
+				}
+				Sprite[] sprites = new Sprite[4];
+				Texture2D texture = null;
+				Sprite original_sprite = null;
+				Texture2D original_texture = null;
+				RenderTexture render_texture = null;
+				sprites[0] = original_sprites[0];
+				original_sprite = original_sprites[1];
+				original_texture = original_sprite.texture;
+				render_texture = new RenderTexture(original_texture.width, original_texture.height, 32, RenderTextureFormat.ARGB32);
+				texture = new Texture2D(original_texture.width, original_texture.height);
+				Graphics.Blit(original_texture, render_texture);
+				for (int y = 0; y < original_texture.height; y++) {
+					for (int x = 0; x < original_texture.width; x++) {
+						texture.SetPixel(x, y, Color.red);
+					}
+				}
+				RenderTexture.active = render_texture;
+				texture.ReadPixels(new Rect(0, 0, render_texture.width, render_texture.height), 0, 0);
+				texture.Apply();
+				
+				sprites[1] = Sprite.Create(texture, original_sprite.rect, new Vector2(0.5f, 0.5f));
+				//sprites[1] = original_sprites[0];
+				sprites[2] = original_sprites[2];
+				sprites[3] = original_sprites[3];
+				m_morphed_chest_sprites[hash] = sprites;
+				m_morphed_chest_sprites[sprites.GetHashCode()] = sprites;
+				return sprites;
+			} catch (Exception e) {
+				logger.LogInfo(e);
+			}
+			return original_sprites;
+		}
 
 		private static void UpdateBodyPart(MeshGenerator renderer, Sprite[] sprites, int index, Vector2 offset, float sortingOrder, float northSortingOrder, bool useChestDirection = false, bool is_chest_sprites = false) {
+			//if (is_chest_sprites) {
+			//	sprites = morph_chest_sprites(sprites);
+			//}
 			m_method_info_UpdateBodyPart.Invoke(m_instance, new object[] {renderer, sprites, index, offset, sortingOrder, northSortingOrder, useChestDirection});
 		}
 
@@ -368,35 +410,6 @@ public class Plugin : BaseUnityPlugin {
 			trans.localPosition = new Vector3(offset.x, offset.y / 1.41421354f, (0f - offset.y) / 1.41421354f) * (1f / 24f);
 			float num = (0f - ((player.facingDirection == Direction.North) ? northSortingOrder : sortingOrder)) * 0.0001f;
 			trans.localPosition += new Vector3(0f, num, num);
-		}
-
-		private static void update_sprites(ref Sprite[] chest_sprites, ref Sprite[] chest_armor_sprites) {
-			
-			void morph_sprite(Sprite[] sprites, int index) {
-				try {
-					Sprite sprite = null;
-					Texture2D texture = null;
-					if (index >= sprites.Length || (texture = (sprite = sprites[index]).texture) == null || m_modified_textures.ContainsKey(texture.GetHashCode())) {
-						return;
-					}
-					m_modified_textures[texture.GetHashCode()] = true;
-					texture = texture.DeepClone();
-					m_modified_textures[texture.GetHashCode()] = true;
-					texture.SetPixel(texture.width / 2, texture.height / 2, Color.red);
-					sprites[index] = Sprite.Create(texture, sprite.rect, new Vector2(0.5f, 0.5f));
-				} catch (Exception e) {
-					logger.LogInfo(e);
-				}
-			}
-			
-			if (m_modified_textures.ContainsKey(chest_sprites.GetHashCode())) {
-				return;
-			}
-			Sprite[] new_sprites = chest_sprites.DeepClone();
-			chest_sprites = new_sprites;
-
-			//morph_sprite(chest_sprites, 0);
-
 		}
 
 		private static bool Prefix(

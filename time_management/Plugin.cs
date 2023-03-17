@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.2")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -50,7 +50,7 @@ public class Plugin : BaseUnityPlugin {
 	private void Awake() {
 		m_instance = this;
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.2 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
@@ -61,14 +61,14 @@ public class Plugin : BaseUnityPlugin {
 		m_time_speed_delta = this.Config.Bind<float>("General", "Time Scale Delta", 0.05f, "Change in time scale with each up/down hotkey tick (float).");
 		m_twenty_four_hour_format = this.Config.Bind<bool>("General", "24-hour Time Format", false, "If true then display time in 24-hour format, if false then display as game default AM/PM.");
 		m_show_time_factor = this.Config.Bind<bool>("General", "Display Time Scale", true, "If true then the game time display will show a '[XX m/s]' time factor postfix representing the current game speed in gametime minutes per realtime seconds.  This value is calculated every realtime second based on simulation time vs real time, so it will show that, for example, the clock pauses when the UI is displayed.  Some people might want the option to hide this, so it's here.");
-		m_use_time_scale = this.Config.Bind<bool>("General", "Use Time Scale", true, "Setting this option to false will disable the primary function of this mod, disabling the time scaling and using the usual simulation clock.  It is here for users desiring only to use the Pause in UI functionality and should always be true otherwise.  Note that the time scale will still be displayed on the clock and will represent the Day Speed setting in the game options.");
-		m_pause_in_ui = this.Config.Bind<bool>("General", "Pause in UI", true, "This should always be true unless you want time to continue when opening chests and crafting tables.");
+		m_use_time_scale = this.Config.Bind<bool>("General", "Use Time Scale", true, "Setting this option to false will disable the primary function of this mod, disabling the time scaling and using the usual simulation clock.  It is here for users desiring only to use the Pause in Chests / Crafting functionality and should always be true otherwise.  Note that the time scale will still be displayed on the clock and will represent the Day Speed setting in the game options.");
+		m_pause_in_ui = this.Config.Bind<bool>("General", "Pause in Chests / Crafting", true, "This should always be true unless you want time to continue when opening chests and crafting tables.");
 		m_hotkeys = new Dictionary<int, List<KeyCode>>();
 		set_hotkey(m_hotkey_modifier.Value, HOTKEY_MODIFIER);
 		set_hotkey(m_hotkey_time_stop_toggle.Value, HOTKEY_TIME_STOP_TOGGLE);
 		set_hotkey(m_hotkey_time_speed_up.Value, HOTKEY_TIME_SPEED_UP);
 		set_hotkey(m_hotkey_time_speed_down.Value, HOTKEY_TIME_SPEED_DOWN);
-		m_is_ui_visible = false;
+		m_is_ui_visible = true;
 	}
 
 	private static void set_hotkey(string keys_string, int key_index) {
@@ -149,7 +149,7 @@ public class Plugin : BaseUnityPlugin {
 				return true;
 			}
 			if (!m_use_time_scale.Value) {
-				if (m_is_ui_visible) {
+				if (m_pause_in_ui.Value && !m_is_ui_visible) {
 					__result = 0f;
 					return false;
 				}
@@ -160,7 +160,7 @@ public class Plugin : BaseUnityPlugin {
 			if (calling_method.Name == "Craft" || (calling_method.Name == "Prefix" && params_info.Length > 1 && params_info[1].ParameterType == typeof(Recipe))) {
 				__result = 1.0f - Plugin.m_time_speed.Value;
 			} else {
-				__result = (m_is_ui_visible ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
+				__result = (m_pause_in_ui.Value && !m_is_ui_visible ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
 			}
 			return false;
 		}
@@ -212,7 +212,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_GameManager_EnableUI {
 
 		private static void Postfix() {
-			m_is_ui_visible = m_pause_in_ui.Value;
+			m_is_ui_visible = true;
 		}
 	}
 }
