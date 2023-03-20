@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "quality_of_life", "quality_
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "player_stats", "player_stats\player_stats.csproj", "{0634986A-1858-4992-ABFF-B4C17D2A20EF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "no_more_deadlines", "no_more_deadlines\no_more_deadlines.csproj", "{0E1FF43F-A492-4C51-AA86-02C3051B111E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -135,6 +137,10 @@ Global
 		{0634986A-1858-4992-ABFF-B4C17D2A20EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0634986A-1858-4992-ABFF-B4C17D2A20EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0634986A-1858-4992-ABFF-B4C17D2A20EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E1FF43F-A492-4C51-AA86-02C3051B111E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E1FF43F-A492-4C51-AA86-02C3051B111E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E1FF43F-A492-4C51-AA86-02C3051B111E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E1FF43F-A492-4C51-AA86-02C3051B111E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -13,7 +13,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<float> m_craft_speed;
-
+	
 	public Plugin() {
 	}
 
@@ -28,8 +28,9 @@ public class Plugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]
 	class HarmonyPatch_CraftingTable_Awake {
 
-		private static void Postfix(ref float ___craftSpeedMultiplier) {
+		private static void Postfix(CraftingTable __instance, ref float ___craftSpeedMultiplier) {
 			if (m_enabled.Value) {
+				logger.LogInfo(__instance.name);
 				___craftSpeedMultiplier = m_craft_speed.Value;
 			}
 		}
