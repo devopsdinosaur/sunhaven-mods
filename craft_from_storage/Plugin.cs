@@ -8,9 +8,10 @@ using UnityEngine;
 using System.Reflection;
 using TMPro;
 using System;
+using UnityEngine.Events;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.7")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.8")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -26,7 +27,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.7 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.8 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
@@ -99,19 +100,34 @@ public class Plugin : BaseUnityPlugin {
 				return true;
 			}
 
+			void notify(string message) {
+				logger.LogInfo(message);
+				NotificationStack.Instance.SendNotification(message);
+			}
+
 			void create_navigation_button(string text, int index) {
-				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, chest_title.transform);
+
+				m_chest_navigate_buttons[index] = GameObject.Instantiate<GameObject>(chest_transfer_similar_button, sort_button.transform.parent);
+				m_chest_navigate_buttons[index].GetComponent<RectTransform>().position =
+					sort_button.GetComponent<RectTransform>().position +
+					Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 5;
+				m_chest_navigate_buttons[index].GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
+					notify("testing!");
+				});
+
+				/*
+				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, sort_button.transform.parent);
 				TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
-				Rect chest_title_rect = chest_title.GetComponent<RectTransform>().rect;
-				RectTransform obj_rect_transform = obj.GetComponent<RectTransform>();
+				RectTransform chest_title_rect = sort_button.GetComponent<RectTransform>();
+				RectTransform obj_rect = obj.GetComponent<RectTransform>();
 				tmp.text = text;
-				if (index == PREV) {
-					obj_rect_transform.position = new Vector2(chest_title_rect.x - obj_rect_transform.rect.width, chest_title_rect.y);
-					//obj.transform.position = chest_title.transform.position + Vector3.left * obj.GetComponent<RectTransform>().rect.width;
-				} else {
-					obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(1, 0);
-					//obj.transform.position = chest_title.transform.position + Vector3.right * (chest_title.GetComponent<RectTransform>().rect.width + obj.GetComponent<RectTransform>().rect.width);
-				}
+				obj_rect.position = chest_title_rect.position + (index == PREV ? Vector3.left : Vector3.right) * ((chest_title_rect.rect.width / 2) + (obj_rect.rect.width / 2));
+				obj.AddComponent<UnityEngine.UI.Button>().onClick.AddListener((UnityAction) delegate {
+					//this.navigate_from_chest(index);
+					logger.LogInfo("adfsdfasdfasdfasdfasdf");
+				});
+				m_chest_navigate_buttons[index] = obj;
+				*/
 			}
 
 			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
@@ -124,7 +140,7 @@ public class Plugin : BaseUnityPlugin {
 				this.transfer_similar_items(player_inventory);
 			});
 			create_navigation_button("<Prev", PREV);
-			create_navigation_button("Next>", NEXT);
+			//create_navigation_button("Next>", NEXT);
 		}
 
 		public void transfer_similar_items(Inventory player_inventory) {
@@ -179,8 +195,8 @@ public class Plugin : BaseUnityPlugin {
 			}
 		}
 
-		private void open_chest(Chest chest) {
-
+		private void navigate_from_chest(int direction) {
+			logger.LogInfo("hello!");
 		}
 
 		private void add_inventory(Inventory inventory) {
@@ -238,18 +254,8 @@ public class Plugin : BaseUnityPlugin {
 					if (Player.Instance.Health <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
 						return false;
 					}
-				} else if (!this.m_items.ContainsKey(item.item.id)) {
+				} else if (this.get_item_amount(item.item.id) < amount) {
 					return false;
-				} else {
-					int counter = 0;
-					foreach (SlotItemData data in this.m_items[item.item.id]) {
-						if ((counter += data.amount) >= amount) {
-							break;
-						}
-					}
-					if (counter < amount) {
-						return false;
-					}
 				}
 			}
 			return true;
@@ -275,7 +281,7 @@ public class Plugin : BaseUnityPlugin {
 		public List<ItemAmount> remove_fish(ItemRarity rarity, int amount = 1) {
             List<ItemAmount> items = new List<ItemAmount>();
 
-            foreach (int id in this.m_items.Keys) {
+			foreach (int id in this.m_items.Keys) {
                 foreach (SlotItemData item in this.m_items[id]) {
                     if (item.item is FishItem fish_item && ItemDatabase.GetItemData(fish_item.ID()).rarity.Equals(rarity)) {
                         foreach (ItemAmount item_amount in item.slot.inventory.RemoveItem(id, amount)) {
