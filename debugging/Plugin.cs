@@ -321,12 +321,16 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_ScenePortalManager_Awake {
 
 		private static bool Prefix() {
+			ItemID item_id = new ItemID();
+			ItemData data = null;
 			foreach (FieldInfo info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
 				if (!info.IsLiteral || info.IsInitOnly) {
 					continue;
 				}
-				try {
-					if (ItemDatabase.GetItemData<CraftingTable>(
+				data = ItemDatabase.GetItemData((int) info.GetValue(item_id));
+				if (data.category == ItemCategory.Craftable) {
+					logger.LogInfo(info.Name);
+				}
 			}
 			return true;
 		}
