@@ -11,7 +11,7 @@ using System;
 using UnityEngine.Events;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.8")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.9")]
 public class Plugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -27,7 +27,7 @@ public class Plugin : BaseUnityPlugin {
 
 	private void Awake() {
 		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.8 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.9 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
@@ -100,22 +100,7 @@ public class Plugin : BaseUnityPlugin {
 				return true;
 			}
 
-			void notify(string message) {
-				logger.LogInfo(message);
-				NotificationStack.Instance.SendNotification(message);
-			}
-
 			void create_navigation_button(string text, int index) {
-
-				m_chest_navigate_buttons[index] = GameObject.Instantiate<GameObject>(chest_transfer_similar_button, sort_button.transform.parent);
-				m_chest_navigate_buttons[index].GetComponent<RectTransform>().position =
-					sort_button.GetComponent<RectTransform>().position +
-					Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 5;
-				m_chest_navigate_buttons[index].GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
-					notify("testing!");
-				});
-
-				/*
 				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, sort_button.transform.parent);
 				TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
 				RectTransform chest_title_rect = sort_button.GetComponent<RectTransform>();
@@ -123,11 +108,9 @@ public class Plugin : BaseUnityPlugin {
 				tmp.text = text;
 				obj_rect.position = chest_title_rect.position + (index == PREV ? Vector3.left : Vector3.right) * ((chest_title_rect.rect.width / 2) + (obj_rect.rect.width / 2));
 				obj.AddComponent<UnityEngine.UI.Button>().onClick.AddListener((UnityAction) delegate {
-					//this.navigate_from_chest(index);
-					logger.LogInfo("adfsdfasdfasdfasdfasdf");
+					this.navigate_from_chest(index);
 				});
 				m_chest_navigate_buttons[index] = obj;
-				*/
 			}
 
 			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
@@ -139,7 +122,7 @@ public class Plugin : BaseUnityPlugin {
 			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				this.transfer_similar_items(player_inventory);
 			});
-			create_navigation_button("<Prev", PREV);
+			//create_navigation_button("<Prev", PREV);
 			//create_navigation_button("Next>", NEXT);
 		}
 
@@ -150,6 +133,7 @@ public class Plugin : BaseUnityPlugin {
 				}
 				player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
 			}
+			player_inventory.UpdateInventory();
 		}
 
 		public void refresh(Inventory player_inventory) {
@@ -169,7 +153,6 @@ public class Plugin : BaseUnityPlugin {
 					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
 						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
 					) {
-						this.testing((Chest) kvp.Value);
 						if (this.m_transfer_similar_button == null) {
 							this.create_buttons(kvp.Value.transform, player_inventory);
 						}
@@ -184,15 +167,6 @@ public class Plugin : BaseUnityPlugin {
 			Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
 			popup.text = "Zone Send Similar";
 			popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
-		}
-
-		public Chest m_food_chest = null;
-
-		private void testing(Chest chest) {
-			ChestData chest_data = (ChestData) chest.GetType().GetTypeInfo().GetField("data", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(chest);
-			if (chest_data != null && chest_data.name == "Food") {
-				m_food_chest = chest;
-			}
 		}
 
 		private void navigate_from_chest(int direction) {
@@ -311,7 +285,10 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Player_FixedUpdate {
 
 		private static bool Prefix(ref PlayerInventory ____inventory) {
-			OmniChest.Instance.refresh(____inventory);
+			try {
+				OmniChest.Instance.refresh(____inventory);
+			} catch {
+			}
 			return true;
 		}
 	}

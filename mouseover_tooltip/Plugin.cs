@@ -24,7 +24,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Player_Update {
 
 		private static void Postfix() {
-			
+			// EventSystem.current.IsPointerOverGameObject()		
 		}
 	}
 

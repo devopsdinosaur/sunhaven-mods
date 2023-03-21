@@ -30,7 +30,7 @@ public class Plugin : BaseUnityPlugin {
 
 		private static void Postfix(CraftingTable __instance, ref float ___craftSpeedMultiplier) {
 			if (m_enabled.Value) {
-				logger.LogInfo(__instance.name);
+				//logger.LogInfo(__instance.name);
 				___craftSpeedMultiplier = m_craft_speed.Value;
 			}
 		}

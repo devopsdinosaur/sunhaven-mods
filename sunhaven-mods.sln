@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32510.428
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "skill_reset", "skill_reset\skill_reset.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B7C}"
 EndProject
@@ -48,6 +48,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "no_more_deadlines", "no_more_deadlines\no_more_deadlines.csproj", "{0E1FF43F-A492-4C51-AA86-02C3051B111E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "mouseover_tooltip", "mouseover_tooltip\mouseover_tooltip.csproj", "{F46E4CCD-0AF1-4FC8-9931-D388C94B42D8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "expanded_inventory", "expanded_inventory\expanded_inventory.csproj", "{22E331E4-3009-4067-96FA-B6B31536B190}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -147,6 +149,10 @@ Global
 		{F46E4CCD-0AF1-4FC8-9931-D388C94B42D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F46E4CCD-0AF1-4FC8-9931-D388C94B42D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F46E4CCD-0AF1-4FC8-9931-D388C94B42D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{22E331E4-3009-4067-96FA-B6B31536B190}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{22E331E4-3009-4067-96FA-B6B31536B190}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{22E331E4-3009-4067-96FA-B6B31536B190}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{22E331E4-3009-4067-96FA-B6B31536B190}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

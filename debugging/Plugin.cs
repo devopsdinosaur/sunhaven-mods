@@ -329,7 +329,7 @@ public class Plugin : BaseUnityPlugin {
 				}
 				data = ItemDatabase.GetItemData((int) info.GetValue(item_id));
 				if (data.category == ItemCategory.Craftable) {
-					logger.LogInfo(info.Name);
+					//logger.LogInfo(info.Name);
 				}
 			}
 			return true;
