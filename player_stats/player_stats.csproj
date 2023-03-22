@@ -39,7 +39,7 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Plugin.cs" />
+    <Compile Include="PlayerStatsPlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">

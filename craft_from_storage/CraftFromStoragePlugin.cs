@@ -12,7 +12,7 @@ using UnityEngine.Events;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.9")]
-public class Plugin : BaseUnityPlugin {
+public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
 	public static ManualLogSource logger;
@@ -22,17 +22,14 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_use_inventory_first;
 	private static ConfigEntry<bool> m_transfer_from_action_bar;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.9 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
 		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
 		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
+		this.m_harmony.PatchAll();
 	}
 
 	public class OmniChest {
@@ -57,7 +54,7 @@ public class Plugin : BaseUnityPlugin {
 
 		private OmniChest() {
 			this.m_chest_interact_strings = new List<string>();
-			foreach (string value in Plugin.m_chest_interact_strings.Value.Split(',')) {
+			foreach (string value in CraftFromStoragePlugin.m_chest_interact_strings.Value.Split(',')) {
 				this.m_chest_interact_strings.Add(value);
 			}
 		}

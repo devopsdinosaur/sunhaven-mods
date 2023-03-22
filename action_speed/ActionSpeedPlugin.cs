@@ -6,7 +6,7 @@ using Wish;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.action_speed", "Action Speed", "0.0.2")]
-public class Plugin : BaseUnityPlugin {
+public class ActionSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.action_speed");
 	public static ManualLogSource logger;
@@ -17,18 +17,15 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<float> m_crossbow_speed;
 	private static ConfigEntry<float> m_spell_speed;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.action_speed v0.0.2 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_tool_speed = this.Config.Bind<float>("General", "Tool Speed", 2f, "Action speed for tools (float, 1 = game default, all perk modifiers will be applied in addition to this value)");
 		m_sword_speed = this.Config.Bind<float>("General", "Sword Speed", 1f, "Action speed for swords (float, 1 = game default, all perk modifiers will be applied in addition to this value)");
 		m_crossbow_speed = this.Config.Bind<float>("General", "Crossbow Speed", 1f, "Action speed for crossbows (float, 1 = game default, all perk modifiers will be applied in addition to this value)");
 		m_spell_speed = this.Config.Bind<float>("General", "Spell Speed", 1f, "Action speed for spells (float, 1 = game default, all perk modifiers will be applied in addition to this value)");
+		this.m_harmony.PatchAll();
 	}
 
 	[HarmonyPatch(typeof(Weapon), "AttackSpeed")]

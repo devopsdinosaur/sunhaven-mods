@@ -19,27 +19,17 @@ using QFSW.QC;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.debugging", "DEBUGGING", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class DebuggingPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.debugging");
 	public static ManualLogSource logger;
 
 	private static ConfigEntry<bool> m_enable_cheats;
 
-
-	public Plugin() {
-	}
-
-	private static bool enum_descendants_callback(Transform transform) {
-		logger.LogInfo(transform);
-		return true;
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.debugging v0.0.1 loaded.");
-		this.m_harmony.PatchAll();
 		m_enable_cheats = this.Config.Bind<bool>("General", "Enable Cheats", true, "Determines whether console cheats are enabled (without that weird key combination thingy)");
+		this.m_harmony.PatchAll();
 		
 		foreach (string key in BepInEx.Bootstrap.Chainloader.PluginInfos.Keys) {
 			PluginInfo plugin_info = BepInEx.Bootstrap.Chainloader.PluginInfos[key];
@@ -130,40 +120,6 @@ public class Plugin : BaseUnityPlugin {
 		}
 	}
 
-	// ======================================================================================
-	// Stuff for granting all race implicits
-	// ======================================================================================
-
-	[HarmonyPatch(typeof(CraftingTable), "Awake")]
-	class HarmonyPatch_CraftingTable_Awake {
-
-		private static bool Prefix(ref float ___craftSpeedMultiplier) {
-			// the CraftSpeedMultiplier property multiplies this by 1.2 for humans,
-			// so this grants the 20% to the other races
-			___craftSpeedMultiplier = (GameSave.CurrentCharacter.race != (int) Race.Human ? 1.2f : 1f);
-			return true;
-		}
-	}
-
-	[HarmonyPatch(typeof(SkillStats), "GetStat")]
-	class HarmonyPatch_SkillStats_GetStat {
-
-		private static bool Prefix(StatType stat, ref float __result, ref float ___lastJumpTimer) {
-			if (stat == StatType.CrossbowPower) {
-				__result = 0f;
-				if (GameSave.Combat.GetNode("Combat3b") && Time.time <= ___lastJumpTimer + 2f) {
-					__result += (float) GameSave.Combat.GetNodeAmount("Combat3b") * 0.05f;
-				}
-				__result += 0.1f;
-				return false;
-			}
-			return true;
-		}
-	}
-
-	// ======================================================================================
-	// ======================================================================================
-
 	[HarmonyPatch(typeof(LiamWheat), "ReceiveDamage")]
 	class HarmonyPatch_LiamWheat_ReceiveDamage {
 
@@ -181,31 +137,6 @@ public class Plugin : BaseUnityPlugin {
 				ItemID.Wheat
 			);
 			return false;
-		}
-	}
-
-	public class SimulationClock {
-
-		private static SimulationClock m_instance = null;
-		public static SimulationClock Instance {
-			get {
-				if (m_instance == null) {
-					m_instance = new SimulationClock();
-				}
-				return m_instance;
-			}
-		}
-		public const float TICK = 0.05f;
-		public const float MAX_VALUE = 20f;
-		public const float MAX_TICK = MAX_VALUE / TICK;
-
-		//public void create_settings_slider
-
-		public void adjust_dayspeed_slider(float value, Slider slider, TextMeshProUGUI label) {
-			slider.minValue = 0f;
-			slider.maxValue = MAX_TICK;
-			slider.value = (value < TICK ? 0f : value / MAX_VALUE);
-			label.text = "Blah";
 		}
 	}
 

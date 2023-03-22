@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.expanded_inventory", "Expanded Inventory", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class ExpandedInventoryPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.expanded_inventory");
 	public static ManualLogSource logger;
@@ -29,11 +29,8 @@ public class Plugin : BaseUnityPlugin {
 	// this will be true if the scaling algorithm is unable to fit requested slots
 	private static bool m_temporary_disable = false;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.expanded_inventory v0.0.1 loaded.");
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_num_slots = this.Config.Bind<int>("General", "Slot Count", 100, "Number of inventory slots");

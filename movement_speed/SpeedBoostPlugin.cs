@@ -7,7 +7,7 @@ using UnityEngine;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.speed_boost", "Speed Boost", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class SpeedBoostPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.speed_boost");
 	public static ManualLogSource logger;
@@ -15,18 +15,15 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<float> m_movement_speed;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.speed_boost v0.0.1 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		m_movement_speed = this.Config.Bind<float>("General", "Movement Speed", 0.75f, "Base movement speed before applied perks (float, 0.75f = fast, 1f+ super speed!)");
-	}
+        m_movement_speed = this.Config.Bind<float>("General", "Movement Speed", 0.75f, "Base movement speed before applied perks (float, 0.75f = fast, 1f+ super speed!)");
+		this.m_harmony.PatchAll();
+    }
 
-	[HarmonyPatch(typeof(SkillStats), "GetStat")]
+    [HarmonyPatch(typeof(SkillStats), "GetStat")]
 	class HarmonyPatch_SkillStats_GetStat {
 
 		private static bool Prefix(StatType stat, ref float __result) {

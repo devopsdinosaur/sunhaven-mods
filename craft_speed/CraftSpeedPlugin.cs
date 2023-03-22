@@ -6,7 +6,7 @@ using Wish;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.2")]
-public class Plugin : BaseUnityPlugin {
+public class CraftSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_speed");
 	public static ManualLogSource logger;
@@ -14,15 +14,12 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<float> m_craft_speed;
 	
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.2 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_craft_speed = this.Config.Bind<float>("General", "Craft Speed Multiplier", 10f, "Speed multiplier for item crafting (float, 1 = game default (1.2 for humans) [note: this stomps the human 20% passive; should not affect anything else])");
+		this.m_harmony.PatchAll();
 	}
 
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]

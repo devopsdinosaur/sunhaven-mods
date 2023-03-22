@@ -8,7 +8,7 @@ using UnityEngine.UI;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.no_more_keys", "No More Keys", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class NoMoreKeysPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_keys");
 	public static ManualLogSource logger;
@@ -18,19 +18,18 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_no_keys_for_mine_doors;
 	private static ConfigEntry<bool> m_no_keys_for_wilt;
 	private static ConfigEntry<bool> m_no_tickets_for_gerald;
-
-	public Plugin() {
-	}
+	private static ConfigEntry<bool> m_infinite_tries_combat_dungeon;
 
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_keys v0.0.1 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_no_keys_for_chests = this.Config.Bind<bool>("General", "No Keys for Chests", true, "If true then keys are not required for chests (will display image but won't check/use key)");
 		m_no_keys_for_mine_doors = this.Config.Bind<bool>("General", "No Keys for Mine Doors", true, "If true then all doors in the Sun Haven mine will be open");
 		m_no_keys_for_wilt = this.Config.Bind<bool>("General", "No Keys for Wilt", true, "If true then you cruelly trick the poor slow tree guy into thinking you're giving him keys (shame on you!)");
 		m_no_tickets_for_gerald = this.Config.Bind<bool>("General", "No Tickets for Gerald", true, "If true then you give fake tickets to Gerald in Withergate");
+		m_infinite_tries_combat_dungeon = this.Config.Bind<bool>("General", "Infinite Combat Dungeon Retries", false, "If true then you can do the combat dungeon as many times as you like in a single day");
+		this.m_harmony.PatchAll();
 	}
 
 	[HarmonyPatch(typeof(HelpTooltips), "SendNotification")]
@@ -47,6 +46,18 @@ public class Plugin : BaseUnityPlugin {
 		private static bool Prefix(string progressID, ref bool __result) {
 			if (m_enabled.Value && m_no_keys_for_mine_doors.Value && progressID.StartsWith("minesUnlock") && !progressID.EndsWith("Temp")) {
 				__result = true;
+				return false;
+			}
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(GameSave), "GetProgressBoolCharacter")]
+	class HarmonyPatch_GameSave_GetProgressBoolCharacter {
+
+		private static bool Prefix(string progressID, ref bool __result) {
+			if (m_enabled.Value && m_infinite_tries_combat_dungeon.Value && progressID == "CompletedDungeonForTheDay") {
+				__result = false;
 				return false;
 			}
 			return true;

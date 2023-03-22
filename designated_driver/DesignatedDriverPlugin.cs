@@ -3,26 +3,18 @@ using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
-using UnityEngine;
-using System.Collections.Generic;
 using Wish;
-using TMPro;
 using System.Reflection;
-using UnityEngine.Events;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.designated_driver", "Designated Driver", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class DesignatedDriverPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.designated_driver");
 	public static ManualLogSource logger;
-	
-
-	public Plugin() {
-	}
 
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.designated_driver v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 	}

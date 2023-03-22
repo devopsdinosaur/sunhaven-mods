@@ -12,8 +12,8 @@ using System.Reflection;
 using System.Diagnostics;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.3")]
-public class Plugin : BaseUnityPlugin {
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.4")]
+public class TimeManagementPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
 	public static ManualLogSource logger;
@@ -37,20 +37,10 @@ public class Plugin : BaseUnityPlugin {
 
 	public static float m_time_stop_multiplier = 1f;
 	public static bool m_is_ui_visible = false;
-	private static Plugin m_instance;
-	public static Plugin Instance {
-		get {
-			return m_instance;
-		}
-	}
-
-	public Plugin() {
-	}
-
+	
 	private void Awake() {
-		m_instance = this;
-		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.3 loaded.");
+		logger = this.Logger;
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.4 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
@@ -111,30 +101,34 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_Player_Update {
 
 		private static bool Prefix(ref Player __instance) {
-			if (!m_enabled.Value || !is_modifier_hotkey_down()) {
-				return true;
-			}
-			bool changed = false;
-			if (is_hotkey_down(HOTKEY_TIME_STOP_TOGGLE)) {
-				m_time_stop_multiplier = (m_time_stop_multiplier == 1f ? 0f : 1f);
-				changed = true;
-			} else if (is_hotkey_down(HOTKEY_TIME_SPEED_UP)) {
-				m_time_speed.Value += m_time_speed_delta.Value;
-				changed = true;
-			} else if (is_hotkey_down(HOTKEY_TIME_SPEED_DOWN)) {
-				m_time_speed.Value -= m_time_speed_delta.Value;
-				changed = true;
-			}
-			m_time_speed.Value = (float) System.Math.Round(m_time_speed.Value, 3);
-			if (m_time_speed.Value < 0.0001f) {
-				m_time_speed.Value = 0f;
-			}
-			if (changed) {
-				if (m_use_time_scale.Value) {
-					notify("Time Factor: " + m_time_speed.Value + " (real sec / game min) [Paused: " + (m_time_stop_multiplier == 0f ? "True" : "False") + "]");
-				} else {
-					notify("Time Factor: <disabled in config> [Paused: " + (m_time_stop_multiplier == 0f ? "True" : "False") + "]");
+			try {
+				if (!m_enabled.Value || !is_modifier_hotkey_down()) {
+					return true;
 				}
+				bool changed = false;
+				if (is_hotkey_down(HOTKEY_TIME_STOP_TOGGLE)) {
+					m_time_stop_multiplier = (m_time_stop_multiplier == 1f ? 0f : 1f);
+					changed = true;
+				} else if (is_hotkey_down(HOTKEY_TIME_SPEED_UP)) {
+					m_time_speed.Value += m_time_speed_delta.Value;
+					changed = true;
+				} else if (is_hotkey_down(HOTKEY_TIME_SPEED_DOWN)) {
+					m_time_speed.Value -= m_time_speed_delta.Value;
+					changed = true;
+				}
+				m_time_speed.Value = (float) System.Math.Round(m_time_speed.Value, 3);
+				if (m_time_speed.Value < 0.0001f) {
+					m_time_speed.Value = 0f;
+				}
+				if (changed) {
+					if (m_use_time_scale.Value) {
+						notify("Time Factor: " + m_time_speed.Value + " (real sec / game min) [Paused: " + (m_time_stop_multiplier == 0f ? "True" : "False") + "]");
+					} else {
+						notify("Time Factor: <disabled in config> [Paused: " + (m_time_stop_multiplier == 0f ? "True" : "False") + "]");
+					}
+				}
+			} catch {
+				// ignorable nullref exceptions will get thrown for a bit when game is starting/dying/in menu
 			}
 			return true;
 		}
@@ -154,7 +148,7 @@ public class Plugin : BaseUnityPlugin {
 				if (!m_use_time_scale.Value) {
 					return true;
 				}
-				__result = 1.0f - Plugin.m_time_speed.Value;
+				__result = 1.0f - m_time_speed.Value;
 			} else {
 				if (!m_use_time_scale.Value) {
 					if (m_pause_in_ui.Value && !m_is_ui_visible) {
@@ -163,7 +157,7 @@ public class Plugin : BaseUnityPlugin {
 					}
 					return true;
 				}
-				__result = (m_pause_in_ui.Value && !m_is_ui_visible ? 0f : Plugin.m_time_speed.Value * Plugin.m_time_stop_multiplier);
+				__result = (m_pause_in_ui.Value && !m_is_ui_visible ? 0f : m_time_speed.Value * m_time_stop_multiplier);
 			}
 			return false;
 		}
@@ -207,7 +201,7 @@ public class Plugin : BaseUnityPlugin {
 	class HarmonyPatch_GameManager_DisableUI {
 
 		private static void Postfix() {
-			Plugin.m_is_ui_visible = false;
+			m_is_ui_visible = false;
 		}
 	}
 

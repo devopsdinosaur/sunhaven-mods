@@ -11,17 +11,14 @@ using UnityEngine.Events;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.skill_reset", "Skill Reset", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class SkillResetPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.skill_reset");
 	public static ManualLogSource logger;
 	public static Dictionary<ProfessionType, GameObject> m_reset_buttons = new Dictionary<ProfessionType, GameObject>();
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.skill_reset v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 	}

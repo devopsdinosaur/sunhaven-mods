@@ -11,8 +11,8 @@ using ZeroFormatter;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.5")]
-public class Plugin : BaseUnityPlugin {
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.6")]
+public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
 	public static ManualLogSource logger;
@@ -36,13 +36,9 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_hide_fertilizer_particles;
 	private static ConfigEntry<bool> m_any_season_planting;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.5 loaded.");
-		this.m_harmony.PatchAll();
+		logger = this.Logger;
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.6 loaded.");
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
 		m_water_during_day = this.Config.Bind<bool>("General", "Water During Day", true, "If true then tiles will gradually be watered as they are hoed and so on (i.e. a freshly hoed tile should display as wet almost immediately unless tiles were not watered overnight or this is the first time mod was loaded on the savegame [in this case it will take a bit to catch up if there are a lot of dry tiles])");
@@ -61,6 +57,7 @@ public class Plugin : BaseUnityPlugin {
 		m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
 		m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
 		m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
+		this.m_harmony.PatchAll();
 	}
 
 	private static void update_tile(Vector2Int pos, bool do_water) {
@@ -103,12 +100,16 @@ public class Plugin : BaseUnityPlugin {
 		static float m_elapsed = CHECK_FREQUENCY;
 
 		private static bool Prefix(ref Player __instance) {
-			if (!m_enabled.Value || !m_water_during_day.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
-				return true;
-			}
-			m_elapsed = 0f;
-			foreach (Vector2Int pos in TileManager.Instance.farmingData.Keys) {
-				update_tile(pos, m_water_during_day.Value);
+			try {
+				if (!m_enabled.Value || !m_water_during_day.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
+					return true;
+				}
+				m_elapsed = 0f;
+				foreach (Vector2Int pos in TileManager.Instance.farmingData.Keys) {
+					update_tile(pos, m_water_during_day.Value);
+				}
+			} catch {
+				// ignorable nullref exceptions will get thrown for a bit when game is starting/dying/in menu
 			}
 			return true;
 		}

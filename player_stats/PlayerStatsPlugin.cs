@@ -8,7 +8,7 @@ using System;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.player_stats", "Player Stats", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class PlayerStatsPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.player_stats");
 	public static ManualLogSource logger;
@@ -16,18 +16,15 @@ public class Plugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_enabled;
 	private static Dictionary<StatType, ConfigEntry<float>> m_stats;
 
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.player_stats v0.0.1 loaded.");
-		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_stats = new Dictionary<StatType, ConfigEntry<float>>();
 		foreach (string stat_name in System.Enum.GetNames(typeof(StatType))) {
 			m_stats[(StatType) System.Enum.Parse(typeof(StatType), stat_name)] = this.Config.Bind<float>("General", "Delta " + stat_name, 0f, "[float] Amount to increment/decrement the '" + stat_name + "' player stat (only during gameplay with mod enabled; not permanent).");
 		}
+		this.m_harmony.PatchAll();
 	}
 
 	[HarmonyPatch(typeof(Player), "GetStat")]

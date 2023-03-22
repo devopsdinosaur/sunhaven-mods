@@ -5,17 +5,13 @@ using Wish;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.instant_text", "Instant Text", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class InstantTextPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.instant_text");
 	public static ManualLogSource logger;
 
-
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.instant_text v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 	}

@@ -7,17 +7,13 @@ using System;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class CashForTrashPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.cash_for_trash");
 	public static ManualLogSource logger;
 
-
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.cash_for_trash v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 	}

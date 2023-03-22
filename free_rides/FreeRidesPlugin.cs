@@ -9,17 +9,13 @@ using TMPro;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.free_rides", "Free Rides", "0.0.1")]
-public class Plugin : BaseUnityPlugin {
+public class FreeRidesPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.free_rides");
 	public static ManualLogSource logger;
 
-
-	public Plugin() {
-	}
-
 	private void Awake() {
-		Plugin.logger = this.Logger;
+		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.free_rides v0.0.1 loaded.");
 		this.m_harmony.PatchAll();
 	}
