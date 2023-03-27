@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.5")]
 public class TimeManagementPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -40,7 +40,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 	
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.4 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.time_management v0.0.5 loaded.");
 		this.m_harmony.PatchAll();
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 		m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");

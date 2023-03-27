@@ -11,7 +11,7 @@ using System;
 using UnityEngine.Events;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.9")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.10")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -24,8 +24,9 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.9 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.10 loaded.");
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+		// Other languages: [German] Kist,Kühlschrank,Garderobe
 		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
 		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
 		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
@@ -117,20 +118,25 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				sort_button.GetComponent<RectTransform>().position +
 				Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 3;
 			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
-				this.transfer_similar_items(player_inventory);
+				this.transfer_similar_items();
 			});
 			//create_navigation_button("<Prev", PREV);
 			//create_navigation_button("Next>", NEXT);
 		}
 
-		public void transfer_similar_items(Inventory player_inventory) {
-			foreach (Inventory inventory in this.m_inventories) {
-				if (inventory == player_inventory) {
-					continue;
+		public void transfer_similar_items() {
+			try {
+				Inventory player_inventory = Player.Instance.Inventory;
+				foreach (Inventory inventory in this.m_inventories) {
+					if (inventory == player_inventory) {
+						continue;
+					}
+					player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
 				}
-				player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
+				player_inventory.UpdateInventory();
+			} catch (Exception e) {
+				logger.LogError("** transfer_similar_items ERROR - " + e);
 			}
-			player_inventory.UpdateInventory();
 		}
 
 		public void refresh(Inventory player_inventory) {
@@ -146,17 +152,18 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				this.add_inventory(player_inventory);
 			}
 			foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
-				if (kvp.Value is Chest) {
-					if (!this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) &&
-						this.m_chest_interact_strings.Contains((string) kvp.Value.GetType().GetTypeInfo().GetField("interactText", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(kvp.Value))
-					) {
-						if (this.m_transfer_similar_button == null) {
-							this.create_buttons(kvp.Value.transform, player_inventory);
-						}
-						this.m_added_hashes.Add(hash);
-						this.add_inventory(((Chest) kvp.Value).sellingInventory);
-					}
+				if (!(kvp.Value is Chest) || this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) {
+					continue;
 				}
+				string type_name = kvp.Value.GetType().Name;
+				if (!(type_name == "Chest" || type_name == "AutoCollector" || type_name == "Hopper")) {
+					continue;
+				}
+				if (this.m_transfer_similar_button == null) {
+					this.create_buttons(kvp.Value.transform, player_inventory);
+				}
+				this.m_added_hashes.Add(hash);
+				this.add_inventory(((Chest) kvp.Value).sellingInventory);
 			}
 			if (!m_use_inventory_first.Value) {
 				this.add_inventory(player_inventory);

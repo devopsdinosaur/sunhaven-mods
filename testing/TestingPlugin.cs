@@ -1,42 +1,26 @@
-﻿
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
-using UnityEngine;
-using System.Collections.Generic;
-using UnityEngine.SceneManagement;
-using System.Reflection;
-using System;
-using TMPro;
-using System.IO;
-using UnityEngine.Events;
-using DG.Tweening;
-using Mirror;
-using UnityEngine.UI;
 using QFSW.QC;
-using System.Diagnostics;
+using System;
+using System.Reflection;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Events;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.debugging", "DEBUGGING", "0.0.1")]
-public class DDDebuggingPlugin : BaseUnityPlugin {
+[BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
+public class ActionSpeedPlugin : BaseUnityPlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.debugging");
+	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
 	public static ManualLogSource logger;
-
-	private static ConfigEntry<bool> m_enable_cheats;
-
+	
 	private void Awake() {
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.debugging v0.0.1 loaded.");
-		m_enable_cheats = this.Config.Bind<bool>("General", "Enable Cheats", true, "Determines whether console cheats are enabled (without that weird key combination thingy)");
+		logger = this.Logger;
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.testing v0.0.2 loaded.");
 		this.m_harmony.PatchAll();
-		
-		foreach (string key in BepInEx.Bootstrap.Chainloader.PluginInfos.Keys) {
-			PluginInfo plugin_info = BepInEx.Bootstrap.Chainloader.PluginInfos[key];
-			logger.LogInfo(key + " - " + plugin_info.ToString());
-		}
-
 	}
 
 	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
@@ -78,15 +62,7 @@ public class DDDebuggingPlugin : BaseUnityPlugin {
 		}
 	}
 
-    [HarmonyPatch(typeof(PlayerSettings), "Initialize")]
-    class HarmonyPatch_PlayerSettings_Initialize {
-
-        private static void Postfix(PlayerSettings __instance) {
-            __instance.SetCheatsEnabled(true);
-        }
-    }
-
-    [HarmonyPatch(typeof(Player), "RequestSleep")]
+	[HarmonyPatch(typeof(Player), "RequestSleep")]
 	class HarmonyPatch_Player_RequestSleep {
 
 		private static bool Prefix(Player __instance, Bed bed, ref bool ____paused, ref UnityAction ___OnUnpausePlayer) {
@@ -141,4 +117,10 @@ public class DDDebuggingPlugin : BaseUnityPlugin {
 		}
 	}
 
+	//[HarmonyPatch(typeof(Player), "Awake")]
+	//class HarmonyPatch_Player_Awake {
+	//
+	//	private static void Postfix() {
+	//	}
+	//}
 }
