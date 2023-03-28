@@ -79,7 +79,9 @@ public class ZoneInfoPlugin : BaseUnityPlugin {
 					}
 					TextMeshProUGUI m_time_tmp = (TextMeshProUGUI) DayCycle.Instance.GetType().GetTypeInfo().GetField("_timeTMP", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(DayCycle.Instance);
 					InfoLabel.create(ZONE_NAME, m_time_tmp.gameObject);
-					InfoLabel.create(PLAYER_POS, m_info_labels[ZONE_NAME].game_object);
+					if (m_show_coordinates.Value) {
+						InfoLabel.create(PLAYER_POS, m_info_labels[ZONE_NAME].game_object);
+					}
 				} catch {
 				}
 			}
