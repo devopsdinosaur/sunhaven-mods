@@ -18,7 +18,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 	public static ManualLogSource logger;
 	
 	private static ConfigEntry<bool> m_enabled;
-	private static ConfigEntry<string> m_chest_interact_strings;
 	private static ConfigEntry<bool> m_use_inventory_first;
 	private static ConfigEntry<bool> m_transfer_from_action_bar;
 
@@ -26,8 +25,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		logger = this.Logger;
 		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.10 loaded.");
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		// Other languages: [German] Kist,Kühlschrank,Garderobe
-		m_chest_interact_strings = this.Config.Bind<string>("General", "Chest Interact Strings", "Chest,Fridge,Wardrobe", "[Advanced] Comma-separated list of strings matching the *exact* text displayed when hovering over the storage container.  For a container to be included in the global access its interact text must be in this list.  Messing up this value *will* break the mod =)  If you have to add a string please PM me on nexus, and I will add it to the mod defaults.");
 		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
 		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
 		this.m_harmony.PatchAll();
@@ -41,7 +38,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		private List<Inventory> m_inventories = null;
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = CHECK_FREQUENCY;
-		private List<string> m_chest_interact_strings = null;
 		private GameObject m_transfer_similar_button = null;
 		private const int PREV = 0;
 		private const int NEXT = 1;
@@ -54,10 +50,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		}
 
 		private OmniChest() {
-			this.m_chest_interact_strings = new List<string>();
-			foreach (string value in CraftFromStoragePlugin.m_chest_interact_strings.Value.Split(',')) {
-				this.m_chest_interact_strings.Add(value);
-			}
 		}
 
 		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
@@ -139,38 +131,42 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			}
 		}
 
-		public void refresh(Inventory player_inventory) {
-			if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
-				return;
-			}
-			m_elapsed = 0f;
-			int hash = 0;
-			this.m_added_hashes = new List<int>();
-			this.m_items = new Dictionary<int, List<SlotItemData>>();
-			this.m_inventories = new List<Inventory>();
-			if (m_use_inventory_first.Value) {
-				this.add_inventory(player_inventory);
-			}
-			foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
-				if (!(kvp.Value is Chest) || this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode()) {
-					continue;
+		public void refresh() {
+			try {
+				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
+					return;
 				}
-				string type_name = kvp.Value.GetType().Name;
-				if (!(type_name == "Chest" || type_name == "AutoCollector" || type_name == "Hopper")) {
-					continue;
+				Inventory player_inventory = Player.Instance.Inventory;
+				m_elapsed = 0f;
+				int hash = 0;
+				this.m_added_hashes = new List<int>();
+				this.m_items = new Dictionary<int, List<SlotItemData>>();
+				this.m_inventories = new List<Inventory>();
+				if (m_use_inventory_first.Value) {
+					this.add_inventory(player_inventory);
 				}
-				if (this.m_transfer_similar_button == null) {
-					this.create_buttons(kvp.Value.transform, player_inventory);
+				foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
+					if (!(kvp.Value is Chest) || this.m_added_hashes.Contains(hash = kvp.Value.GetHashCode())) {
+						continue;
+					}
+					string type_name = kvp.Value.GetType().Name;
+					if (!(type_name == "Chest" || type_name == "AutoCollector" || type_name == "Hopper")) {
+						continue;
+					}
+					if (this.m_transfer_similar_button == null) {
+						this.create_buttons(kvp.Value.transform, player_inventory);
+					}
+					this.m_added_hashes.Add(hash);
+					this.add_inventory(((Chest) kvp.Value).sellingInventory);
 				}
-				this.m_added_hashes.Add(hash);
-				this.add_inventory(((Chest) kvp.Value).sellingInventory);
+				if (!m_use_inventory_first.Value) {
+					this.add_inventory(player_inventory);
+				}
+				Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
+				popup.text = "Zone Send Similar";
+				popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
+			} catch {
 			}
-			if (!m_use_inventory_first.Value) {
-				this.add_inventory(player_inventory);
-			}
-			Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
-			popup.text = "Zone Send Similar";
-			popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
 		}
 
 		private void navigate_from_chest(int direction) {
@@ -288,20 +284,17 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(Player), "FixedUpdate")]
 	class HarmonyPatch_Player_FixedUpdate {
 
-		private static bool Prefix(ref PlayerInventory ____inventory) {
-			try {
-				OmniChest.Instance.refresh(____inventory);
-			} catch {
-			}
+		private static bool Prefix() {
+			OmniChest.Instance.refresh();
 			return true;
 		}
 	}
 
-	[HarmonyPatch(typeof(CraftingTable), "Interact")]
-	class HarmonyPatch_CraftingTable_Interact {
+	[HarmonyPatch(typeof(ScenePortalSpot), "OnTriggerEnter2D")]
+	class HarmonyPatch_ScenePortalSpot_OnTriggerEnter2D {
 
 		private static void Postfix() {
-			
+			OmniChest.Instance.refresh();
 		}
 	}
 

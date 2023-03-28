@@ -117,10 +117,11 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 
-	//[HarmonyPatch(typeof(Player), "Awake")]
-	//class HarmonyPatch_Player_Awake {
-	//
-	//	private static void Postfix() {
-	//	}
-	//}
+	[HarmonyPatch(typeof(Recipe))]
+	class HarmonyPatch_Player_Awake {
+	
+		private static void Postfix(Recipe __instance) {
+			logger.LogInfo(__instance.output.item.name);
+		}
+	}
 }
