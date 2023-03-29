@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using TMPro;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
@@ -114,14 +115,6 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 				ItemID.Wheat
 			);
 			return false;
-		}
-	}
-
-	[HarmonyPatch(typeof(Recipe))]
-	class HarmonyPatch_Player_Awake {
-	
-		private static void Postfix(Recipe __instance) {
-			logger.LogInfo(__instance.output.item.name);
 		}
 	}
 }
