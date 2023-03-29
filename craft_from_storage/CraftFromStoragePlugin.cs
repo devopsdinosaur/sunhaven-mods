@@ -9,9 +9,10 @@ using System.Reflection;
 using TMPro;
 using System;
 using UnityEngine.Events;
+using System.Threading;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.10")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.12")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -23,11 +24,15 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.10 loaded.");
-		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
-		m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
-		this.m_harmony.PatchAll();
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
+			m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
+			this.m_harmony.PatchAll();
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.12 loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
+		}
 	}
 
 	public class OmniChest {
@@ -42,6 +47,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		private const int PREV = 0;
 		private const int NEXT = 1;
 		private GameObject[] m_chest_navigate_buttons = new GameObject[2];
+		private Mutex m_thread_lock = new Mutex();
 
 		public static OmniChest Instance {
 			get {
@@ -50,6 +56,14 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		}
 
 		private OmniChest() {
+		}
+
+		private void get_thread_lock() {
+			this.m_thread_lock.WaitOne();
+		}
+
+		private void release_thread_lock() {
+			this.m_thread_lock.ReleaseMutex();
 		}
 
 		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
@@ -117,21 +131,29 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		}
 
 		public void transfer_similar_items() {
+			this.refresh();
+			this.get_thread_lock();
 			try {
 				Inventory player_inventory = Player.Instance.Inventory;
-				foreach (Inventory inventory in this.m_inventories) {
-					if (inventory == player_inventory) {
-						continue;
+				Inventory inventory;
+				for (int index = (m_use_inventory_first.Value ? 1 : 0); index < (!m_use_inventory_first.Value ? this.m_inventories.Count - 1 : this.m_inventories.Count); index++) {
+					try {
+						inventory = this.m_inventories[index];
+						player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
+						inventory.UpdateInventory();
+						player_inventory.UpdateInventory();
+					} catch {
 					}
-					player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
 				}
-				player_inventory.UpdateInventory();
 			} catch (Exception e) {
 				logger.LogError("** transfer_similar_items ERROR - " + e);
 			}
+			this.release_thread_lock();
+			this.refresh();
 		}
 
 		public void refresh() {
+			this.get_thread_lock();
 			try {
 				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
 					return;
@@ -167,6 +189,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
 			} catch {
 			}
+			this.release_thread_lock();
 		}
 
 		private void navigate_from_chest(int direction) {
@@ -284,8 +307,10 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(Player), "FixedUpdate")]
 	class HarmonyPatch_Player_FixedUpdate {
 
-		private static bool Prefix() {
-			OmniChest.Instance.refresh();
+		private static bool Prefix(Player __instance) {
+			if (__instance.IsOwner) {
+				OmniChest.Instance.refresh();
+			}
 			return true;
 		}
 	}

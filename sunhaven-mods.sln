@@ -51,6 +51,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "respawn_timer", "respawn_ti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testing", "testing\testing.csproj", "{6434186F-4518-4E58-A028-114F998D0333}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "easy_animals", "easy_animals\easy_animals.csproj", "{48F1F056-2699-44E1-BF95-45AC17163596}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -153,6 +155,10 @@ Global
 		{6434186F-4518-4E58-A028-114F998D0333}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6434186F-4518-4E58-A028-114F998D0333}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6434186F-4518-4E58-A028-114F998D0333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{48F1F056-2699-44E1-BF95-45AC17163596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48F1F056-2699-44E1-BF95-45AC17163596}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48F1F056-2699-44E1-BF95-45AC17163596}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48F1F056-2699-44E1-BF95-45AC17163596}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
