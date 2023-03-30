@@ -9,10 +9,10 @@ using UnityEngine.Events;
 using System.Collections.Generic;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.expanded_inventory", "Expanded Inventory", "0.0.1")]
-public class ExpandedInventoryPlugin : BaseUnityPlugin {
+[BepInPlugin("devopsdinosaur.sunhaven.expanded_storage", "Expanded Storage", "0.0.1")]
+public class ExpandedStoragePlugin : BaseUnityPlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.expanded_inventory");
+	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.expanded_storage");
 	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<int> m_num_slots;
@@ -31,11 +31,17 @@ public class ExpandedInventoryPlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.expanded_inventory v0.0.1 loaded.");
-		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		m_num_slots = this.Config.Bind<int>("General", "Slot Count", 100, "Number of inventory slots");
-		m_temporary_disable = false;
-		this.m_harmony.PatchAll();
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			m_num_slots = this.Config.Bind<int>("General", "Slot Count", 100, "Number of inventory slots");
+			m_temporary_disable = false;
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo("devopsdinosaur.sunhaven.expanded_storage v0.0.1 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
+		}
 	}
 
 	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {

@@ -6,8 +6,8 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{22E331E4-3009-4067-96FA-B6B31536B190}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>devopsdinosaur.sunhaven.expanded_inventory</RootNamespace>
-    <AssemblyName>devopsdinosaur.sunhaven.expanded_inventory</AssemblyName>
+    <RootNamespace>devopsdinosaur.sunhaven.expanded_storage</RootNamespace>
+    <AssemblyName>devopsdinosaur.sunhaven.expanded_storage</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -39,7 +39,7 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ExpandedInventoryPlugin.cs" />
+    <Compile Include="ExpandedStoragePlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
