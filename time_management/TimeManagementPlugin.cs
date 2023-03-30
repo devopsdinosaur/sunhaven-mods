@@ -85,10 +85,12 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			set_hotkey(m_hotkey_time_speed_up.Value, HOTKEY_TIME_SPEED_UP);
 			set_hotkey(m_hotkey_time_speed_down.Value, HOTKEY_TIME_SPEED_DOWN);
 			m_is_ui_visible = true;
-			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.6 loaded.");
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
-			logger.LogError("Awake FATAL - " + e);
+			logger.LogError("** Awake FATAL - " + e);
 		}
 	}
 

@@ -8,6 +8,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using ZeroFormatter;
+using System;
 using System.Reflection;
 
 
@@ -38,26 +39,32 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.no_more_watering v0.0.6 loaded.");
-		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
-		m_water_during_day = this.Config.Bind<bool>("General", "Water During Day", true, "If true then tiles will gradually be watered as they are hoed and so on (i.e. a freshly hoed tile should display as wet almost immediately unless tiles were not watered overnight or this is the first time mod was loaded on the savegame [in this case it will take a bit to catch up if there are a lot of dry tiles])");
-		m_scarecrow = this.Config.Bind<bool>("General", "Everywhere Scarecrow", true, "If true then all crops will be protected from pests in all seasons");
-		m_totem_seasons = this.Config.Bind<bool>("General", "Everywhere Totem: Seasons", true, "If true then all crops will be provided the effects of all seasonal totems (4% extra crop chance; immune to fire, entanglement, and freeze)");
-		m_totem_sunhaven = this.Config.Bind<bool>("General", "Everywhere Totem: Sun Haven", true, "If true then Sun Haven crops can be planted anywhere");
-		m_totem_nelvari = this.Config.Bind<bool>("General", "Everywhere Totem: Nelvari", true, "If true then Nelvari crops can be planted anywhere");
-		m_totem_withergate = this.Config.Bind<bool>("General", "Everywhere Totem: Withergate", true, "If true then Withergate crops can be planted anywhere");
-		m_totem_exploration = this.Config.Bind<bool>("General", "Everywhere Totem: Exploration", false, "If true then all crops will be covered by the Exploration totem aura (crops grant +2 experience for this skill)");
-		m_totem_farming = this.Config.Bind<bool>("General", "Everywhere Totem: Farming", false, "If true then all crops will be covered by the Farming totem aura (crops grant +2 experience for this skill)");
-		m_totem_mining = this.Config.Bind<bool>("General", "Everywhere Totem: Mining", false, "If true then all crops will be covered by the Mining totem aura (crops grant +2 experience for this skill)");
-		m_totem_combat = this.Config.Bind<bool>("General", "Everywhere Totem: Combat", false, "If true then all crops will be covered by the Combat totem aura (crops grant +2 experience for this skill)");
-		m_totem_fishing = this.Config.Bind<bool>("General", "Everywhere Totem: Fishing", false, "If true then all crops will be covered by the Fishing totem aura (crops grant +2 experience for this skill)");
-		m_totem_royal = this.Config.Bind<bool>("General", "Everywhere Totem: Royal", false, "If true then all crops will be covered by the Royal totem aura (crops produce gold)");
-		m_fertilize_earth2 = this.Config.Bind<bool>("General", "Fertilize Earth2", false, "If true then all crops will be automatically fertilized with Earth Fertilizer 2 (can be combined with Fertilize Fire2 [combined fertilizer will produce a white floating particle])");
-		m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
-		m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
-		m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
-		this.m_harmony.PatchAll();
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
+			m_water_during_day = this.Config.Bind<bool>("General", "Water During Day", true, "If true then tiles will gradually be watered as they are hoed and so on (i.e. a freshly hoed tile should display as wet almost immediately unless tiles were not watered overnight or this is the first time mod was loaded on the savegame [in this case it will take a bit to catch up if there are a lot of dry tiles])");
+			m_scarecrow = this.Config.Bind<bool>("General", "Everywhere Scarecrow", true, "If true then all crops will be protected from pests in all seasons");
+			m_totem_seasons = this.Config.Bind<bool>("General", "Everywhere Totem: Seasons", true, "If true then all crops will be provided the effects of all seasonal totems (4% extra crop chance; immune to fire, entanglement, and freeze)");
+			m_totem_sunhaven = this.Config.Bind<bool>("General", "Everywhere Totem: Sun Haven", true, "If true then Sun Haven crops can be planted anywhere");
+			m_totem_nelvari = this.Config.Bind<bool>("General", "Everywhere Totem: Nelvari", true, "If true then Nelvari crops can be planted anywhere");
+			m_totem_withergate = this.Config.Bind<bool>("General", "Everywhere Totem: Withergate", true, "If true then Withergate crops can be planted anywhere");
+			m_totem_exploration = this.Config.Bind<bool>("General", "Everywhere Totem: Exploration", false, "If true then all crops will be covered by the Exploration totem aura (crops grant +2 experience for this skill)");
+			m_totem_farming = this.Config.Bind<bool>("General", "Everywhere Totem: Farming", false, "If true then all crops will be covered by the Farming totem aura (crops grant +2 experience for this skill)");
+			m_totem_mining = this.Config.Bind<bool>("General", "Everywhere Totem: Mining", false, "If true then all crops will be covered by the Mining totem aura (crops grant +2 experience for this skill)");
+			m_totem_combat = this.Config.Bind<bool>("General", "Everywhere Totem: Combat", false, "If true then all crops will be covered by the Combat totem aura (crops grant +2 experience for this skill)");
+			m_totem_fishing = this.Config.Bind<bool>("General", "Everywhere Totem: Fishing", false, "If true then all crops will be covered by the Fishing totem aura (crops grant +2 experience for this skill)");
+			m_totem_royal = this.Config.Bind<bool>("General", "Everywhere Totem: Royal", false, "If true then all crops will be covered by the Royal totem aura (crops produce gold)");
+			m_fertilize_earth2 = this.Config.Bind<bool>("General", "Fertilize Earth2", false, "If true then all crops will be automatically fertilized with Earth Fertilizer 2 (can be combined with Fertilize Fire2 [combined fertilizer will produce a white floating particle])");
+			m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
+			m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
+			m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
+		}	
 	}
 
 	private static void update_tile(Vector2Int pos, bool do_water) {

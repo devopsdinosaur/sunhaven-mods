@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "easy_animals", "easy_animal
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "expanded_storage", "expanded_storage\expanded_storage.csproj", "{22E331E4-3009-4067-96FA-B6B31536B190}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "arborist", "arborist\arborist.csproj", "{B918CFCA-BA39-4915-85FD-988D74106F8E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -159,6 +161,10 @@ Global
 		{22E331E4-3009-4067-96FA-B6B31536B190}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{22E331E4-3009-4067-96FA-B6B31536B190}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{22E331E4-3009-4067-96FA-B6B31536B190}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B918CFCA-BA39-4915-85FD-988D74106F8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B918CFCA-BA39-4915-85FD-988D74106F8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B918CFCA-BA39-4915-85FD-988D74106F8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B918CFCA-BA39-4915-85FD-988D74106F8E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
