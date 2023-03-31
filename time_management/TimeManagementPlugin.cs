@@ -13,7 +13,7 @@ using System.Diagnostics;
 using DG.Tweening;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.6")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.7")]
 public class TimeManagementPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -88,7 +88,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.7" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -223,7 +223,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 					}
 				} catch {
 				}
-				__result = __instance.hoursToCraft * 60f / speedMultiplier / m_time_speed.Value;
+				__result = __instance.hoursToCraft * 60f / speedMultiplier / (m_time_speed.Value <= 0 ? 0.001f : m_time_speed.Value);
 				return false;
 			} catch (Exception e) {
 				logger.LogError("** Recipe.GetHoursToCraft_Prefix ERROR - " + e);

@@ -3,10 +3,10 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
-using System.Collections.Generic;
+using System;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.4")]
 public class CraftSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_speed");
@@ -24,85 +24,97 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 	//   translate mod (or localization if they ever add it...)
 
 	private static string[] m_table_names = {
+		"Advance Furniture Table", 
+		"Alchemy Table",
+		"Anvil", 
+		"Bakers Station",
+		"Basic Furniture Table", 
+		"Composter Table", 
+		"Construction Table", 
 		"Cooking Pot", 
 		"Crafting Table", 
-		"Loom", 
-		"Bakers Station", 
-		"Fish Grill", 
-		"Wizard Crafting Table", 
-		"Anvil", 
-		"Furnace", 
-		"Farmers Table", 
-		"Construction Table", 
-		"Tile Maker", 
-		"Painters Easel", 
-		"Basic Furniture Table", 
-		"Advance Furniture Table", 
-		"Composter Table", 
-		"Seed Maker", 
-		"Ice Cream Cart", 
-		"Oven", 
-		"Sushi Table", 
-		"Juicer", 
-		"Mana Composter", 
-		"Elven Furniture Table", 
-		"Mana Anvil", 
-		"Mana Infuser Table", 
-		"Tea Kettle", 
+		"Elven Crafting Table", 
+		"Elven Furnace", 
+		"Elven Juicer", 
 		"Elven Loom", 
 		"Elven Seed Maker", 
-		"Elven Furnace", 
-		"Recycling Machine", 
-		"Monster Composter", 
-		"Monster Furniture Table", 
+		"Farmers Crafting Table",
+		"Farmers Table", 
+		"Fish Grill", 
+		"Furnace", 
+		"Grinder", 
+		"Ice Cream Cart", 
+		"Jam Maker",
+		"Jewelry Table",
+		"Juicer", 
+		"Keg",
+		"Loom", 
+		"Mana Anvil", 
+		"Mana Composter",
+		"Monster Crafting Table", 
+		"Mana Infuser Table", 
 		"Monster Anvil", 
-		"Monster Sushi Table", 
-		"Soda Machine", 
+		"Monster Composter", 
+		"Monster Furnace", 
+		"Monster Furniture Table", 
+		"Monster Juicer", 
 		"Monster Loom", 
 		"Monster Seed Maker", 
-		"Monster Furnace", 
-		"Monster Juicer", 
-		"Monster Crafting Table", 
-		"Elven Crafting Table", 
-		"Elven Juicer", 
-		"Grinder", 
-		"Jam Maker",
-		"Farmers Crafting Table",
-		"Alchemy Table",
-		"Jewelry Table"
+		"Monster Sushi Table", 
+		"Oven", 
+		"Painters Easel", 
+		"Recycling Machine", 
+		"Seed Maker", 
+		"Soda Machine", 
+		"Sushi Table", 
+		"Tea Kettle", 
+		"Tile Maker", 
+		"Wizard Crafting Table"
 	};
 	private static ConfigEntry<bool>[] m_table_enabled = new ConfigEntry<bool>[m_table_names.Length];
+	private static ConfigEntry<float>[] m_table_speeds = new ConfigEntry<float>[m_table_names.Length];
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.3 loaded.");
-		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-		m_craft_speed = this.Config.Bind<float>("General", "Craft Speed Multiplier", 10f, "Speed multiplier for item crafting (float, 1 = game default (1.2 for humans) [note: this stomps the human 20% passive; should not affect anything else])");
-		for (int index = 0; index < m_table_names.Length; index++) {
-			m_table_enabled[index] = this.Config.Bind<bool>("General", m_table_names[index] + " Enabled", true, "If true then the '" + m_table_names[index] + "' table will use the craft speed multiplier; if false then it will use the game default speed.");
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			m_craft_speed = this.Config.Bind<float>("General", "Craft Speed Multiplier", 10f, "Speed multiplier for item crafting (float, 1 = game default (1.2 for humans) [note: this stomps the human 20% passive; should not affect anything else])");
+			for (int index = 0; index < m_table_names.Length; index++) {
+				m_table_enabled[index] = this.Config.Bind<bool>("General", m_table_names[index] + " Enabled", true, "If true then the '" + m_table_names[index] + "' table will use the craft speed multiplier; if false then it will use the game default speed.");
+				m_table_speeds[index] = this.Config.Bind<float>("General", m_table_names[index] + " Speed Multiplier", 0f, "If this value is non-zero and '" + m_table_names[index] + " Enabled' is true then this will be the craft speed multiplier used for the '" + m_table_names[index] + "' table (overriding the global one).  If this value is 0 then the global multiplier will be used (if table is enabled).");
+			}
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
 		}
-		this.m_harmony.PatchAll();
 	}
 
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]
 	class HarmonyPatch_CraftingTable_Awake {
 
 		private static void Postfix(CraftingTable __instance, ref float ___craftSpeedMultiplier) {
-			if (!m_enabled.Value) {
-				return;
-			}
-			string name = __instance.name.Replace("new_", "").Replace("(Clone)", "").Trim();
-			string key = "";
-			for (int index = 0; index < m_table_names.Length; index++) {
-				key = m_table_names[index];
-				if (key.Replace(" ", "") == name || key.ToLower().Replace(" ", "_") == name) {
-					if (m_table_enabled[index].Value) {
-						___craftSpeedMultiplier = m_craft_speed.Value;
-					}
+			try {
+				if (!m_enabled.Value) {
 					return;
 				}
+				string name = __instance.name.Replace("new_", "").Replace("(Clone)", "").Trim();
+				string key = "";
+				for (int index = 0; index < m_table_names.Length; index++) {
+					key = m_table_names[index];
+					if (key.Replace(" ", "") == name || key.ToLower().Replace(" ", "_") == name) {
+						if (m_table_enabled[index].Value) {
+							___craftSpeedMultiplier = (m_table_speeds[index].Value > 0f ? m_table_speeds[index].Value : m_craft_speed.Value);
+						}
+						return;
+					}
+				}
+				logger.LogWarning("* unknown crafting table name '" + name + "'; this table will be ignored.  Please let devopsdinosaur know via email or Nexus PM.");
+			} catch (Exception e) {
+				logger.LogError("** CraftingTable.Awake_Postfix ERROR - " + e);
 			}
-			logger.LogWarning("* unknown crafting table name '" + name + "'; this table will be ignored.  Please let devopsdinosaur know via email or Nexus PM.");
 		}
 	}
 }
