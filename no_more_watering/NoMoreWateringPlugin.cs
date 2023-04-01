@@ -112,11 +112,12 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 					return true;
 				}
 				m_elapsed = 0f;
-				foreach (Vector2Int pos in TileManager.Instance.farmingData.Keys) {
+				foreach (Vector2Int pos in new List<Vector2Int>(TileManager.Instance.farmingData.Keys)) {
 					update_tile(pos, m_water_during_day.Value);
 				}
-			} catch {
+			} catch (Exception e) {
 				// ignorable nullref exceptions will get thrown for a bit when game is starting/dying/in menu
+				logger.LogError(e);
 			}
 			return true;
 		}
