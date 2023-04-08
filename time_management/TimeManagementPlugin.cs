@@ -88,7 +88,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.7" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.8" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -351,7 +351,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			DateTime ___cachedTime,
 			DateTime ___previousDay,
 			DateTime ___nextDay,
-			int ___previousHour,
+			ref int ___previousHour,
 			ref bool ___sent30MinuteEvent,
 			TextMeshProUGUI ____dayTMP,
 			TextMeshProUGUI ____yearTMP,
