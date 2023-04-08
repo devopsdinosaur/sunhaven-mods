@@ -13,7 +13,7 @@ using System.Diagnostics;
 using DG.Tweening;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.7")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.9")]
 public class TimeManagementPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -88,7 +88,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.8" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.9" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -183,15 +183,18 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 				ParameterInfo[] params_info = calling_method.GetParameters();
 				if (calling_method.Name == "Craft" || (calling_method.Name == "Prefix" && params_info.Length > 1 && params_info[1].ParameterType == typeof(Recipe))) {
 					if (!m_use_time_scale.Value) {
-						if (m_pause_in_ui.Value && !m_is_ui_visible) {
-							__result = 0f;
-							return false;
-						}
 						return true;
 					}
 					// the correct time scale will be used in the patched Recipe.GetHoursToCraft method
 					__result = 1f;
 					return false;
+				}
+				if (!m_use_time_scale.Value) {
+					if (m_pause_in_ui.Value && !m_is_ui_visible) {
+						__result = 0f;
+						return false;
+					}
+					return true;
 				}
 				__result = (m_pause_in_ui.Value && !m_is_ui_visible ? 0f : m_time_speed.Value * m_time_stop_multiplier);
 				return false;
