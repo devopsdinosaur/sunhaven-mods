@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.6")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.8")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -36,6 +36,8 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_fertilize_fire2;
 	private static ConfigEntry<bool> m_hide_fertilizer_particles;
 	private static ConfigEntry<bool> m_any_season_planting;
+	private static ConfigEntry<bool> m_water_after_harvest;
+	private static ConfigEntry<bool> m_weapons_harvest_crops;
 
 	private void Awake() {
 		logger = this.Logger;
@@ -43,6 +45,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_water_overnight = this.Config.Bind<bool>("General", "Water Overnight", true, "If true then all world tiles will be watered overnight");
 			m_water_during_day = this.Config.Bind<bool>("General", "Water During Day", true, "If true then tiles will gradually be watered as they are hoed and so on (i.e. a freshly hoed tile should display as wet almost immediately unless tiles were not watered overnight or this is the first time mod was loaded on the savegame [in this case it will take a bit to catch up if there are a lot of dry tiles])");
+			m_water_after_harvest = this.Config.Bind<bool>("General", "Water Tile After Harvest", true, "If true then tiles will stay hoed and watered after crops are harvested");
 			m_scarecrow = this.Config.Bind<bool>("General", "Everywhere Scarecrow", true, "If true then all crops will be protected from pests in all seasons");
 			m_totem_seasons = this.Config.Bind<bool>("General", "Everywhere Totem: Seasons", true, "If true then all crops will be provided the effects of all seasonal totems (4% extra crop chance; immune to fire, entanglement, and freeze)");
 			m_totem_sunhaven = this.Config.Bind<bool>("General", "Everywhere Totem: Sun Haven", true, "If true then Sun Haven crops can be planted anywhere");
@@ -58,10 +61,11 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
 			m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
 			m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
+			m_weapons_harvest_crops = this.Config.Bind<bool>("General", "Weapons Harvest Crops", true, "If true then any weapon (sword / crossbow) hit will harvest a crop (note: axes and pickaxes have special code and will not work for this)");
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.8" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -308,6 +312,39 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			}
 			____seedItem.seasons = new List<Season> {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
 			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(Crop), "ReceiveDamage")]
+	class HarmonyPatch_Crop_ReceiveDamage {
+
+		private static bool Prefix(DamageInfo damageInfo) {
+			try {
+				if (!(m_enabled.Value && m_weapons_harvest_crops.Value)) {
+					return true;
+				}
+				damageInfo.hitType = HitType.Scythe;
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** Crop_ReceiveDamage_Prefix ERROR - " + e);
+			}
+			return true;
+		}
+
+		private static void Postfix(Crop __instance, DamageHit __result) {
+			try {
+				if (!(m_enabled.Value && m_water_after_harvest.Value && __result != null && __result.hit && __result.damageTaken == 1f)) {
+					return;
+				}
+				TileManager.Instance.SetFarmTileFromRPC(
+					new Vector2Int(__instance.Position.x, __instance.Position.y) / 6,
+					ScenePortalManager.ActiveSceneIndex, 
+					FarmingTileInfo.Watered
+				);
+				return;
+			} catch (Exception e) {
+				logger.LogError("** Crop_ReceiveDamage_Postfix ERROR - " + e);
+			}
 		}
 	}
 }
