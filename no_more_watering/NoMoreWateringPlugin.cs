@@ -69,7 +69,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private static void update_tile(Vector2Int pos, bool do_water) {
 		if (!GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
-			if (TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
+			if (do_water && TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
 				TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
 			}
 			return;
@@ -108,7 +108,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 		private static bool Prefix(ref Player __instance) {
 			try {
-				if (!m_enabled.Value || !m_water_during_day.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
+				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
 					return true;
 				}
 				m_elapsed = 0f;
