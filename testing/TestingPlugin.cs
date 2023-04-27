@@ -329,12 +329,16 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 	}
 	*/
 
-	[HarmonyPatch(typeof(PlayerAnimationLayers), "SetClothingLayer")]
-	class HarmonyPatch_PlayerAnimationLayers_SetClothingLayer {
+	/*
+	[HarmonyPatch(typeof(PlayerAnimationLayers), "UpdateBodyPart")]
+	class HarmonyPatch_PlayerAnimationLayers_UpdateBodyPart {
 
-		private static bool Prefix(ClothingLayer clothingLayer) {
-			logger.LogInfo(clothingLayer != ClothingLayer.Ears);
-			return (clothingLayer != ClothingLayer.Ears);
+		private static bool Prefix(MeshGenerator renderer, ref int index, MeshGenerator ____ears) {
+			if (renderer == ____ears) {
+				index = -1;
+			}
+			return true;
 		}
 	}
+	*/
 }
