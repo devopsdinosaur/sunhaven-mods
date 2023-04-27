@@ -12,7 +12,7 @@ using UnityEngine.Events;
 using System.Threading;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.12")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.13")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -28,8 +28,10 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
 			m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
-			this.m_harmony.PatchAll();
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.12 loaded.");
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.13" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -243,11 +245,11 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 		public bool can_craft(Recipe recipe, int amount) {
 			foreach (ItemInfo item in recipe.Input) {
-				if (item.item.name == "Mana") {
+				if (item.item.__name == "Mana") {
 					if (Player.Instance.Mana <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
 						return false;
 					}
-				} else if (item.item.name == "Health") {
+				} else if (item.item.__name == "Health") {
 					if (Player.Instance.Health <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
 						return false;
 					}
@@ -332,7 +334,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			}
 			itemImage.Initialize(ItemDatabase.GetItemData(recipe.Input[index].item.id).GetItem());
 			int has_amount = 0;
-			switch (recipe.Input[index].item.name) {
+			switch (recipe.Input[index].item.__name) {
 			case "Mana":	{ has_amount = (int) Player.Instance.Mana; break; }
 			case "Health":	{ has_amount = (int) Player.Instance.Health; break; }
 			default:		{ has_amount = OmniChest.Instance.get_item_amount(recipe.Input[index].item.id); break; }
@@ -362,9 +364,9 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			int num = 999;
 			foreach (ItemInfo item in ___recipe.Input) {
 				int num2;
-				if (item.item.name == "Mana") {
+				if (item.item.__name == "Mana") {
 					num2 = (int) Player.Instance.Mana / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
-				} else if (item.item.name == "Health") {
+				} else if (item.item.__name == "Health") {
 					num2 = (int) Player.Instance.Health / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
 				} else {
 					num2 = OmniChest.Instance.get_item_amount(item.item.id) / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
@@ -435,9 +437,9 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			for (int i = 0; i < amount; i++) {
 				List<ItemAmount> list = new List<ItemAmount>();
 				foreach (ItemInfo item2 in recipe.Input) {
-					if (item2.item.name == "Mana") {
+					if (item2.item.__name == "Mana") {
 						Player.Instance.UseMana(recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item));
-					} else if (item2.item.name == "Health") {
+					} else if (item2.item.__name == "Health") {
                         Player.Instance.Health -= recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item);
                     } else {
                         List<ItemAmount> collection;

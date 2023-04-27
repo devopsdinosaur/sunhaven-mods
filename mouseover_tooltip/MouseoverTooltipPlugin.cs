@@ -2,6 +2,8 @@
 using BepInEx.Logging;
 using HarmonyLib;
 using Wish;
+using UnityEngine;
+using UnityEngine.EventSystems;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.mouseover_tooltip", "Mouseover Tooltip", "0.0.1")]
@@ -16,11 +18,18 @@ public class MouseoverTooltipPlugin : BaseUnityPlugin {
 		this.m_harmony.PatchAll();
 	}
 
-	[HarmonyPatch(typeof(Player), "Update")]
-	class HarmonyPatch_Player_Update {
+	[HarmonyPatch(typeof(MouseAndControllerInputModule), "ProcessMouseEvent")]
+	class HarmonyPatch_MouseAndControllerInputModule_ProcessMouseEvent {
 
-		private static void Postfix() {
-			// EventSystem.current.IsPointerOverGameObject()		
+		static GameObject m_prev_object = null;
+
+		private static void Postfix(GameObject ___m_CurrentFocusedGameObject) {
+			logger.LogInfo("HarmonyPatch_MouseAndControllerInputModule_ProcessMouseEvent");
+			if (___m_CurrentFocusedGameObject == null || ___m_CurrentFocusedGameObject == m_prev_object) {
+				return;
+			}
+			m_prev_object = ___m_CurrentFocusedGameObject;
+			logger.LogInfo(___m_CurrentFocusedGameObject);
 		}
 	}
 

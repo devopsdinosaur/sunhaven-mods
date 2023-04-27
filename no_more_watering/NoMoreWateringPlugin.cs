@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.8")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.9")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -61,11 +61,11 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", false, "If true then all crops will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
 			m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
 			m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
-			m_weapons_harvest_crops = this.Config.Bind<bool>("General", "Weapons Harvest Crops", true, "If true then any weapon (sword / crossbow) hit will harvest a crop (note: axes and pickaxes have special code and will not work for this)");
+			m_weapons_harvest_crops = this.Config.Bind<bool>("General", "Weapons Harvest Crops", false, "If true then any weapon (sword / crossbow) hit will harvest a crop (note: axes and pickaxes have special code and will not work for this)");
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.8" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.9" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -183,6 +183,9 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			}
 			if (m_totem_royal.Value) {
 				__instance.data.scareCrowEffects.Add(ScareCrowEffect.Royal);
+			}
+			if (m_any_season_planting.Value) {
+				__instance._seedItem.seasons = new List<Season> {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
 			}
 			decorationData.meta = ZeroFormatterSerializer.Serialize(__instance.data);
 			return true;
