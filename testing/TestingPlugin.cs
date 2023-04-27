@@ -328,4 +328,13 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 	*/
+
+	[HarmonyPatch(typeof(PlayerAnimationLayers), "SetClothingLayer")]
+	class HarmonyPatch_PlayerAnimationLayers_SetClothingLayer {
+
+		private static bool Prefix(ClothingLayer clothingLayer) {
+			logger.LogInfo(clothingLayer != ClothingLayer.Ears);
+			return (clothingLayer != ClothingLayer.Ears);
+		}
+	}
 }
