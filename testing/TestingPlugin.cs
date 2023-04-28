@@ -329,16 +329,5 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 	}
 	*/
 
-	/*
-	[HarmonyPatch(typeof(PlayerAnimationLayers), "UpdateBodyPart")]
-	class HarmonyPatch_PlayerAnimationLayers_UpdateBodyPart {
-
-		private static bool Prefix(MeshGenerator renderer, ref int index, MeshGenerator ____ears) {
-			if (renderer == ____ears) {
-				index = -1;
-			}
-			return true;
-		}
-	}
-	*/
+	
 }
