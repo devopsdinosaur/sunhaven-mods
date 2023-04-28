@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.9")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.10")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -38,6 +38,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_any_season_planting;
 	private static ConfigEntry<bool> m_water_after_harvest;
 	private static ConfigEntry<bool> m_weapons_harvest_crops;
+	private static ConfigEntry<bool> m_auto_mana;
 
 	private void Awake() {
 		logger = this.Logger;
@@ -62,10 +63,11 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			m_hide_fertilizer_particles = this.Config.Bind<bool>("General", "Hide Fertilizer Particles", false, "If true then fertilized crops will not display the floating particles (helps a little for performance and visibility with a lot of crops)");
 			m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
 			m_weapons_harvest_crops = this.Config.Bind<bool>("General", "Weapons Harvest Crops", false, "If true then any weapon (sword / crossbow) hit will harvest a crop (note: axes and pickaxes have special code and will not work for this)");
+			m_auto_mana = this.Config.Bind<bool>("General", "Auto Mana", true, "If true then crops will automatically get mana infusion if needed (during day and overnight)");
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.9" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.10" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -85,6 +87,13 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			crop.Water();
 			TileManager.Instance.SetFarmTileFromRPC(pos, ScenePortalManager.ActiveSceneIndex, FarmingTileInfo.Watered);
 			TileManager.onFarm?.Invoke(pos, ScenePortalManager.ActiveSceneIndex, 3);
+		}
+		if (m_auto_mana.Value && crop._seedItem.manaInfusable && !crop.data.manaInfused) {
+			logger.LogInfo("infusing " + crop);
+			crop.data.manaInfused = true;
+			crop.SaveMeta();
+			crop.SendNewMeta(crop.meta);
+			crop.GetType().GetMethod("SetInfusionParticles", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(crop, new object[] {});
 		}
 		if (m_fertilize_earth2.Value && crop.data.fertilizerType == FertilizerType.None) {
 			crop.Fertilize(FertilizerType.Earth2);
@@ -112,7 +121,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 		private static bool Prefix(ref Player __instance) {
 			try {
-				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
+				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY || TileManager.Instance == null) {
 					return true;
 				}
 				m_elapsed = 0f;
@@ -120,7 +129,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 					update_tile(pos, m_water_during_day.Value);
 				}
 			} catch (Exception e) {
-				// ignorable nullref exceptions will get thrown for a bit when game is starting/dying/in menu
 				logger.LogError(e);
 			}
 			return true;
@@ -186,6 +194,11 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			}
 			if (m_any_season_planting.Value) {
 				__instance._seedItem.seasons = new List<Season> {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
+			}
+			if (m_auto_mana.Value && __instance._seedItem.manaInfusable && !__instance.data.manaInfused) {
+				__instance.data.manaInfused = true;
+				__instance.SaveMeta();
+				__instance.SendNewMeta(__instance.meta);
 			}
 			decorationData.meta = ZeroFormatterSerializer.Serialize(__instance.data);
 			return true;
