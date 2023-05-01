@@ -12,6 +12,7 @@ using UnityEngine.Events;
 using TMPro;
 using DG.Tweening;
 using ZeroFormatter;
+using UnityEngine.SceneManagement;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
@@ -19,11 +20,19 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
 	public static ManualLogSource logger;
+	private static ConfigEntry<bool> m_enabled;
 	
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.testing v0.0.2 loaded.");
-		this.m_harmony.PatchAll();
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo("devopsdinosaur.sunhaven.testing v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
+		}
 	}
 
 	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
@@ -329,20 +338,48 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 	}
 	*/
 
-	[HarmonyPatch(typeof(MainMenuController), "Awake")]
-	class HarmonyPatch_MainMenuController_Awake {
+	[HarmonyPatch(typeof(Player), "Update")]
+	class HarmonyPatch_Player_Update {
 
-		private static bool Prefix() {
-			logger.LogInfo("HarmonyPatch_MainMenuController_Awake");
+		const float CHECK_FREQUENCY = 1.0f;
+		static float m_elapsed = CHECK_FREQUENCY;
+
+		private static bool Prefix(ref Player __instance) {
+			try {
+				if (!m_enabled.Value || 
+					(m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY || 
+					GameManager.Instance == null || 
+					TileManager.Instance == null ||
+					Player.Instance == null
+				) {
+					return true;
+				}
+				m_elapsed = 0f;
+				
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_Player_Update_Prefix ERROR - " + e);
+			}
 			return true;
 		}
 	}
 
-	[HarmonyPatch(typeof(MainMenuController), "Start")]
-	class HarmonyPatch_MainMenuController_Start {
+	private static List<Recipe> m_all_recipes = new List<Recipe>();
+	
+	[HarmonyPatch(typeof(CraftingTable), "Awake")]
+	class HarmonyPatch_CraftingTable_Awake {
 
-		private static bool Prefix() {
-			logger.LogInfo("HarmonyPatch_MainMenuController_Start");
+		private static bool Prefix(RecipeList ___recipeList) {
+			try {
+				if (!m_enabled.Value) {
+					return true;
+				}
+				if (m_all_recipes.Count == 0) {
+					m_all_recipes = new List<Recipe>(Resources.FindObjectsOfTypeAll<Recipe>());
+				}
+				___recipeList.craftingRecipes = m_all_recipes;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CraftingTable_Awake ERROR - " + e);
+			}
 			return true;
 		}
 	}

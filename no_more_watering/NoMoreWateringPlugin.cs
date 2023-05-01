@@ -113,25 +113,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 		}
 	}
 
-	private static void green_man() {
-		try {
-			Vector2Int player_pos = new Vector2Int((int) Player.Instance.ExactPosition.x, (int) Player.Instance.ExactPosition.y);
-			for (int y = player_pos.y - 1; y <= player_pos.y + 1; y++) {
-				for (int x = player_pos.x - 1; x <= player_pos.x + 1; x++) {
-					logger.LogInfo("x: " + x + ", y: " + y);
-					if (!GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(x * 6, y * 6, 0), out Crop crop) || crop.PercentGrown >= 1f) {
-						continue;
-					}
-					crop.GrowToMax();
-					crop.data.stage = crop.SeedData.cropStages.Length - 1;
-					logger.LogInfo(crop.CheckGrowth);
-				}
-			}
-		} catch (Exception e) {
-			logger.LogError("** HarmonyPatch_Player_Update_Prefix ERROR - " + e);
-		}
-	}
-
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
 
@@ -147,7 +128,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 				foreach (Vector2Int pos in new List<Vector2Int>(TileManager.Instance.farmingData.Keys)) {
 					update_tile(pos, m_water_during_day.Value);
 				}
-				green_man();
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_Player_Update_Prefix ERROR - " + e);
 			}
