@@ -329,5 +329,21 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 	}
 	*/
 
-	
+	[HarmonyPatch(typeof(MainMenuController), "Awake")]
+	class HarmonyPatch_MainMenuController_Awake {
+
+		private static bool Prefix() {
+			logger.LogInfo("HarmonyPatch_MainMenuController_Awake");
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(MainMenuController), "Start")]
+	class HarmonyPatch_MainMenuController_Start {
+
+		private static bool Prefix() {
+			logger.LogInfo("HarmonyPatch_MainMenuController_Start");
+			return true;
+		}
+	}
 }

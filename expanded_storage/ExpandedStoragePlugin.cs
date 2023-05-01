@@ -4,11 +4,13 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using UnityEngine;
+using UnityEngine.UI;
 using System;
 using System.Reflection;
 using UnityEngine.Events;
 using System.Collections.Generic;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.expanded_storage", "Expanded Storage", "0.0.1")]
@@ -16,10 +18,15 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.expanded_storage");
 	public static ManualLogSource logger;
+	
 	private static ConfigEntry<bool> m_enabled;
 	private static ConfigEntry<int> m_num_chest_slots;
 
 	private const int CHEST_ORIGINAL_SLOT_COUNT = 30;
+	private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
+	private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
+
+	private static Dictionary<int, GameObject> m_object_templates = new Dictionary<int, GameObject>();
 
 	private void Awake() {
 		logger = this.Logger;
@@ -80,30 +87,24 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		private static void Postfix(Inventory __instance, Transform ____inventoryPanel) {
 			try {
 				GameObject sort_button = null;
-				GameObject backpack_title = null;
-
+				
 				bool __enum_descendants_callback_find_sort_button__(Transform transform) {
 					if (sort_button == null && transform.name == "SortChestButton") {
 						sort_button = transform.gameObject; 
-					} else if (backpack_title == null && transform.name == "Text (TMP)") {
-						backpack_title = transform.gameObject;
+						return false;
 					}
 					return true;
 				}
 
-				GameObject create_navigation_button(GameObject left_obj, string name, string text, Vector3 direction) {
-					GameObject obj = new GameObject(name);
-					obj.transform.SetParent(sort_button.transform.parent);
-					TextMeshProUGUI tmp = obj.AddComponent<TextMeshProUGUI>();
+				GameObject create_navigation_button(GameObject left_obj, int template_id, string name, string text, Vector3 direction) {
+					logger.LogInfo("left_obj: " + left_obj);
+					logger.LogInfo("template: " + m_object_templates[template_id]);
+					GameObject obj = GameObject.Instantiate<GameObject>(m_object_templates[template_id], left_obj.transform.parent);
 					RectTransform other_rect = left_obj.GetComponent<RectTransform>();
-					RectTransform obj_rect = tmp.rectTransform;
-					UnityEngine.UI.Button button = obj.AddComponent<UnityEngine.UI.Button>();
-					tmp.fontWeight = FontWeight.Bold;
-					tmp.color = Color.black;
-					tmp.text = text;
+					RectTransform obj_rect = obj.GetComponent<RectTransform>();
 					//obj.transform.Rotate(0, 0, 90f);
 					obj_rect.localPosition = other_rect.localPosition + Vector3.right * (other_rect.rect.width * 2);
-					button.onClick.AddListener(new UnityAction(delegate {
+					obj.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(new UnityAction(delegate {
 						logger.LogInfo("hello there!");
 					}));
 					return obj;
@@ -121,20 +122,18 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				for (int index = original_slots.Length; index < __instance.maxSlots; index++) {
 					GameObject.Instantiate(slot0.gameObject, slot0.transform.parent);
 				}
+
+				foreach (GameObject top_obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
+					logger.LogInfo(top_obj);
+				}
 				enum_descendants(____inventoryPanel.parent.parent.parent, __enum_descendants_callback_find_sort_button__);
-				logger.LogInfo((backpack_title == null ? "null" : "not null"));
 				create_navigation_button(
-					create_navigation_button(
-						sort_button,
-						"chest_page_button_up", 
-						"up", 
-						Vector3.up
-					),
-					"chest_page_button_down",
-					"down",
-					Vector3.down
+					sort_button,
+					TEMPLATE_LEFT_ARROW_BUTTON,
+					"chest_page_button_up", 
+					"up", 
+					Vector3.up
 				);
-				//create_navigation_button("->", 1);
 				return;
 			} catch (Exception e) {
 				logger.LogError("** Inventory_Start_Postfix ERROR - " + e);
@@ -142,6 +141,35 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(PlayerSettings), "SetupUI")]
+	class HarmonyPatch_PlayerSettings_SetupUI {
+
+		private static void Postfix(Slider ___daySpeedSlider) {
+
+			GameObject templatize(GameObject original) {
+				GameObject obj = GameObject.Instantiate(original, null);
+				obj.SetActive(false);
+				GameObject.DontDestroyOnLoad(obj);
+				return obj;
+			}
+
+			bool find_buttons_callback(Transform transform) {
+				if (transform.name == "SliderLeft") {
+					m_object_templates[TEMPLATE_LEFT_ARROW_BUTTON] = templatize(transform.gameObject);
+				} else if (transform.name == "SliderRight") {
+					m_object_templates[TEMPLATE_RIGHT_ARROW_BUTTON] = templatize(transform.gameObject);
+				}
+				return !(m_object_templates.ContainsKey(TEMPLATE_LEFT_ARROW_BUTTON) && m_object_templates.ContainsKey(TEMPLATE_RIGHT_ARROW_BUTTON));
+			}
+
+			if (m_object_templates.ContainsKey(TEMPLATE_LEFT_ARROW_BUTTON) && m_object_templates.ContainsKey(TEMPLATE_RIGHT_ARROW_BUTTON)) {
+				return;
+			}
+			list_descendants(___daySpeedSlider.transform, find_buttons_callback, 0);
+		}
+	}
+
+	/*
 	[HarmonyPatch(typeof(ItemIcon), "SetupTooltip")]
 	class HarmonyPatch_ItemIcon_SetupTooltip {
 
@@ -149,6 +177,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 			logger.LogInfo(__instance);
 		}
 	}
+	*/
 
 	/*
 	[HarmonyPatch(typeof(Inventory), "Start")]
