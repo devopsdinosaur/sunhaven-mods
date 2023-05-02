@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.32510.428
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32516.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "skill_reset", "skill_reset\skill_reset.csproj", "{C02752A4-076A-4A11-9DFE-109FDA154B7C}"
 EndProject
@@ -58,6 +58,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "earless", "earless\earless.csproj", "{3ABA148C-BA88-4C93-B065-1458A81E0A07}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "green_man", "green_man\green_man.csproj", "{4CD311F1-AA7B-496E-A69A-5BFBA1CC1354}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "consolidated_crafting", "consolidated_crafting\consolidated_crafting.csproj", "{4494D94A-FC37-4284-A1BB-A511C4F9CAD4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -177,6 +179,10 @@ Global
 		{4CD311F1-AA7B-496E-A69A-5BFBA1CC1354}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CD311F1-AA7B-496E-A69A-5BFBA1CC1354}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CD311F1-AA7B-496E-A69A-5BFBA1CC1354}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4494D94A-FC37-4284-A1BB-A511C4F9CAD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4494D94A-FC37-4284-A1BB-A511C4F9CAD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4494D94A-FC37-4284-A1BB-A511C4F9CAD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4494D94A-FC37-4284-A1BB-A511C4F9CAD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
