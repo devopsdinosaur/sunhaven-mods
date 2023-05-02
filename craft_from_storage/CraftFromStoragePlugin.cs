@@ -10,9 +10,10 @@ using TMPro;
 using System;
 using UnityEngine.Events;
 using System.Threading;
+using UnityEngine.UI;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.13")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.14")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -31,7 +32,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_from_storage v0.0.13" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.14" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -43,13 +44,16 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		private List<int> m_added_hashes = null;
 		private Dictionary<int, List<SlotItemData>> m_items = null;
 		private List<Inventory> m_inventories = null;
+		private List<Chest> m_chests = null;
+		private Chest m_current_chest = null;
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = CHECK_FREQUENCY;
 		private GameObject m_transfer_similar_button = null;
-		private const int PREV = 0;
-		private const int NEXT = 1;
 		private GameObject[] m_chest_navigate_buttons = new GameObject[2];
 		private Mutex m_thread_lock = new Mutex();
+		private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
+		private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
+		private static Dictionary<int, GameObject> m_object_templates = new Dictionary<int, GameObject>();
 
 		public static OmniChest Instance {
 			get {
@@ -68,6 +72,25 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			this.m_thread_lock.ReleaseMutex();
 		}
 
+		public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
+			Transform child;
+			string indent_string = "";
+			for (int counter = 0; counter < indent; counter++) {
+				indent_string += " => ";
+			}
+			for (int index = 0; index < parent.childCount; index++) {
+				child = parent.GetChild(index);
+				logger.LogInfo(indent_string + child.gameObject.name);
+				if (callback != null) {
+					if (callback(child) == false) {
+						return false;
+					}
+				}
+				list_descendants(child, callback, indent + 1);
+			}
+			return true;
+		}
+
 		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
 			Transform child;
 			for (int index = 0; index < parent.childCount; index++) {
@@ -82,41 +105,62 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			return true;
 		}
 
-		private void create_buttons(Transform chest_transform, Inventory player_inventory) {
+		[HarmonyPatch(typeof(PlayerSettings), "SetupUI")]
+		class HarmonyPatch_PlayerSettings_SetupUI {
+
+			private static void Postfix(Slider ___daySpeedSlider) {
+
+				GameObject templatize(GameObject original) {
+					GameObject obj = GameObject.Instantiate(original, null);
+					obj.SetActive(false);
+					GameObject.DontDestroyOnLoad(obj);
+					return obj;
+				}
+
+				bool find_buttons_callback(Transform transform) {
+					if (transform.name == "SliderLeft") {
+						m_object_templates[TEMPLATE_LEFT_ARROW_BUTTON] = templatize(transform.gameObject);
+					} else if (transform.name == "SliderRight") {
+						m_object_templates[TEMPLATE_RIGHT_ARROW_BUTTON] = templatize(transform.gameObject);
+					}
+					return !(m_object_templates.ContainsKey(TEMPLATE_LEFT_ARROW_BUTTON) && m_object_templates.ContainsKey(TEMPLATE_RIGHT_ARROW_BUTTON));
+				}
+
+				if (m_object_templates.ContainsKey(TEMPLATE_LEFT_ARROW_BUTTON) && m_object_templates.ContainsKey(TEMPLATE_RIGHT_ARROW_BUTTON)) {
+					return;
+				}
+				enum_descendants(___daySpeedSlider.transform, find_buttons_callback);
+			}
+		}
+
+		[HarmonyPatch(typeof(Chest), "Interact")]
+		class HarmonyPatch_Chest_Interact {
+
+			private static void Postfix(Chest __instance) {
+				OmniChest.Instance.get_thread_lock();
+				OmniChest.Instance.m_current_chest = __instance;
+				OmniChest.Instance.release_thread_lock();
+			}
+		}
+
+		private void create_send_similar_button(Transform chest_transform, Inventory player_inventory) {
 			GameObject chest_transfer_similar_button = null;
 			GameObject sort_button = null;
-			GameObject backpack_title = null;
-			GameObject chest_title = null;
-
+			
 			bool __enum_descendants_callback_find_same_button__(Transform transform) {
 				if (transform.name == "TransferSimilarToChestButton") {
 					chest_transfer_similar_button = transform.gameObject;
-				} else if (transform.name == "InputField (TMP)") {
-					chest_title = transform.gameObject;
-				}
+					return false;
+				} 
 				return true;
 			}
 
 			bool __enum_descendants_callback_find_sort_button__(Transform transform) {
 				if (sort_button == null && transform.name == "SortButton") {
 					sort_button = transform.gameObject; 
-				} else if (backpack_title == null && transform.name == "BackbackTitleTMP") {
-					backpack_title = transform.gameObject;
+					return false;
 				}
 				return true;
-			}
-
-			void create_navigation_button(string text, int index) {
-				GameObject obj = GameObject.Instantiate<GameObject>(backpack_title, sort_button.transform.parent);
-				TextMeshProUGUI tmp = obj.GetComponent<TextMeshProUGUI>();
-				RectTransform chest_title_rect = sort_button.GetComponent<RectTransform>();
-				RectTransform obj_rect = obj.GetComponent<RectTransform>();
-				tmp.text = text;
-				obj_rect.position = chest_title_rect.position + (index == PREV ? Vector3.left : Vector3.right) * ((chest_title_rect.rect.width / 2) + (obj_rect.rect.width / 2));
-				obj.AddComponent<UnityEngine.UI.Button>().onClick.AddListener((UnityAction) delegate {
-					this.navigate_from_chest(index);
-				});
-				m_chest_navigate_buttons[index] = obj;
 			}
 
 			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
@@ -128,8 +172,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				this.transfer_similar_items();
 			});
-			//create_navigation_button("<Prev", PREV);
-			//create_navigation_button("Next>", NEXT);
 		}
 
 		public void transfer_similar_items() {
@@ -166,6 +208,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				this.m_added_hashes = new List<int>();
 				this.m_items = new Dictionary<int, List<SlotItemData>>();
 				this.m_inventories = new List<Inventory>();
+				this.m_chests = new List<Chest>();
 				if (m_use_inventory_first.Value) {
 					this.add_inventory(player_inventory);
 				}
@@ -178,10 +221,11 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 						continue;
 					}
 					if (this.m_transfer_similar_button == null) {
-						this.create_buttons(kvp.Value.transform, player_inventory);
+						this.create_send_similar_button(kvp.Value.transform, player_inventory);
 					}
 					this.m_added_hashes.Add(hash);
 					this.add_inventory(((Chest) kvp.Value).sellingInventory);
+					this.add_chest((Chest) kvp.Value);
 				}
 				if (!m_use_inventory_first.Value) {
 					this.add_inventory(player_inventory);
@@ -194,8 +238,72 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			this.release_thread_lock();
 		}
 
-		private void navigate_from_chest(int direction) {
-			logger.LogInfo("hello!");
+		private void add_chest(Chest chest) {
+			GameObject chest_title = null;
+
+			bool __enum_descendants_callback_find_chest_title__(Transform transform) {
+				if (transform.name == "ExternalInventoryTitle") {
+					chest_title = transform.GetChild(0).gameObject;
+					return false;
+				}
+				return true;
+			}
+
+			void create_navigation_button(int template_id, string name, Vector3 direction) {
+				GameObject obj = GameObject.Instantiate<GameObject>(m_object_templates[template_id], chest_title.transform.parent);
+				obj.name = name;
+				obj.SetActive(true);
+				RectTransform chest_title_rect = chest_title.GetComponent<RectTransform>();
+				RectTransform obj_rect = obj.GetComponent<RectTransform>();
+				obj_rect.localScale = new Vector3(1.5f, 1.5f, 1f);
+				obj_rect.localPosition = chest_title_rect.localPosition + direction * ((chest_title_rect.rect.width / 2) + (obj_rect.rect.width / 2) + 5f);
+				obj.GetComponent<UnityEngine.UI.Button>().onClick.AddListener((UnityAction) delegate {
+					OmniChest.Instance.navigate_from_chest(direction);
+				});
+			}
+
+			this.m_chests.Add(chest);
+			FieldInfo field_info = chest.GetType().GetField("ui", BindingFlags.Instance | BindingFlags.NonPublic);
+			GameObject ui = null;
+			if (field_info == null || (ui = (GameObject) field_info.GetValue(chest)) == null) {
+				logger.LogWarning("** add_chest WARN - chest '" + chest.name + "' has no 'ui' field; unable to create navigation buttons.");
+				return;
+			}
+			enum_descendants(ui.transform, __enum_descendants_callback_find_chest_title__);
+			if (chest_title == null) {
+				logger.LogWarning("** add_chest WARN - unable to locate chest title object for '" + chest.name + "'; cannot create navigation buttons.");
+				return;
+			}
+			create_navigation_button(TEMPLATE_LEFT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonLeft", Vector3.left);
+			create_navigation_button(TEMPLATE_RIGHT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonRight", Vector3.right);
+		}
+
+		private void navigate_from_chest(Vector3 direction) {
+			this.get_thread_lock();
+			try {
+				for (int index = 0; index < this.m_chests.Count; index++) {
+					if (this.m_chests[index].GetHashCode() != this.m_current_chest.GetHashCode()) {
+						continue;
+					}
+					this.m_current_chest.EndInteract((int) InteractionType.Both);
+					this.m_chests[
+						(direction == Vector3.left ?
+							(index == 0 ?
+								this.m_chests.Count - 1 : 
+								index - 1
+							) :
+							(index == this.m_chests.Count - 1 ?
+								0 :
+								index + 1
+							)
+						)
+					].Interact((int) InteractionType.Both);
+					break;
+				}
+			} catch (Exception e) {
+				logger.LogError("** navigate_from_chest ERROR - " + e);
+			}
+			this.release_thread_lock();
 		}
 
 		private void add_inventory(Inventory inventory) {

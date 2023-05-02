@@ -97,9 +97,9 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				}
 
 				GameObject create_navigation_button(GameObject left_obj, int template_id, string name, string text, Vector3 direction) {
-					logger.LogInfo("left_obj: " + left_obj);
-					logger.LogInfo("template: " + m_object_templates[template_id]);
 					GameObject obj = GameObject.Instantiate<GameObject>(m_object_templates[template_id], left_obj.transform.parent);
+					obj.name = name;
+					obj.SetActive(true);
 					RectTransform other_rect = left_obj.GetComponent<RectTransform>();
 					RectTransform obj_rect = obj.GetComponent<RectTransform>();
 					//obj.transform.Rotate(0, 0, 90f);
@@ -121,10 +121,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				__instance.maxSlots = m_num_chest_slots.Value;
 				for (int index = original_slots.Length; index < __instance.maxSlots; index++) {
 					GameObject.Instantiate(slot0.gameObject, slot0.transform.parent);
-				}
-
-				foreach (GameObject top_obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
-					logger.LogInfo(top_obj);
 				}
 				enum_descendants(____inventoryPanel.parent.parent.parent, __enum_descendants_callback_find_sort_button__);
 				create_navigation_button(

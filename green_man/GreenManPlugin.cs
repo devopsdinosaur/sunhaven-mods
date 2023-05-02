@@ -12,7 +12,7 @@ using System.Reflection;
 using System.Diagnostics;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.green_man", "Green Man", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.green_man", "Green Man", "0.0.2")]
 public class GreenManPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.green_man");
@@ -28,7 +28,7 @@ public class GreenManPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.green_man v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.green_man v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -50,8 +50,10 @@ public class GreenManPlugin : BaseUnityPlugin {
 					} 
 					if (GameManager.Instance.TryGetObjectSubTile<Tree>(new Vector3Int(x * 6, y * 6, 0), out Tree tree)) {
 						List<Sprite> sprites = (List<Sprite>) tree.GetType().GetProperty("TreeStages", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree);
-						if (sprites != null) {
-							tree.SetTreeStage(sprites.Count);
+						float current_health = (float) tree.GetType().GetField("_currentHealth", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree);
+						float max_health = (float) tree.GetType().GetProperty("MaxHealth", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree);
+						if (sprites != null && current_health >= max_health) {
+							tree.SetTreeStage(sprites.Count + 1);
 						}
 					}
 				}
