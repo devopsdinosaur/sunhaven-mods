@@ -133,7 +133,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
 
-		private static bool Prefix(ref Player __instance) {
+		private static bool Prefix(Player __instance) {
 			try {
 				if (!m_enabled.Value || !is_modifier_hotkey_down() || !__instance.IsOwner) {
 					return true;
@@ -165,6 +165,58 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 				//}
 			} catch (Exception e) {
 				logger.LogError("** Player.Update_Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(GameManager), "LateUpdate")]
+	class HarmonyPatch_GameManager_LateUpdate {
+
+		private static bool Prefix(float ___moveSpeed) {
+			try {
+				if (!PlayerInput.AllowInput || !Settings.EnableCheats) {
+					return false;
+				}
+				if (Input.GetKeyDown(KeyCode.Minus)) {
+					notify("cheatTimeScale is disabled to prevent glitches with time_management time scaling.");
+				}
+				if (Input.GetKeyDown(KeyCode.Equals)) {
+					notify("cheatTimeScale is disabled to prevent glitches with time_management time scaling.");
+				}
+				if (Input.GetKey(KeyCode.LeftBracket)) {
+					Time.timeScale = 0.4f * 1f;
+					MainMusic.Pitch = 0.75f;
+				} else if (Input.GetKey(KeyCode.RightBracket)) {
+					Time.timeScale = 8f * 1f;
+					MainMusic.Pitch = 2f;
+				} else {
+					if ((bool)Player.Instance && UIHandler.InventoryOpen && !GameManager.Multiplayer) {
+						Time.timeScale = 0f;
+					} else {
+						Time.timeScale = 1f * 1f;
+					}
+					MainMusic.Pitch = 1f;
+				}
+				if (Input.GetKeyDown(KeyCode.F7)) {
+					QuantumConsoleManager quantumConsoleManager = UnityEngine.Object.FindObjectOfType<QuantumConsoleManager>();
+					quantumConsoleManager.noclip(!quantumConsoleManager.no_clip);
+				}
+				if (Input.GetKeyDown(KeyCode.F8)) {
+					QuantumConsoleManager quantumConsoleManager2 = UnityEngine.Object.FindObjectOfType<QuantumConsoleManager>();
+					quantumConsoleManager2.godmode(!quantumConsoleManager2.god_mode);
+				}
+				if (Input.GetKeyDown(KeyCode.Comma)) {
+					___moveSpeed = Mathf.Clamp(___moveSpeed - 2f, 1f, 100f);
+					UnityEngine.Object.FindObjectOfType<QuantumConsoleManager>().setstat("movespeed", ___moveSpeed);
+				}
+				if (Input.GetKeyDown(KeyCode.Period)) {
+					___moveSpeed = Mathf.Clamp(___moveSpeed + 2f, 1f, 100f);
+					UnityEngine.Object.FindObjectOfType<QuantumConsoleManager>().setstat("movespeed", ___moveSpeed);
+				}
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_GameManager_LateUpdate_Prefix ERROR - " + e);
 			}
 			return true;
 		}
