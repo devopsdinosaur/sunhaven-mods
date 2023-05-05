@@ -61,6 +61,13 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					foreach (RecipeList recipes in Resources.FindObjectsOfTypeAll<RecipeList>()) {
 						m_table_recipes[recipes.name.Replace("RecipeList_", "").Replace('_', ' ').Replace("RecipeList", "").Trim()] = recipes;
 					}
+					if (!m_table_recipes.ContainsKey("Jam Maker")) {
+						// jam maker has no RecipeList, for some reason
+						RecipeList recipes = new RecipeList();
+						foreach (Recipe recipe in m_all_recipes) {
+							//logger.LogInfo(recipe.__name);
+						}
+					}
 				}
 				Transform adjacent_transform = null;
 				RectTransform adjacent_rect = null;
