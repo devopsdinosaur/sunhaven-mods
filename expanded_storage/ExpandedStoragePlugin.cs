@@ -165,6 +165,72 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(Player), "Update")]
+	class HarmonyPatch_Player_Update {
+
+		private static bool done = false;
+
+		private static void Postfix() {
+			if (Player.Instance == null || !Player.Instance.IsOwner) {
+				return;
+			}
+			if (done) {
+				return;
+			}
+			//done = false;
+			//foreach (SlotItemData data in Player.Instance.PlayerInventory.Items) {
+			//	logger.LogInfo(data.slotNumber + ": " + data.item);
+			//}
+			//logger.LogInfo(Player.Instance.UseItem);
+			Placeable table_placeable = null;
+			foreach (Placeable placeable in Resources.FindObjectsOfTypeAll<Placeable>()) {
+				if (placeable._itemData.id == ItemID.JamMaker) {
+					table_placeable = placeable;
+					break;
+				}
+			}
+			//SlotItemData slot0 = Player.Instance.PlayerInventory.Items[0];
+			//Item original_item0 = slot0.item;
+			//slot0.item = table_placeable._itemData.GetItem();
+			GameManager.Instance.SetDecorationSubTile(
+				new Vector3Int((int) Player.Instance.ExactPosition.x, (int) Player.Instance.ExactPosition.y, 0),
+				ItemID.BasicFurnitureTable,
+				ScenePortalManager.ActiveSceneIndex,
+				table_placeable._decoration.meta,
+				false,
+				false,
+				true,
+				true,
+				false,
+				0,
+				false
+			);
+			done = true;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "Start")]
+	class HarmonyPatch_CraftingTable_Start {
+
+		private static void Postfix(CraftingUI ___craftingUI) {
+			try {
+
+				bool find_stuff(Transform transform) {
+					if (transform.name.StartsWith("Scrollbar")) {
+						list_component_types(transform);
+					}
+					return true;
+				}
+
+				list_component_types(___craftingUI.craftingPane.parent.parent);
+				//list_descendants(___craftingUI.craftingPane.parent.parent.parent, find_stuff, 0);
+				//enum_descendants(___craftingUI.craftingPane.parent.parent, find_stuff);
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
+			}
+		}
+	}
+
 	/*
 	[HarmonyPatch(typeof(ItemIcon), "SetupTooltip")]
 	class HarmonyPatch_ItemIcon_SetupTooltip {
