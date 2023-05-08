@@ -229,8 +229,15 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				}
 				logger.LogInfo("\n\n\n***************************************************\n\n\n");
 				Transform external_inventory = ___ui.transform.GetChild(1).transform;
+				GameObject original_panel = external_inventory.GetChild(0).gameObject;
+				RectTransform panel_rect = original_panel.GetComponent<RectTransform>();
 				//GameObject.Destroy(external_inventory.GetChild(0).gameObject);
-				GameObject.Instantiate(m_object_templates[TEMPLATE_SCROLL_VIEW], external_inventory);
+				GameObject scroll_view = GameObject.Instantiate(m_object_templates[TEMPLATE_SCROLL_VIEW], external_inventory);
+				RectTransform scroll_rect = scroll_view.GetComponent<RectTransform>();
+				scroll_rect.localPosition = panel_rect.localPosition;
+				scroll_rect.sizeDelta = panel_rect.sizeDelta;
+				scroll_view.SetActive(true);
+				original_panel.SetActive(false);
 				list_descendants(___ui.transform, null, 0);
 				return true;
 			} catch (Exception e) {
