@@ -25,6 +25,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	private const int CHEST_ORIGINAL_SLOT_COUNT = 30;
 	private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
 	private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
+	private const int TEMPLATE_SCROLL_VIEW = 2;
 
 	private static Dictionary<int, GameObject> m_object_templates = new Dictionary<int, GameObject>();
 
@@ -81,10 +82,18 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
+	public static GameObject templatize(GameObject original) {
+		GameObject obj = GameObject.Instantiate(original, null);
+		obj.SetActive(false);
+		GameObject.DontDestroyOnLoad(obj);
+		return obj;
+	}
+
 	[HarmonyPatch(typeof(Inventory), "Start")]
 	class HarmonyPatch_Inventory_Start {
 
 		private static void Postfix(Inventory __instance, Transform ____inventoryPanel) {
+			/*
 			try {
 				GameObject sort_button = null;
 				
@@ -134,6 +143,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 			} catch (Exception e) {
 				logger.LogError("** Inventory_Start_Postfix ERROR - " + e);
 			}
+			*/
 		}
 	}
 
@@ -141,13 +151,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	class HarmonyPatch_PlayerSettings_SetupUI {
 
 		private static void Postfix(Slider ___daySpeedSlider) {
-
-			GameObject templatize(GameObject original) {
-				GameObject obj = GameObject.Instantiate(original, null);
-				obj.SetActive(false);
-				GameObject.DontDestroyOnLoad(obj);
-				return obj;
-			}
 
 			bool find_buttons_callback(Transform transform) {
 				if (transform.name == "SliderLeft") {
@@ -178,10 +181,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				return;
 			}
 			//done = false;
-			//foreach (SlotItemData data in Player.Instance.PlayerInventory.Items) {
-			//	logger.LogInfo(data.slotNumber + ": " + data.item);
-			//}
-			//logger.LogInfo(Player.Instance.UseItem);
 			Placeable table_placeable = null;
 			foreach (Placeable placeable in Resources.FindObjectsOfTypeAll<Placeable>()) {
 				if (placeable._itemData.id == ItemID.JamMaker) {
@@ -189,22 +188,12 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					break;
 				}
 			}
-			//SlotItemData slot0 = Player.Instance.PlayerInventory.Items[0];
-			//Item original_item0 = slot0.item;
-			//slot0.item = table_placeable._itemData.GetItem();
-			GameManager.Instance.SetDecorationSubTile(
-				new Vector3Int((int) Player.Instance.ExactPosition.x, (int) Player.Instance.ExactPosition.y, 0),
-				ItemID.BasicFurnitureTable,
-				ScenePortalManager.ActiveSceneIndex,
-				table_placeable._decoration.meta,
-				false,
-				false,
-				true,
-				true,
-				false,
-				0,
-				false
-			);
+			Decoration temp_table = UnityEngine.Object.Instantiate(table_placeable.Decoration, new Vector3(0, 0, 0), Quaternion.identity, GameManager.DecorationContainer);
+			temp_table.gameObject.SetActive(false);
+			//foreach (CraftingTable table in Resources.FindObjectsOfTypeAll<CraftingTable>()) {
+			//	logger.LogInfo(table);
+			//}
+			GameObject.Destroy(temp_table.gameObject);
 			done = true;
 		}
 	}
@@ -214,20 +203,40 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 
 		private static void Postfix(CraftingUI ___craftingUI) {
 			try {
-
-				bool find_stuff(Transform transform) {
-					if (transform.name.StartsWith("Scrollbar")) {
-						list_component_types(transform);
-					}
-					return true;
+				if (m_object_templates.ContainsKey(TEMPLATE_SCROLL_VIEW)) {
+					return;
 				}
-
-				list_component_types(___craftingUI.craftingPane.parent.parent);
-				//list_descendants(___craftingUI.craftingPane.parent.parent.parent, find_stuff, 0);
-				//enum_descendants(___craftingUI.craftingPane.parent.parent, find_stuff);
+				GameObject template = templatize(___craftingUI.craftingPane.parent.parent.parent.gameObject);
+				//list_descendants(template.transform, null, 0);
+				Transform content = template.transform.GetChild(0).GetChild(0);
+				for (int index = 0; index < content.childCount; index++) {
+					GameObject.Destroy(content.GetChild(index).gameObject);
+				}
+				m_object_templates[TEMPLATE_SCROLL_VIEW] = template;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
 			}
+		}
+	}
+
+	[HarmonyPatch(typeof(Chest), "Interact")]
+	class HarmonyPatch_Chest_Interact {
+
+		private static bool Prefix(bool ___interacting, ChestData ___data, ref GameObject ___ui) {
+			try {
+				if (___interacting || ___data.inUse) {
+					return true;
+				}
+				logger.LogInfo("\n\n\n***************************************************\n\n\n");
+				Transform external_inventory = ___ui.transform.GetChild(1).transform;
+				//GameObject.Destroy(external_inventory.GetChild(0).gameObject);
+				GameObject.Instantiate(m_object_templates[TEMPLATE_SCROLL_VIEW], external_inventory);
+				list_descendants(___ui.transform, null, 0);
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
+			}
+			return true;
 		}
 	}
 
