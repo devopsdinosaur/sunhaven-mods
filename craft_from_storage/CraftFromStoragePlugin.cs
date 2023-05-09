@@ -13,7 +13,7 @@ using System.Threading;
 using UnityEngine.UI;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.15")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.16")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -32,7 +32,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.15" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.16" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -250,6 +250,11 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			}
 
 			void create_navigation_button(int template_id, string name, Vector3 direction) {
+				for (int index = 0; index < chest_title.transform.parent.childCount; index++) {
+					if (chest_title.transform.parent.GetChild(index).name == name) {
+						return;
+					}
+				}
 				GameObject obj = GameObject.Instantiate<GameObject>(m_object_templates[template_id], chest_title.transform.parent);
 				obj.name = name;
 				obj.SetActive(true);

@@ -51,7 +51,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 		for (int index = 0; index < parent.childCount; index++) {
 			child = parent.GetChild(index);
-			logger.LogInfo(indent_string + child.gameObject.name);
+			logger.LogInfo(indent_string + child.gameObject);
 			if (callback != null) {
 				if (callback(child) == false) {
 					return false;
@@ -93,32 +93,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	class HarmonyPatch_Inventory_Start {
 
 		private static void Postfix(Inventory __instance, Transform ____inventoryPanel) {
-			/*
 			try {
-				GameObject sort_button = null;
-				
-				bool __enum_descendants_callback_find_sort_button__(Transform transform) {
-					if (sort_button == null && transform.name == "SortChestButton") {
-						sort_button = transform.gameObject; 
-						return false;
-					}
-					return true;
-				}
-
-				GameObject create_navigation_button(GameObject left_obj, int template_id, string name, string text, Vector3 direction) {
-					GameObject obj = GameObject.Instantiate<GameObject>(m_object_templates[template_id], left_obj.transform.parent);
-					obj.name = name;
-					obj.SetActive(true);
-					RectTransform other_rect = left_obj.GetComponent<RectTransform>();
-					RectTransform obj_rect = obj.GetComponent<RectTransform>();
-					//obj.transform.Rotate(0, 0, 90f);
-					obj_rect.localPosition = other_rect.localPosition + Vector3.right * (other_rect.rect.width * 2);
-					obj.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(new UnityAction(delegate {
-						logger.LogInfo("hello there!");
-					}));
-					return obj;
-				}
-
 				if (!m_enabled.Value) {
 					return;
 				}
@@ -126,24 +101,45 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				if (original_slots.Length != CHEST_ORIGINAL_SLOT_COUNT) {
 					return;
 				}
+				List<SlotItemData> slot_datas = new List<SlotItemData>(__instance.Items);
 				Slot slot0 = original_slots[0];
 				__instance.maxSlots = m_num_chest_slots.Value;
 				for (int index = original_slots.Length; index < __instance.maxSlots; index++) {
-					GameObject.Instantiate(slot0.gameObject, slot0.transform.parent);
+					Slot slot = GameObject.Instantiate(slot0, slot0.transform.parent);
+					for (int child_index = 0; child_index < slot.transform.childCount; child_index++) {
+						GameObject.Destroy(slot.transform.GetChild(child_index).gameObject);
+					}
+					slot.name = "Slot (" + index + ")";
+					slot.slotNumber = index;
+					slot.transform.SetParent(slot0.transform.parent);
+					slot.gameObject.SetActive(true);
+					slot_datas.Add(new SlotItemData(new NormalItem(), 0, index, slot));
 				}
-				enum_descendants(____inventoryPanel.parent.parent.parent, __enum_descendants_callback_find_sort_button__);
-				create_navigation_button(
-					sort_button,
-					TEMPLATE_LEFT_ARROW_BUTTON,
-					"chest_page_button_up", 
-					"up", 
-					Vector3.up
-				);
-				return;
+				__instance.GetType().GetProperty("Items").SetValue(__instance, slot_datas);
+				//list_descendants(____inventoryPanel, null, 0);
+				RectTransform panel_rect = ____inventoryPanel.GetComponent<RectTransform>();
+				//GameObject.Destroy(external_inventory.GetChild(0).gameObject);
+				GameObject scroll_view = GameObject.Instantiate(m_object_templates[TEMPLATE_SCROLL_VIEW], ____inventoryPanel.transform);
+				Transform viewport = scroll_view.transform.GetChild(0).GetChild(0);
+				scroll_view.name = "EquipItems (ScrollView)";
+				RectTransform scroll_rect = scroll_view.GetComponent<RectTransform>();
+				scroll_rect.localPosition = panel_rect.localPosition;
+				scroll_rect.sizeDelta = panel_rect.sizeDelta;
+				GameObject scrollbar = scroll_view.transform.GetChild(0).GetChild(2).gameObject;
+				RectTransform scrollbar_rect = scrollbar.GetComponent<RectTransform>();
+				//scrollbar_rect.sizeDelta = new Vector2(0.5f, 0.5f);
+				scrollbar_rect.localPosition = scroll_rect.localPosition;
+				scroll_view.SetActive(true);
+				//list_descendants(___ui.transform, null, 0);
+				foreach (Slot slot in ____inventoryPanel.GetComponentsInChildren<Slot>(includeInactive: true)) {
+					slot.gameObject.transform.SetParent(viewport, true);
+					//slot.gameObject.SetActive(true);
+				}
+				GameObject.Destroy(____inventoryPanel.GetChild(0).gameObject);
+				//list_descendants(____inventoryPanel, null, 0);
 			} catch (Exception e) {
 				logger.LogError("** Inventory_Start_Postfix ERROR - " + e);
 			}
-			*/
 		}
 	}
 
@@ -207,11 +203,12 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					return;
 				}
 				GameObject template = templatize(___craftingUI.craftingPane.parent.parent.parent.gameObject);
-				//list_descendants(template.transform, null, 0);
-				Transform content = template.transform.GetChild(0).GetChild(0);
-				for (int index = 0; index < content.childCount; index++) {
-					GameObject.Destroy(content.GetChild(index).gameObject);
-				}
+				Transform content = template.transform.GetChild(0).GetChild(0).GetChild(0);
+				//for (int index = 0; index < content.childCount; index++) {
+				//	GameObject.Destroy(content.GetChild(index).gameObject);
+				//}
+				//content.transform.DetachChildren();
+				list_descendants(template.transform, null, 0);
 				m_object_templates[TEMPLATE_SCROLL_VIEW] = template;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
@@ -228,6 +225,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					return true;
 				}
 				logger.LogInfo("\n\n\n***************************************************\n\n\n");
+				/*
 				Transform external_inventory = ___ui.transform.GetChild(1).transform;
 				GameObject original_panel = external_inventory.GetChild(0).gameObject;
 				RectTransform panel_rect = original_panel.GetComponent<RectTransform>();
@@ -236,10 +234,19 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				RectTransform scroll_rect = scroll_view.GetComponent<RectTransform>();
 				scroll_rect.localPosition = panel_rect.localPosition;
 				scroll_rect.sizeDelta = panel_rect.sizeDelta;
+				GameObject scrollbar = scroll_view.transform.GetChild(0).GetChild(2).gameObject;
+				RectTransform scrollbar_rect = scrollbar.GetComponent<RectTransform>();
+				//scrollbar_rect.sizeDelta = new Vector2(0.5f, 0.5f);
+				scrollbar_rect.localPosition = scroll_rect.localPosition;
 				scroll_view.SetActive(true);
 				original_panel.SetActive(false);
 				list_descendants(___ui.transform, null, 0);
-				return true;
+				foreach (Slot slot in external_inventory.GetChild(0).GetChild(0).GetComponentsInChildren<Slot>()) {
+					slot.gameObject.transform.SetParent(scroll_view.transform, true);
+					slot.gameObject.SetActive(true);
+				}
+				*/
+ 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
 			}
