@@ -12,7 +12,7 @@ using System.Reflection;
 using UnityEngine.Events;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.2")]
 public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.consolidated_crafting");
@@ -28,7 +28,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -64,7 +64,6 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 			int selected_index = -1;
 			List<string> sorted_names = new List<string>(m_table_recipes.Keys);
 			sorted_names.Sort();
-			logger.LogInfo(this.m_recipe_list);
 			foreach (string name in sorted_names) {
 				this.m_dropdown.options.Add(new TMP_Dropdown.OptionData(name));
 				if (m_table_recipes[name] == this.m_recipe_list) {
@@ -101,6 +100,12 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value) {
 					return true;
 				}
+				List<int> jam_ids = new List<int>();
+				foreach (FieldInfo field_info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
+					if (field_info.IsLiteral && !field_info.IsInitOnly && field_info.Name.EndsWith("Jam")) {
+						jam_ids.Add((int) field_info.GetRawConstantValue());
+					}
+				}
 				if (m_all_recipes == null) {
 					m_all_recipes = new List<Recipe>(Resources.FindObjectsOfTypeAll<Recipe>());
 					foreach (RecipeList recipes in Resources.FindObjectsOfTypeAll<RecipeList>()) {
@@ -110,7 +115,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 						// jam maker has no RecipeList, for some reason
 						RecipeList recipes = new RecipeList();
 						foreach (Recipe recipe in m_all_recipes) {
-							if (recipe.name.EndsWith("Jam")) {
+							if (jam_ids.Contains(recipe.output.item.id)) {
 								recipes.craftingRecipes.Add(recipe);
 							}
 						}
@@ -118,14 +123,8 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					}
 				}
 				if (___recipeList == null) {
-					foreach (string name in m_table_recipes.Keys) {
-						if (m_table_recipes[name].craftingRecipes.Count >= 1 && ____craftingRecipes.Count >= 1) {
-							logger.LogInfo(m_table_recipes[name].craftingRecipes[0].name);
-							if (m_table_recipes[name].craftingRecipes[0].name == ____craftingRecipes[0].name) {
-								___recipeList = m_table_recipes[name];
-								break;
-							}
-						}
+					if (____craftingRecipes.Count >= 1 && jam_ids.Contains(____craftingRecipes[0].output.item.id)) {
+						___recipeList = m_table_recipes["Jam Maker"];
 					}
 				}
 				Transform adjacent_transform = null;
@@ -149,13 +148,17 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
 				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 20f);
 				dropdown.onValueChanged.AddListener(new UnityAction<int>(delegate {
-					FieldInfo field_info = __instance.GetType().GetField("_craftingRecipes", BindingFlags.Instance | BindingFlags.NonPublic);
-					if (field_info == null) {
-						logger.LogError("** CraftingTable.TableTypeDropdown.onValueChanged ERROR - unable to access '_craftingRecipes' member and cannot set recipes.");
-						return;
+					try {
+						FieldInfo field_info = __instance.GetType().GetField("_craftingRecipes", BindingFlags.Instance | BindingFlags.NonPublic);
+						if (field_info == null) {
+							logger.LogError("** CraftingTable.TableTypeDropdown.onValueChanged ERROR - unable to access '_craftingRecipes' member and cannot set recipes.");
+							return;
+						}
+						field_info.SetValue(__instance, m_table_recipes[dropdown.options[dropdown.value].text].craftingRecipes);
+						__instance.Initialize();
+					} catch (Exception e) {
+						logger.LogError("** CraftingTable_RecipeListSelector_onValueChanged ERROR - " + e);
 					}
-					field_info.SetValue(__instance, m_table_recipes[dropdown.options[dropdown.value].text].craftingRecipes);
-					__instance.Initialize();
 				}));
 				___ui.AddComponent<RecipeListSelector>().initialize(dropdown, ___recipeList);
 				return true;
