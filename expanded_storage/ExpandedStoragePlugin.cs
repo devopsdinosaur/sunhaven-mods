@@ -216,6 +216,38 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
+	class BoxOverlay : Component {
+
+		MeshRenderer m_mesh_renderer = null;
+		Texture2D m_texture = null;
+		Material m_material = null;
+
+		BoxOverlay() : base() {
+		}
+
+		protected void recreate_box() {
+			RectTransform rect_transform = this.gameObject.GetComponent<RectTransform>();
+			if (rect_transform == null) {
+				return;
+			}
+			if ((this.m_mesh_renderer = this.gameObject.GetComponent<MeshRenderer>()) == null) {
+				this.m_mesh_renderer = this.gameObject.AddComponent<MeshRenderer>();
+			}
+			this.m_material = this.m_mesh_renderer.material;
+			this.m_texture = new Texture2D((int) rect_transform.rect.width, (int) rect_transform.rect.height);
+			Color[] pixels = new Color[this.m_texture.width * this.m_texture.height];
+			for (int index = 0; index < pixels.Length; index++) {
+				pixels[index] = Color.yellow;
+			}
+		}
+
+		protected virtual void OnUpdate() {
+			if (this.m_mesh_renderer == null || this.transform.hasChanged) {
+				this.recreate_box();
+			}
+		}
+	}
+
 	[HarmonyPatch(typeof(Chest), "Interact")]
 	class HarmonyPatch_Chest_Interact {
 
@@ -224,6 +256,13 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				if (___interacting || ___data.inUse) {
 					return true;
 				}
+				
+				//GameObject obj = new GameObject("junk_object");
+				//obj.transform.parent = ___ui.transform.parent;
+				//obj.AddComponent<JunkScript>();
+				//obj.SetActive(true);
+				___ui.AddComponent<BoxOverlay>();
+				
 				logger.LogInfo("\n\n\n***************************************************\n\n\n");
 				/*
 				Transform external_inventory = ___ui.transform.GetChild(1).transform;
@@ -248,7 +287,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				*/
  				return true;
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_Chest_Interact_Prefix ERROR - " + e);
 			}
 			return true;
 		}

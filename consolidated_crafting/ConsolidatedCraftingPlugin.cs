@@ -48,10 +48,55 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 		return true;
 	}
 	
+	class RecipeListSelector : MonoBehaviour {
+		
+		private TMP_Dropdown m_dropdown = null;
+		private RecipeList m_recipe_list;
+		
+		public void initialize(TMP_Dropdown dropdown, RecipeList recipe_list) {
+			this.m_dropdown = dropdown;
+			this.m_recipe_list = recipe_list;
+		}
+
+		public void refresh_dropdown() {
+			this.m_dropdown.options.Clear();
+			int index = 0;
+			int selected_index = -1;
+			List<string> sorted_names = new List<string>(m_table_recipes.Keys);
+			sorted_names.Sort();
+			logger.LogInfo(this.m_recipe_list);
+			foreach (string name in sorted_names) {
+				this.m_dropdown.options.Add(new TMP_Dropdown.OptionData(name));
+				if (m_table_recipes[name] == this.m_recipe_list) {
+					selected_index = index;
+				}
+				index++;
+			}
+			this.m_dropdown.value = selected_index;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "OpenUI")]
+	class HarmonyPatch_CraftingTable_OpenUI {
+
+		private static bool Prefix(GameObject ___ui) {
+			try {
+				if (!m_enabled.Value) {
+					return true;
+				}
+				___ui.GetComponent<RecipeListSelector>().refresh_dropdown();
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CraftingTable_OpenUI_Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
 	[HarmonyPatch(typeof(CraftingTable), "Awake")]
 	class HarmonyPatch_CraftingTable_Awake {
 
-		private static bool Prefix(CraftingTable __instance, GameObject ___ui, RecipeList ___recipeList) {
+		private static bool Prefix(CraftingTable __instance, GameObject ___ui, RecipeList ___recipeList, List<Recipe> ____craftingRecipes) {
 			try {
 				if (!m_enabled.Value) {
 					return true;
@@ -65,7 +110,21 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 						// jam maker has no RecipeList, for some reason
 						RecipeList recipes = new RecipeList();
 						foreach (Recipe recipe in m_all_recipes) {
-							//logger.LogInfo(recipe.__name);
+							if (recipe.name.EndsWith("Jam")) {
+								recipes.craftingRecipes.Add(recipe);
+							}
+						}
+						m_table_recipes["Jam Maker"] = recipes;
+					}
+				}
+				if (___recipeList == null) {
+					foreach (string name in m_table_recipes.Keys) {
+						if (m_table_recipes[name].craftingRecipes.Count >= 1 && ____craftingRecipes.Count >= 1) {
+							logger.LogInfo(m_table_recipes[name].craftingRecipes[0].name);
+							if (m_table_recipes[name].craftingRecipes[0].name == ____craftingRecipes[0].name) {
+								___recipeList = m_table_recipes[name];
+								break;
+							}
 						}
 					}
 				}
@@ -98,20 +157,10 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					field_info.SetValue(__instance, m_table_recipes[dropdown.options[dropdown.value].text].craftingRecipes);
 					__instance.Initialize();
 				}));
-				dropdown.options.Clear();
-				int index = 0;
-				int selected_index = -1;
-				foreach (string name in m_table_recipes.Keys) {
-					dropdown.options.Add(new TMP_Dropdown.OptionData(name));
-					if (m_table_recipes[name] == ___recipeList) {
-						selected_index = index;
-					}
-					index++;
-				}
-				dropdown.value = selected_index;
+				___ui.AddComponent<RecipeListSelector>().initialize(dropdown, ___recipeList);
 				return true;
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CraftingTable_Awake ERROR - " + e);
+				logger.LogError("** HarmonyPatch_CraftingTable_Awake_Prefix ERROR - " + e);
 			}
 			return true;
 		}
