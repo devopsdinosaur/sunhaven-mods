@@ -363,5 +363,11 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(Water), "Start")]
+	class HarmonyPatch_Water_Start {
+		private static void Postfix(Water __instance, Material ____liquidMaterial, LiquidType ___liquidType) {
+			GameObject.Destroy(__instance.transform.GetComponent<BoxCollider2D>());
+		}
+	}
 
 }

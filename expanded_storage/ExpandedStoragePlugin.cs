@@ -26,6 +26,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
 	private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
 	private const int TEMPLATE_SCROLL_VIEW = 2;
+	private const int TEMPLATE_ITEM_ROW_PANEL = 3;
 
 	private static Dictionary<int, GameObject> m_object_templates = new Dictionary<int, GameObject>();
 
@@ -33,6 +34,9 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+
+			m_enabled.Value = false;
+
 			m_num_chest_slots = this.Config.Bind<int>("General", "Chest Slot Count", 100, "Number of chest inventory slots");
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
@@ -120,20 +124,31 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				RectTransform panel_rect = ____inventoryPanel.GetComponent<RectTransform>();
 				//GameObject.Destroy(external_inventory.GetChild(0).gameObject);
 				GameObject scroll_view = GameObject.Instantiate(m_object_templates[TEMPLATE_SCROLL_VIEW], ____inventoryPanel.transform);
-				Transform viewport = scroll_view.transform.GetChild(0).GetChild(0);
+				Transform content = scroll_view.transform.GetChild(0).GetChild(0).GetChild(0);
 				scroll_view.name = "EquipItems (ScrollView)";
 				RectTransform scroll_rect = scroll_view.GetComponent<RectTransform>();
-				scroll_rect.localPosition = panel_rect.localPosition;
+				scroll_rect.localPosition = new Vector3(panel_rect.localPosition.x - 5, panel_rect.localPosition.y + 5, panel_rect.localPosition.z);
 				scroll_rect.sizeDelta = panel_rect.sizeDelta;
 				GameObject scrollbar = scroll_view.transform.GetChild(0).GetChild(2).gameObject;
 				RectTransform scrollbar_rect = scrollbar.GetComponent<RectTransform>();
 				//scrollbar_rect.sizeDelta = new Vector2(0.5f, 0.5f);
-				scrollbar_rect.localPosition = scroll_rect.localPosition;
+				scrollbar_rect.localPosition = scroll_rect.localPosition + (Vector3.right * scroll_rect.rect.width / 2);
 				scroll_view.SetActive(true);
 				//list_descendants(___ui.transform, null, 0);
+				const int SLOTS_PER_ROW = 4;
+				int counter = 0;
+				GameObject row_panel = null;
 				foreach (Slot slot in ____inventoryPanel.GetComponentsInChildren<Slot>(includeInactive: true)) {
-					slot.gameObject.transform.SetParent(viewport, true);
-					//slot.gameObject.SetActive(true);
+					if (counter++ % SLOTS_PER_ROW == 0) {
+						row_panel = GameObject.Instantiate(m_object_templates[TEMPLATE_ITEM_ROW_PANEL], content);
+						//row_panel = new GameObject("Scrolling_Item_Row");
+						//row_panel.transform.SetParent(content.transform, false);
+						row_panel.SetActive(true);
+						//row_panel.AddComponent<RectTransform>().localScale = slot.GetComponent<RectTransform>().localScale;
+					}
+					//slot.gameObject.transform.SetParent(row_panel.transform, false);
+					//slot.gameObject.transform.SetParent(content, false);
+					slot.gameObject.SetActive(false);
 				}
 				GameObject.Destroy(____inventoryPanel.GetChild(0).gameObject);
 				//list_descendants(____inventoryPanel, null, 0);
@@ -167,16 +182,22 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
 
-		private static bool done = false;
+		private static bool m_one_shot = false;
 
 		private static void Postfix() {
 			if (Player.Instance == null || !Player.Instance.IsOwner) {
 				return;
 			}
-			if (done) {
+
+			// ------------------------------------------------------------
+			// Need to instantiate a CraftingTable prefab to ensure the 
+			// Start method gets called for ScrollView template creation.
+			// ------------------------------------------------------------
+
+			if (m_one_shot) {
 				return;
 			}
-			//done = false;
+			m_one_shot = true;
 			Placeable table_placeable = null;
 			foreach (Placeable placeable in Resources.FindObjectsOfTypeAll<Placeable>()) {
 				if (placeable._itemData.id == ItemID.JamMaker) {
@@ -186,11 +207,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 			}
 			Decoration temp_table = UnityEngine.Object.Instantiate(table_placeable.Decoration, new Vector3(0, 0, 0), Quaternion.identity, GameManager.DecorationContainer);
 			temp_table.gameObject.SetActive(false);
-			//foreach (CraftingTable table in Resources.FindObjectsOfTypeAll<CraftingTable>()) {
-			//	logger.LogInfo(table);
-			//}
 			GameObject.Destroy(temp_table.gameObject);
-			done = true;
 		}
 	}
 
@@ -204,9 +221,13 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				}
 				GameObject template = templatize(___craftingUI.craftingPane.parent.parent.parent.gameObject);
 				Transform content = template.transform.GetChild(0).GetChild(0).GetChild(0);
-				//for (int index = 0; index < content.childCount; index++) {
-				//	GameObject.Destroy(content.GetChild(index).gameObject);
-				//}
+				for (int index = 0; index < content.childCount; index++) {
+					if (!m_object_templates.ContainsKey(TEMPLATE_ITEM_ROW_PANEL)) {
+						m_object_templates[TEMPLATE_ITEM_ROW_PANEL] = templatize(content.GetChild(index).gameObject);
+						GameObject.Destroy(m_object_templates[TEMPLATE_ITEM_ROW_PANEL].transform.GetChild(0));
+					}
+					GameObject.Destroy(content.GetChild(index).gameObject);
+				}
 				//content.transform.DetachChildren();
 				list_descendants(template.transform, null, 0);
 				m_object_templates[TEMPLATE_SCROLL_VIEW] = template;
@@ -216,7 +237,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
-	class BoxOverlay : Component {
+	class BoxOverlay : MonoBehaviour {
 
 		MeshRenderer m_mesh_renderer = null;
 		Texture2D m_texture = null;

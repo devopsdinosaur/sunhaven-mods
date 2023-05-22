@@ -35,8 +35,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_speed", "craft_speed\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "craft_from_storage", "craft_from_storage\craft_from_storage.csproj", "{664A6420-D6FA-4912-AD51-20001886F81E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "kickstarter", "kickstarter\kickstarter.csproj", "{745A063F-8298-41FE-A9F5-12311F00A110}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "zone_info", "quality_of_life\zone_info.csproj", "{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "player_stats", "player_stats\player_stats.csproj", "{0634986A-1858-4992-ABFF-B4C17D2A20EF}"
@@ -131,10 +129,6 @@ Global
 		{664A6420-D6FA-4912-AD51-20001886F81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{664A6420-D6FA-4912-AD51-20001886F81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{664A6420-D6FA-4912-AD51-20001886F81E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{745A063F-8298-41FE-A9F5-12311F00A110}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{745A063F-8298-41FE-A9F5-12311F00A110}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{745A063F-8298-41FE-A9F5-12311F00A110}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{745A063F-8298-41FE-A9F5-12311F00A110}.Release|Any CPU.Build.0 = Release|Any CPU
 		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66BDBD07-3AB5-4561-9D78-E8D15B815BCF}.Release|Any CPU.ActiveCfg = Release|Any CPU

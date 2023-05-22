@@ -114,6 +114,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					if (!m_table_recipes.ContainsKey("Jam Maker")) {
 						// jam maker has no RecipeList, for some reason
 						RecipeList recipes = new RecipeList();
+						recipes.name = "Jam_Maker";
 						foreach (Recipe recipe in m_all_recipes) {
 							if (jam_ids.Contains(recipe.output.item.id)) {
 								recipes.craftingRecipes.Add(recipe);

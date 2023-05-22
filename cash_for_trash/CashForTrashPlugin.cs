@@ -5,9 +5,10 @@ using HarmonyLib;
 using Wish;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.3")]
 public class CashForTrashPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.cash_for_trash");
@@ -15,6 +16,9 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 
 	private static ConfigEntry<bool> m_enabled;
 	public static ConfigEntry<float> m_cash_multiplier;
+	const int TRASH_SLOT_TRASH = 0;
+	const int TRACK_SLOT_RECYCLE = 1;
+	public static Dictionary<int, int> m_trash_slots = new Dictionary<int, int>();
 
 	private void Awake() {
 		logger = this.Logger;
@@ -24,7 +28,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.cash_for_trash v0.0.2 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.cash_for_trash v0.0.3 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}		
@@ -32,7 +36,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 
 	[HarmonyPatch(typeof(PlayerInventory), "Awake")]
 	class HarmonyPatch_PlayerInventory_Awake {
-
+		
 		private static Transform m_trash_button = null;
 
 		public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
@@ -59,29 +63,34 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 
 		private static void Postfix(ref PlayerInventory __instance, Transform ____actionBarPanel) {
 			try {
+
+				void update_button(Transform transform, string text, string description, int image_id, int trash_slot_id) {
+					foreach (Component component in transform.GetComponents<Component>()) {
+						if (component is Popup) {
+							Popup popup = (Popup) component;
+							if (popup.text != "") {
+								popup.text = text;
+								popup.description = description;
+							}
+						} else if (component is UIButton) {
+							UIButton button = (UIButton) component;
+							button.defaultImage = button.hoverOverImage = button.pressedImage = ItemDatabase.items[image_id].icon;
+						} else if (component is TrashSlot) {
+							m_trash_slots[component.GetHashCode()] = trash_slot_id;
+						}
+					}
+				}
+
 				if (!m_enabled.Value || m_trash_button != null) {
 					return;
 				}
 				enum_descendants(____actionBarPanel.parent, enum_descendants_callback);
-				foreach (Component component in m_trash_button.GetComponents<Component>()) {
-					if (component is Popup) {
-						Popup popup = (Popup) component;
-						if (popup.text != "") {
-							popup.text = "Sell Item";
-							popup.description = "Drop an item here to sell it for full price!";
-						}
-					} else if (component is UIButton) {
-						UIButton button = (UIButton) component;
-						foreach (int id in ItemDatabase.ids.Values) {
-							if (ItemDatabase.items[id].name == "Small Money Bag") {
-								button.defaultImage = button.hoverOverImage = button.pressedImage = ItemDatabase.items[id].icon;
-								break;
-							}
-						}
-					}
-				}
+				update_button(m_trash_button, "Sell Item", "Drop an item here to sell it for full price!", ItemID.SmallMoneyBag, TRASH_SLOT_TRASH);
+				Transform recycle_button = GameObject.Instantiate(m_trash_button, m_trash_button.parent);
+				update_button(recycle_button, "Recycle Item", "Drop a crafted item here to recyle it into its original ingredients.  Note that if there are multiple recipes for the item then only the first in memory will be used (for example: Fire Crystal yields Soot and not coal).", ItemID.SpringToken, TRACK_SLOT_RECYCLE);
+				recycle_button.localPosition = m_trash_button.localPosition + (Vector3.left * recycle_button.GetComponent<RectTransform>().rect.width * 3);
 			} catch (Exception e) {
-				logger.LogError("** PlayerInventory.Awak_Postfix ERROR -" + e);
+				logger.LogError("** PlayerInventory.Awake_Postfix ERROR -" + e);
 			}
 		}
 	}
@@ -99,14 +108,33 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 					return false;
 				}
 				ItemData data = ItemDatabase.GetItemData(icon.item);
-				if (data.category == ItemCategory.Quest || !data.canTrash) {
+				if (data.category == ItemCategory.Quest || !data.canTrash || !m_trash_slots.ContainsKey(__instance.GetHashCode())) {
 					return false;
 				}
 				Item item = data.GetItem();
-				if (data.canSell) {
-					Player.Instance.AddMoneyAndRegisterSource((int) (item.SellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
-					Player.Instance.AddOrbsAndRegisterSource((int) (item.OrbSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
-					Player.Instance.AddTicketsAndRegisterSource((int) (item.TicketSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+				switch (m_trash_slots[__instance.GetHashCode()]) {
+				case TRASH_SLOT_TRASH:
+					if (data.canSell) {
+						Player.Instance.AddMoneyAndRegisterSource((int) (item.SellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+						Player.Instance.AddOrbsAndRegisterSource((int) (item.OrbSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+						Player.Instance.AddTicketsAndRegisterSource((int) (item.TicketSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
+					}
+					break;
+				case TRACK_SLOT_RECYCLE:
+					Recipe recycle_recipe = null;
+					foreach (Recipe recipe in Resources.FindObjectsOfTypeAll<Recipe>()) {
+						if (recipe.output != null && recipe.output.item != null && recipe.output.item.id == item.ID()) {
+							recycle_recipe = recipe;
+							break;
+						}
+					}
+					if (recycle_recipe == null) {
+						return false;
+					}
+					foreach (ItemInfo item_info in recycle_recipe.input) {
+						Player.Instance.Inventory.AddItem(item_info.item.GenerateItem(), item_info.amount * icon.amount, true);
+					}
+					break;
 				}
 				icon.RemoveItemIcon();
 				__instance.inventory.UpdateInventory();
