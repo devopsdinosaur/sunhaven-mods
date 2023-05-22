@@ -98,6 +98,19 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(TrashSlot), "OnPointerDown")]
 	class HarmonyPatch_TrashSlot_OnPointerDown {
 
+		static List<int> BAD_ITEM_IDS = new List<int>(new int[] {
+			ItemID.Health,
+			ItemID.Mana,
+			ItemID.Coins,
+			ItemID.ManaOrbs,
+			ItemID.Tickets,
+			ItemID.CommonFish,
+			ItemID.UncommonFish,
+			ItemID.RareFish,
+			ItemID.EpicFish,
+			ItemID.LegendaryFish,
+		});
+
 		private static bool Prefix(ref TrashSlot __instance) {
 			try {
 				if (!m_enabled.Value) {
@@ -119,25 +132,32 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 						Player.Instance.AddOrbsAndRegisterSource((int) (item.OrbSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
 						Player.Instance.AddTicketsAndRegisterSource((int) (item.TicketSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true);
 					}
+					icon.RemoveItemIcon();
+					__instance.inventory.UpdateInventory();
 					break;
 				case TRACK_SLOT_RECYCLE:
-					Recipe recycle_recipe = null;
 					foreach (Recipe recipe in Resources.FindObjectsOfTypeAll<Recipe>()) {
 						if (recipe.output != null && recipe.output.item != null && recipe.output.item.id == item.ID()) {
-							recycle_recipe = recipe;
-							break;
+							int item_count = 0;
+							foreach (ItemInfo item_info in recipe.input) {
+								if (!BAD_ITEM_IDS.Contains(item_info.item.id)) {
+									Player.Instance.Inventory.AddItem(
+										item_info.item.GenerateItem(), 
+										recipe.ModifiedAmount(item_info.amount, item_info.item, recipe.output.item) * icon.amount, 
+										true
+									);
+									item_count++;
+								}
+							}
+							if (item_count > 0) {
+								icon.RemoveItemIcon();
+								__instance.inventory.UpdateInventory();
+								break;
+							}
 						}
-					}
-					if (recycle_recipe == null) {
-						return false;
-					}
-					foreach (ItemInfo item_info in recycle_recipe.input) {
-						Player.Instance.Inventory.AddItem(item_info.item.GenerateItem(), item_info.amount * icon.amount, true);
 					}
 					break;
 				}
-				icon.RemoveItemIcon();
-				__instance.inventory.UpdateInventory();
 				return false;
 			} catch (Exception e) {
 				logger.LogError("** TrashSlot.OnPointerDown_Prefix ERROR -" + e);
