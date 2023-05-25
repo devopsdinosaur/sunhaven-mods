@@ -34,9 +34,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-
-			m_enabled.Value = false;
-
 			m_num_chest_slots = this.Config.Bind<int>("General", "Chest Slot Count", 100, "Number of chest inventory slots");
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
@@ -98,6 +95,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 
 		private static void Postfix(Inventory __instance, Transform ____inventoryPanel) {
 			try {
+				return;
 				if (!m_enabled.Value) {
 					return;
 				}
@@ -229,7 +227,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					GameObject.Destroy(content.GetChild(index).gameObject);
 				}
 				//content.transform.DetachChildren();
-				list_descendants(template.transform, null, 0);
+				//list_descendants(template.transform, null, 0);
 				m_object_templates[TEMPLATE_SCROLL_VIEW] = template;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_Start_Prefix ERROR - " + e);
@@ -237,34 +235,46 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
-	class BoxOverlay : MonoBehaviour {
+	public static void add_box_overlay(Transform transform) {
+		try {
 
-		MeshRenderer m_mesh_renderer = null;
-		Texture2D m_texture = null;
-		Material m_material = null;
-
-		BoxOverlay() : base() {
-		}
-
-		protected void recreate_box() {
-			RectTransform rect_transform = this.gameObject.GetComponent<RectTransform>();
+			/*
+			GameObject obj = new GameObject("Box_Overlay");
+			obj.SetActive(true);
+			obj.transform.SetParent(transform, false);
+			obj.transform.localPosition = new Vector3(0, 0, 1);
+			RectTransform rect_transform = transform.GetComponent<RectTransform>();
 			if (rect_transform == null) {
+				logger.LogError("** BoxOverlay_Start ERROR - no RectTransform component associated with '" + transform.gameObject + "' object; unable to create bounding rectangle.");
+				GameObject.Destroy(obj);
 				return;
 			}
-			if ((this.m_mesh_renderer = this.gameObject.GetComponent<MeshRenderer>()) == null) {
-				this.m_mesh_renderer = this.gameObject.AddComponent<MeshRenderer>();
+			Rect rect = rect_transform.rect;
+			Texture2D texture = new Texture2D((int) rect.width, (int) rect.height);
+			for (int x = 0; x < texture.width; x++) {
+				for (int y = 0; y < texture.height; y++) {
+					texture.SetPixel(x, y, Color.yellow);
+				}
 			}
-			this.m_material = this.m_mesh_renderer.material;
-			this.m_texture = new Texture2D((int) rect_transform.rect.width, (int) rect_transform.rect.height);
-			Color[] pixels = new Color[this.m_texture.width * this.m_texture.height];
-			for (int index = 0; index < pixels.Length; index++) {
-				pixels[index] = Color.yellow;
-			}
+			texture.Apply();
+			SpriteRenderer renderer = obj.AddComponent<SpriteRenderer>();
+			renderer.sprite = Sprite.Create(texture, rect, new Vector2(0, 0));
+			renderer.sortingOrder = 32767;
+			logger.LogInfo("created");
+			*/
+		} catch (Exception e) {
+			logger.LogError("** BoxOverlay.recreate_box ERROR - " + e);
 		}
+	}
 
-		protected virtual void OnUpdate() {
-			if (this.m_mesh_renderer == null || this.transform.hasChanged) {
-				this.recreate_box();
+	[HarmonyPatch(typeof(Slot), "LateUpdate")]
+	class HarmonyPatch_Slot_LateUpdate {
+
+		static bool one_shot = false;
+
+		private static void Postfix(Slot __instance) {
+			if (!__instance.transform.Find("Box_Overlay")) {
+				add_box_overlay(__instance.transform);
 			}
 		}
 	}
@@ -282,7 +292,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				//obj.transform.parent = ___ui.transform.parent;
 				//obj.AddComponent<JunkScript>();
 				//obj.SetActive(true);
-				___ui.AddComponent<BoxOverlay>();
 				
 				logger.LogInfo("\n\n\n***************************************************\n\n\n");
 				/*
