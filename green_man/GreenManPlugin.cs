@@ -67,7 +67,6 @@ public class GreenManPlugin : BaseUnityPlugin {
 					Vector2Int pos = new Vector2Int(x, y);
 					if (GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(x * 6, y * 6, 0), out Crop crop)) {
 						if (m_grow_crops.Value && !crop.CheckGrowth) {
-							logger.LogInfo(crop);
 							crop.GrowToMax();
 							crop.data.stage = crop.SeedData.cropStages.Length - 1;
 						}
