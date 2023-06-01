@@ -10,8 +10,8 @@ using ZeroFormatter;
 using DG.Tweening;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.arborist", "Arborist", "0.0.2")]
-public class EasyAnimalsPlugin : BaseUnityPlugin {
+[BepInPlugin("devopsdinosaur.sunhaven.arborist", "Arborist", "0.0.3")]
+public class ArboristPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.arborist");
 	public static ManualLogSource logger;
@@ -31,7 +31,7 @@ public class EasyAnimalsPlugin : BaseUnityPlugin {
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_overnight_growth_chance = this.Config.Bind<float>("General", "Overnight Growth Chance", 0.45f, "Float value between 0 (no chance) and 1 (100% chance) of single tree stage increment each night (default is game default of 0.45f).");
-			m_tree_respawn_rate = this.Config.Bind<float>("General", "Tree Respawn Multiplier", 0.1f, "Float value between 0 (no chance) and infinity (higher == higher chance) of tree respawn in random tiles (this value is used as a multiplier with a perlin noise map for random tree placement, default is game default of 0.1f).");
+			m_tree_respawn_rate = this.Config.Bind<float>("General", "Tree Respawn Multiplier", 0.0044f, "Float value between 0 (no chance) and infinity (higher == higher chance) of tree respawn in random tiles (this value is used as a multiplier with a perlin noise map for random tree placement, default is game default of 0.0044f).");
 			m_overnight_mushroom_chance = this.Config.Bind<float>("General", "Overnight Mushroom Gain Chance", 0.035f, "Float value between 0 (no chance) and 1 (100% chance) of tree gaining a mushroom each night (default is game default of 0.035f).");
 			m_overnight_cobweb_chance = this.Config.Bind<float>("General", "Overnight Cobweb Gain Chance", 0.018f, "Float value between 0 (no chance) and 1 (100% chance) of tree gaining a cobweb each night (default is game default of 0.018f).");
 			m_tree_drop_amount_min = this.Config.Bind<int>("General", "Tree Drop Minimum Amount", 4, "Minimum amount of items (i.e. wood) dropped when tree is cut down (default is game default of 4 [halved for stumps]).");
@@ -39,7 +39,7 @@ public class EasyAnimalsPlugin : BaseUnityPlugin {
 			m_seed_drop_chance = this.Config.Bind<float>("General", "Seed Drop Chance", 0.15f, "Float value between 0 (no chance) and 1 (100% chance) of seed dropping when tree if cut down (default is game default of 0.15f [halved for stumps]).");			
 			m_museum_item_drop_chance = this.Config.Bind<float>("General", "Museum Item Drop Chance", 0.035f, "Float value between 0 (no chance) and 1 (100% chance) of museum item dropping when tree if cut down (default is game default of 0.035f [halved for stumps]).");			
 			this.m_harmony.PatchAll();	
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.arborist v0.0.2 loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.arborist v0.0.3 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -109,7 +109,7 @@ public class EasyAnimalsPlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(FoliageManager), "UpdateDataTileOvernightTrees")]
 	class HarmonyPatch_FoliageManager_UpdateDataTileOvernightTrees {
 
-		private static bool Prefix(ref SceneSettings sceneSettings) {
+		private static bool Prefix(Vector2Int position, SerializedDataTile dataTile, int scene, float seed, ref SceneSettings sceneSettings) {
 			try {
 				if (m_enabled.Value) {
 					sceneSettings.treeRespawnRate = m_tree_respawn_rate.Value;

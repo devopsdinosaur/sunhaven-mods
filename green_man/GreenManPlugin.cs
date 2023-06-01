@@ -10,7 +10,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.green_man", "Green Man", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.green_man", "Green Man", "0.0.4")]
 public class GreenManPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.green_man");
@@ -30,13 +30,33 @@ public class GreenManPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.green_man v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.green_man v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
 	}
 
 	private static void be_the_green_man() {
+
+		void grow_forage_tree(ForageTree tree, List<Sprite> sprites) {
+			tree.data = new ForageTreeSaveData {
+				spot1 = false,
+				spot2 = false,
+				spot3 = false,
+				golden = false,
+				stage = sprites.Count + 1
+			};
+			for (int index = 0; index < 3; index++) {
+				tree.spots[index].sprite = null;
+			}
+			MeshGenerator treeMesh = (MeshGenerator) tree.GetType().GetField("treeMesh", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree);
+			treeMesh.sprite = sprites[Mathf.Clamp(tree.data.stage - 2, 0, sprites.Count - 1)];
+			((GameObject) tree.GetType().GetField("_decals", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree)).SetActive(tree.data.stage >= 4);
+			treeMesh.SetDefault();
+			tree.GetType().GetMethod("SetDecalsEnabledBySeason", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(tree, new object[] {});
+			tree.SaveMeta();
+		}
+
 		try {
 			if (!(m_grow_crops.Value || m_grow_trees.Value)) {
 				return;
@@ -60,11 +80,19 @@ public class GreenManPlugin : BaseUnityPlugin {
 						if (sprites != null && current_health >= max_health) {
 							tree.SetTreeStage(sprites.Count + 1);
 						}
+						continue;
+					}
+					if (m_grow_trees.Value && GameManager.Instance.TryGetObjectSubTile<ForageTree>(new Vector3Int(x * 6, y * 6, 0), out ForageTree forage_tree)) {
+						List<Sprite> sprites = (List<Sprite>) forage_tree.GetType().GetProperty("TreeStages", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(forage_tree);
+						if (sprites != null && forage_tree.data.stage < sprites.Count + 1) {
+							grow_forage_tree(forage_tree, sprites);
+						}
+						continue;
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.LogError("** HarmonyPatch_Player_Update_Prefix ERROR - " + e);
+			logger.LogError("** be_the_green_man ERROR - " + e);
 		}
 	}
 

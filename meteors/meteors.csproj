@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{B918CFCA-BA39-4915-85FD-988D74106F8E}</ProjectGuid>
+    <ProjectGuid>{4800FF37-D0E8-489F-9D6E-6F272F2560CF}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>devopsdinosaur.sunhaven.arborist</RootNamespace>
-    <AssemblyName>devopsdinosaur.sunhaven.arborist</AssemblyName>
+    <RootNamespace>devopsdinosaur.sunhaven.meteors</RootNamespace>
+    <AssemblyName>devopsdinosaur.sunhaven.meteors</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -39,7 +39,7 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ArboristPlugin.cs" />
+    <Compile Include="MeteorsPlugin.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
