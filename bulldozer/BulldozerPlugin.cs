@@ -10,31 +10,53 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.2")]
 public class BulldozerPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.bulldozer");
 	public static ManualLogSource logger;
+	
 	private static ConfigEntry<bool> m_enabled;
+	private static ConfigEntry<bool> m_harvest_breakables;
 	private static ConfigEntry<bool> m_harvest_crops;
+	private static ConfigEntry<string> m_excluded_crops;
 	private static ConfigEntry<bool> m_harvest_trees;
 	private static ConfigEntry<bool> m_harvest_fruit;
 	private static ConfigEntry<bool> m_harvest_rocks;
+	private static ConfigEntry<bool> m_harvest_weeds;
 	private static ConfigEntry<int> m_influence_radius;
+
+	private static List<int> m_excluded_crop_ids = new List<int>();
 	
 	private void Awake() {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_influence_radius = this.Config.Bind<int>("General", "Bulldoze Radius", 2, "Radius of tiles around the player to bulldoze (int, note that larger values could significantly increase computation time)");
+			m_harvest_breakables = this.Config.Bind<bool>("General", "Harvest Breakables", true, "Set to false to disable bulldozing jars and pots.");
 			m_harvest_crops = this.Config.Bind<bool>("General", "Harvest Crops", true, "Set to false to disable crop harvest.");
+			m_excluded_crops = this.Config.Bind<string>("General", "Excluded Crops", "HoneyFlowerSeeds,LavenderSeeds,HibiscusSeeds,LilySeeds,OrchidSeeds,SunflowerSeeds,RedRoseSeeds,BlueRoseSeeds,TulipSeeds,LotusSeeds,DaisySeeds", "[Advanced] Comma-separated list of crop seed IDs to exclude from bulldozing.  By default this is a list of flower seeds in order to protect honey production.  NOTE: This value is parsed when the mod is loaded; changing the value with ConfigurationManager will have no effect.");
 			m_harvest_fruit = this.Config.Bind<bool>("General", "Harvest Fruit", true, "Set to false to disable tree-fruit harvest.");
 			m_harvest_rocks = this.Config.Bind<bool>("General", "Harvest Rocks", true, "Set to false to disable bulldozing rocks and ores.");
 			m_harvest_trees = this.Config.Bind<bool>("General", "Harvest Trees", true, "Set to false to disable bulldozing fully-grown trees.");
+			m_harvest_weeds = this.Config.Bind<bool>("General", "Harvest Weeds", true, "Set to false to disable bulldozing weeds.");
+			List<string> excluded = new List<string>();
+			string[] vals = m_excluded_crops.Value.Split(',');
+			for (int index = 0; index < vals.Length; index++) {
+				string val = vals[index].Trim();
+				if (val.Length > 0) {
+					excluded.Add(val);
+				}
+			}
+			foreach (FieldInfo field_info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
+				if (field_info.IsLiteral && !field_info.IsInitOnly && excluded.Contains(field_info.Name)) {
+					m_excluded_crop_ids.Add((int) field_info.GetRawConstantValue());
+				}
+			}
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -48,10 +70,21 @@ public class BulldozerPlugin : BaseUnityPlugin {
 					return;
 				}
 				done = true;
-				if (!crop.CheckGrowth) {
+				if (!crop.CheckGrowth || m_excluded_crop_ids.Contains(crop.id)) {
 					return;
 				}
 				crop.ReceiveDamage(new DamageInfo {hitType = HitType.Scythe});
+			}
+
+			void bulldoze_forageable(Vector2Int pos, ref bool done) {
+				if (done || !m_harvest_breakables.Value || !GameManager.Instance.TryGetObjectSubTile<Forageable>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Forageable item)) {
+					return;
+				}
+				done = true;
+				if ((ForageCollectType) item.GetType().GetField("collectionType", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(item) != ForageCollectType.Breakable) {
+					return;
+				}
+				item.Break();
 			}
 
 			void bulldoze_tree(Vector2Int pos, ref bool done) {
@@ -106,6 +139,22 @@ public class BulldozerPlugin : BaseUnityPlugin {
 				rock.Die();
 			}
 
+			void bulldoze_plant(Vector2Int pos, ref bool done) {
+				if (done || !m_harvest_weeds.Value || !GameManager.Instance.TryGetObjectSubTile<HealthDecoration>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out HealthDecoration item)) {
+					return;
+				}
+				done = true;
+				item.Die();
+			}
+
+			void bulldoze_wood(Vector2Int pos, ref bool done) {
+				if (done || !m_harvest_trees.Value || !GameManager.Instance.TryGetObjectSubTile<Wood>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Wood tree)) {
+					return;
+				}
+				done = true;
+				tree.Die();
+			}
+
 			if (!(m_harvest_crops.Value || m_harvest_trees.Value)) {
 				return;
 			}
@@ -115,9 +164,12 @@ public class BulldozerPlugin : BaseUnityPlugin {
 					Vector2Int pos = new Vector2Int(x, y);
 					bool done = false;
 					bulldoze_crop(pos, ref done);
+					bulldoze_forageable(pos, ref done);
 					bulldoze_fruit(pos, ref done);
+					bulldoze_plant(pos, ref done);
 					bulldoze_rock(pos, ref done);
 					bulldoze_tree(pos, ref done);
+					bulldoze_wood(pos, ref done);
 				}
 			}
 		} catch (Exception e) {
