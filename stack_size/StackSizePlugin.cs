@@ -23,13 +23,13 @@ public class StackSizePlugin : BaseUnityPlugin {
 		this.m_harmony.PatchAll();
 	}
 
-	[HarmonyPatch(typeof(ItemDatabase), "ConstructDatabase", new[] { typeof(IList<ItemData>) })]
+	[HarmonyPatch(typeof(ItemDatabase), "ConstructDatabase", new[] {typeof(ItemData[])})]
 	class HarmonyPatch_ItemDatabase_ConstructDatabase {
 
-		private static void Postfix() {
+		private static void Postfix(ItemData[] itemArray) {
 			if (m_enabled.Value) {
-				foreach (int id in ItemDatabase.ids.Values) {
-					ItemDatabase.items[id].stackSize = m_stack_size.Value;
+				for (int i = 0; i < itemArray.Length; i++) {
+					ItemDatabase.items[itemArray[i].id].stackSize = m_stack_size.Value;
 				}
 			}
 		}
