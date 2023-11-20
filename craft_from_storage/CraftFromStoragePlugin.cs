@@ -13,7 +13,7 @@ using System.Threading;
 using UnityEngine.UI;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.16")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.17")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -32,7 +32,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.16" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.17" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -356,23 +356,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			return amount;
 		}
 
-		public bool can_craft(Recipe recipe, int amount) {
-			foreach (ItemInfo item in recipe.Input) {
-				if (item.item.id == ItemID.Mana) {
-					if (Player.Instance.Mana <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
-						return false;
-					}
-				} else if (item.item.id == ItemID.Health) {
-					if (Player.Instance.Health <= (float) recipe.ModifiedAmount(item.amount,item.item,recipe.output.item) * amount) {
-						return false;
-					}
-				} else if (this.get_item_amount(item.item.id) < amount) {
-					return false;
-				}
-			}
-			return true;
-		}
-
 		public List<ItemAmount> remove_item(int id, int amount = 1, int slot = 0) {
 			List<ItemAmount> items = new List<ItemAmount>();
 
@@ -388,34 +371,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				}
 			}
 			return items;
-		}
-
-		public List<ItemAmount> remove_fish(ItemRarity rarity, int amount = 1) {
-            List<ItemAmount> items = new List<ItemAmount>();
-
-			foreach (int id in this.m_items.Keys) {
-                foreach (SlotItemData item in this.m_items[id]) {
-                    if (item.item is FishItem fish_item && ItemDatabase.GetItemData(fish_item.ID()).rarity.Equals(rarity)) {
-                        foreach (ItemAmount item_amount in item.slot.inventory.RemoveItem(id, amount)) {
-                            amount -= item_amount.amount;
-                            items.Add(item_amount);
-                        }
-                        if (amount <= 0) {
-                            return items;
-                        }
-                    }
-                }
-            }
-			return items;
-        }
-	}
-
-	[HarmonyPatch(typeof(CraftingTable), "CanCraft")]
-	class HarmonyPatch_CraftingTable_CanCraft {
-
-		private static bool Prefix(Recipe recipe, int amount, Inventory inventory, ref bool __result) {
-			__result = OmniChest.Instance.can_craft(recipe, amount);
-			return false;
 		}
 	}
 
@@ -435,160 +390,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 		private static void Postfix() {
 			OmniChest.Instance.refresh();
-		}
-	}
-
-	[HarmonyPatch(typeof(CraftingPanel), "InitializeInput")]
-	class HarmonyPatch_CraftingPanel_InitializeInput {
-
-		private static bool Prefix(Recipe recipe, ItemImage itemImage, int index) {
-			if (!m_enabled.Value) {
-				return true;
-			}
-			itemImage.Initialize(ItemDatabase.GetItemData(recipe.Input[index].item.id).GetItem());
-			int has_amount = 0;
-			switch (recipe.Input[index].item.id) {
-			case ItemID.Mana:	{ has_amount = (int) Player.Instance.Mana; break; }
-			case ItemID.Health:	{ has_amount = (int) Player.Instance.Health; break; }
-			default:			{ has_amount = OmniChest.Instance.get_item_amount(recipe.Input[index].item.id); break; }
-			}
-			int required_amount = recipe.ModifiedAmount(recipe.Input[index].amount, recipe.Input[index].item, recipe.output.item);
-			itemImage.SetDisabled(has_amount < required_amount);
-			itemImage.SetAmount(has_amount.FormatWithCommas() + "/" + required_amount.FormatWithCommas(), required_amount);
-			return false;
-		}
-	}
-
-	[HarmonyPatch(typeof(CraftingPanel), "UpdateCraftingButtons")]
-	class HarmonyPatch_CraftingPanel_UpdateCraftingButtons {
-
-		private static bool Prefix(
-			ref Recipe ___recipe,
-			ref UnityEngine.UI.Button ___buyButton,
-			ref TextMeshProUGUI ___buyButtonTMP,
-			ref UnityEngine.UI.Button ___buy5Button,
-			ref TextMeshProUGUI ___buy5ButtonTMP,
-			ref UnityEngine.UI.Button ___buy20Button,
-			ref TextMeshProUGUI ___buy20ButtonTMP
-		) {
-			if (!m_enabled.Value) {
-				return true;
-			}
-			int num = 999;
-			foreach (ItemInfo item in ___recipe.Input) {
-				int num2;
-				if (item.item.id == ItemID.Mana) {
-					num2 = (int) Player.Instance.Mana / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
-				} else if (item.item.id == ItemID.Health) {
-					num2 = (int) Player.Instance.Health / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
-				} else {
-					num2 = OmniChest.Instance.get_item_amount(item.item.id) / ___recipe.ModifiedAmount(item.amount, item.item, ___recipe.output.item);
-				}
-				if (num2 < num) {
-					num = num2;
-				}
-			}
-			Color color = new Color(1f, 1f, 1f, 28f / 51f);
-			if (num < 1) {
-				___buyButton.interactable = false;
-				___buyButtonTMP.color = color;
-				___buyButtonTMP.text = "x 1";
-			} else {
-				___buyButton.interactable = true;
-				___buyButtonTMP.color = Color.white;
-				___buyButtonTMP.text = "x <color=#FEE463>1";
-			}
-			if (num < 5) {
-				___buy5Button.interactable = false;
-				___buy5ButtonTMP.color = color;
-				___buy5ButtonTMP.text = "x 5";
-			} else {
-				___buy5Button.interactable = true;
-				___buy5ButtonTMP.color = Color.white;
-				___buy5ButtonTMP.text = "x <color=#FEE463>5";
-			}
-			if (num < 20) {
-				___buy20Button.interactable = false;
-				___buy20ButtonTMP.color = color;
-				___buy20ButtonTMP.text = "x 20";
-			} else {
-				___buy20Button.interactable = true;
-				___buy20ButtonTMP.color = Color.white;
-				___buy20ButtonTMP.text = "x <color=#FEE463>20";
-			}
-			return false;
-		}
-	}
-
-	[HarmonyPatch(typeof(CraftingTable), "Craft")]
-	class HarmonyPatch_CraftingTable_Craft {
-
-		protected static float TimeFromDate(DateTime date) {
-			return (float) (date.Minute + date.Hour * 60 + date.Day * 24 * 60) + (float) date.Second / 60f + (float) (date.Year * 28 * 24 * 60);
-		}
-
-		private static bool Prefix(
-			ref CraftingTable __instance,
-			Recipe recipe,
-			int amount,
-			CraftingTableData ___craftingData,
-			ref float ___queueTime,
-			float ___craftSpeedMultiplier
-		) {
-			if (!m_enabled.Value) {
-				return true;
-			}
-			if (!OmniChest.Instance.can_craft(recipe, amount)) {
-				return false;
-			}
-			if (___craftingData.items.Count <= 0) {
-				___queueTime = 0f;
-			}
-			if (___queueTime <= 0f) {
-				___craftingData.timeStart = TimeFromDate(SingletonBehaviour<DayCycle>.Instance.Time);
-			}
-			for (int i = 0; i < amount; i++) {
-				List<ItemAmount> list = new List<ItemAmount>();
-				foreach (ItemInfo item2 in recipe.Input) {
-					if (item2.item.id == ItemID.Mana) {
-						Player.Instance.UseMana(recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item));
-					} else if (item2.item.id == ItemID.Health) {
-                        Player.Instance.Health -= recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item);
-                    } else {
-                        List<ItemAmount> collection;
-						switch (item2.item.id) {
-						case 60200: { collection = OmniChest.Instance.remove_fish(ItemRarity.Common, item2.amount); break; }
-						case 60201: { collection = OmniChest.Instance.remove_fish(ItemRarity.Uncommon, item2.amount); break; }
-						case 60202: { collection = OmniChest.Instance.remove_fish(ItemRarity.Rare, item2.amount); break; }
-						case 60203: { collection = OmniChest.Instance.remove_fish(ItemRarity.Epic, item2.amount); break; }
-						case 60204: { collection = OmniChest.Instance.remove_fish(ItemRarity.Legendary, item2.amount); break; }
-						default:	{ collection = OmniChest.Instance.remove_item(item2.item.id, recipe.ModifiedAmount(item2.amount, item2.item, recipe.output.item)); break; }
-						}
-						list.AddRange(collection);
-					}
-				}
-				Item item = recipe.output.item.GenerateItem(list);
-				float multiplier = ___craftSpeedMultiplier * ((GameSave.CurrentCharacter.race == (int) Race.Human) ? 1.2f : 1f);
-				float craftTime = recipe.GetHoursToCraft(multiplier) * Settings.DaySpeedMultiplier;
-				ItemCraftInfo itemCraftInfo = new ItemCraftInfo {
-					item = item,
-					craftTime = craftTime,
-					amount = recipe.output.amount,
-					input = list
-				};
-				___craftingData.items.Add(itemCraftInfo);
-				___queueTime += itemCraftInfo.craftTime;
-			}
-			recipe.Craft();
-			__instance.GetType().GetTypeInfo().GetMethod("SetupCraftingQueue", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-			if (recipe is SkillTomeRecipe) {
-				__instance.Initialize();
-			} else {
-				__instance.Refresh();
-			}
-			__instance.SaveMeta();
-			__instance.SendNewMeta(__instance.meta);
-			return false;
 		}
 	}
 

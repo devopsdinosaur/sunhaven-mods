@@ -10,7 +10,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.3")]
 public class BulldozerPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.bulldozer");
@@ -24,6 +24,9 @@ public class BulldozerPlugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_harvest_fruit;
 	private static ConfigEntry<bool> m_harvest_rocks;
 	private static ConfigEntry<bool> m_harvest_weeds;
+	private static ConfigEntry<bool> m_water;
+	private static ConfigEntry<bool> m_fertilize_earth2;
+	private static ConfigEntry<bool> m_fertilize_fire2;
 	private static ConfigEntry<int> m_influence_radius;
 
 	private static List<int> m_excluded_crop_ids = new List<int>();
@@ -40,6 +43,9 @@ public class BulldozerPlugin : BaseUnityPlugin {
 			m_harvest_rocks = this.Config.Bind<bool>("General", "Harvest Rocks", true, "Set to false to disable bulldozing rocks and ores.");
 			m_harvest_trees = this.Config.Bind<bool>("General", "Harvest Trees", true, "Set to false to disable bulldozing fully-grown trees.");
 			m_harvest_weeds = this.Config.Bind<bool>("General", "Harvest Weeds", true, "Set to false to disable bulldozing weeds.");
+			m_water = this.Config.Bind<bool>("General", "Water Tilled Tiles", true, "Set to false to disable auto-watering of tilled tiles.");
+			m_fertilize_earth2 = this.Config.Bind<bool>("General", "Fertilize Earth2", true, "If true then all crops in radius will be automatically fertilized with Earth Fertilizer 2 (can be combined with Fertilize Fire2 [combined fertilizer will produce a white floating particle])");
+			m_fertilize_fire2 = this.Config.Bind<bool>("General", "Fertilize Fire2", true, "If true then all crops in radius will be automatically fertilized with Fire Fertilizer 2 (can be combined with Fertilize Earth2 [combined fertilizer will produce a white floating particle])");
 			List<string> excluded = new List<string>();
 			string[] vals = m_excluded_crops.Value.Split(',');
 			for (int index = 0; index < vals.Length; index++) {
@@ -56,7 +62,7 @@ public class BulldozerPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -66,14 +72,28 @@ public class BulldozerPlugin : BaseUnityPlugin {
 		try {
 
 			void bulldoze_crop(Vector2Int pos, ref bool done) {
-				if (done || !m_harvest_crops.Value || !GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
+				if (done || !(m_harvest_crops.Value || m_fertilize_earth2.Value || m_fertilize_fire2.Value) || !GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
 					return;
 				}
 				done = true;
-				if (!crop.CheckGrowth || m_excluded_crop_ids.Contains(crop.id)) {
+				if (m_harvest_crops.Value && crop.CheckGrowth && !m_excluded_crop_ids.Contains(crop.id)) {
+					crop.ReceiveDamage(new DamageInfo {hitType = HitType.Scythe});
 					return;
 				}
-				crop.ReceiveDamage(new DamageInfo {hitType = HitType.Scythe});
+				if (m_fertilize_earth2.Value && crop.data.fertilizerType == FertilizerType.None) {
+					crop.Fertilize(FertilizerType.Earth2);
+				}
+				if (m_fertilize_fire2.Value && crop.data.fertilizerType == FertilizerType.None) {
+					crop.Fertilize(FertilizerType.Fire2);
+				}
+				if (crop.data.fertilizerType == FertilizerType.None) {
+					return;
+				}
+				GameObject _fertilized = (GameObject) crop.GetType().GetTypeInfo().GetField("_fertilized", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(crop);
+				ParticleSystem.MainModule main = _fertilized.GetComponent<ParticleSystem>().main;
+				if (m_fertilize_earth2.Value && m_fertilize_fire2.Value) {
+					main.startColor = new Color(1f, 1f, 1f);
+				}
 			}
 
 			void bulldoze_forageable(Vector2Int pos, ref bool done) {
@@ -155,6 +175,14 @@ public class BulldozerPlugin : BaseUnityPlugin {
 				tree.Die();
 			}
 
+			void water_soil(Vector2Int pos, ref bool done) {
+				if (done || !m_water.Value || !TileManager.Instance.IsWaterable(pos) || TileManager.Instance.IsWatered(pos)) {
+					return;
+				}
+				done = true;
+				TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
+			}
+
 			if (!(m_harvest_crops.Value || m_harvest_trees.Value)) {
 				return;
 			}
@@ -170,6 +198,7 @@ public class BulldozerPlugin : BaseUnityPlugin {
 					bulldoze_rock(pos, ref done);
 					bulldoze_tree(pos, ref done);
 					bulldoze_wood(pos, ref done);
+					water_soil(pos, ref done);
 				}
 			}
 		} catch (Exception e) {
