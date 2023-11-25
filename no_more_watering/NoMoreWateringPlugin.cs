@@ -89,7 +89,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			TileManager.onFarm?.Invoke(pos, ScenePortalManager.ActiveSceneIndex, 3);
 		}
 		if (m_auto_mana.Value && crop._seedItem.manaInfusable && !crop.data.manaInfused) {
-			logger.LogInfo("infusing " + crop);
 			crop.data.manaInfused = true;
 			crop.SaveMeta();
 			crop.SendNewMeta(crop.meta);
