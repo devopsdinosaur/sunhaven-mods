@@ -63,6 +63,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "meteors", "meteors\meteors.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bulldozer", "bulldozer\bulldozer.csproj", "{26608B7E-CF10-42EE-8262-619CEBD4C7C8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "expanded_inventory", "expanded_inventory\expanded_inventory.csproj", "{D6070818-5939-4EEA-B0A1-41F7609C6480}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -189,6 +191,10 @@ Global
 		{26608B7E-CF10-42EE-8262-619CEBD4C7C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{26608B7E-CF10-42EE-8262-619CEBD4C7C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{26608B7E-CF10-42EE-8262-619CEBD4C7C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

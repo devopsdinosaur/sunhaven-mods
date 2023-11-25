@@ -95,7 +95,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -127,26 +127,29 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(BeeHiveBox), "LateUpdate")]
-	class HarmonyPatch_BeeHiveBox_LateUpdate {
+	[HarmonyPatch(typeof(CraftingMachine), "Awake")]
+	class HarmonyPatch_CraftingMachine_Awake {
 
-		const float CHECK_FREQUENCY = 1.0f;
-		static float m_elapsed = CHECK_FREQUENCY;
-
-		private static bool Prefix(BeeHiveBox __instance, CraftingTableData ___craftingData) {
+		private static void Postfix(CraftingMachine __instance, ref float ___craftSpeedMultiplier) {
 			try {
-				if (!m_enabled.Value || (m_elapsed += Time.fixedDeltaTime) < CHECK_FREQUENCY) {
-					return true;
+				if (!m_enabled.Value) {
+					return;
 				}
-				m_elapsed = 0f;
-				if (!m_honey_times.ContainsKey(___craftingData.items[0].item.ID())) {
-					m_honey_times[___craftingData.items[0].item.ID()] = ___craftingData.items[0].craftTime;
+				string name = __instance.name.Replace("new_", "").Replace("(Clone)", "").Trim();
+				string key = "";
+				for (int index = 0; index < m_table_names.Length; index++) {
+					key = m_table_names[index];
+					if (key.Replace(" ", "") == name || key.ToLower().Replace(" ", "_") == name) {
+						if (m_table_enabled[index].Value) {
+							___craftSpeedMultiplier = (m_table_speeds[index].Value > 0f ? m_table_speeds[index].Value : m_craft_speed.Value);
+						}
+						return;
+					}
 				}
-				___craftingData.items[0].craftTime = m_honey_times[___craftingData.items[0].item.ID()] / (m_table_speeds[m_beebox_index].Value > 0f ? m_table_speeds[m_beebox_index].Value : m_craft_speed.Value);
+				logger.LogWarning("* unknown crafting machine name '" + name + "'; this machine will be ignored.  Please let devopsdinosaur know via email or Nexus PM.");
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_BeeHiveBox_LateUpdate_Prefix ERROR - " + e);
+				logger.LogError("** CraftingMachine.Awake_Postfix ERROR - " + e);
 			}
-			return true;
 		}
 	}
 }
