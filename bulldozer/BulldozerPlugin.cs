@@ -72,10 +72,14 @@ public class BulldozerPlugin : BaseUnityPlugin {
 		try {
 
 			void bulldoze_crop(Vector2Int pos, ref bool done) {
-				if (done || !(m_harvest_crops.Value || m_fertilize_earth2.Value || m_fertilize_fire2.Value) || !GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
+				if (done || !(m_harvest_crops.Value || m_fertilize_earth2.Value || m_fertilize_fire2.Value || m_water.Value) || !GameManager.Instance.TryGetObjectSubTile<Crop>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Crop crop)) {
 					return;
 				}
 				done = true;
+				if (m_water.Value  && TileManager.Instance.IsWaterable(pos) && !TileManager.Instance.IsWatered(pos)) {
+					TileManager.Instance.Water(pos, ScenePortalManager.ActiveSceneIndex);
+					Player.Instance.AddEXP(ProfessionType.Farming, 1f);
+				}
 				if (m_harvest_crops.Value && crop.CheckGrowth && !m_excluded_crop_ids.Contains(crop.id)) {
 					crop.ReceiveDamage(new DamageInfo {hitType = HitType.Scythe});
 					return;
