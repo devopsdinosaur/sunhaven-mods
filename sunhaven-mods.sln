@@ -65,6 +65,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bulldozer", "bulldozer\bull
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "expanded_inventory", "expanded_inventory\expanded_inventory.csproj", "{D6070818-5939-4EEA-B0A1-41F7609C6480}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "font_scaler", "font_scaler\font_scaler.csproj", "{B6A27E60-2D0E-48F4-93E9-E30502473A7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -195,6 +197,10 @@ Global
 		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6070818-5939-4EEA-B0A1-41F7609C6480}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B6A27E60-2D0E-48F4-93E9-E30502473A7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B6A27E60-2D0E-48F4-93E9-E30502473A7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B6A27E60-2D0E-48F4-93E9-E30502473A7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B6A27E60-2D0E-48F4-93E9-E30502473A7B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

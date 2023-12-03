@@ -13,6 +13,7 @@ using TMPro;
 using DG.Tweening;
 using ZeroFormatter;
 using UnityEngine.SceneManagement;
+using TranslatorPlugin;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
@@ -343,6 +344,7 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 
 		const float CHECK_FREQUENCY = 1.0f;
 		static float m_elapsed = CHECK_FREQUENCY;
+		static bool one_shot_done = false;
 
 		private static bool Prefix(ref Player __instance) {
 			try {
@@ -355,7 +357,12 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 					return true;
 				}
 				m_elapsed = 0f;
+				if (one_shot_done) {
+					return true;
+				}
+				one_shot_done = true;
 				
+
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_Player_Update_Prefix ERROR - " + e);
 			}
@@ -370,4 +377,127 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 
+	[HarmonyPatch(typeof(Food), "UseDown1")]
+	class HarmonyPatch_Food_UseDown1 {
+		
+		private static bool Prefix(
+			Food __instance, 
+			Player ___player, 
+			FoodData ____foodItem
+		) {
+			if (___player.CurrentItem is FoodItem foodItem && foodItem.Leftovers) {
+				AudioManager.Instance.PlayAudio(SingletonBehaviour<Prefabs>.Instance.errorSound, 0.5f);
+				NotificationStack.Instance.SendNotification((string) TranslationLayer.TranslateObject("You can't eat leftovers!", "UI.Notifications"));
+				return false;
+			}
+			if (___player.CurrentItem is FoodItem foodItem2 && (foodItem2.id == 3762 || foodItem2.id == 3765 || foodItem2.id == 3764 || foodItem2.id == 3763)) {
+				GameSave.Instance.SetProgressBoolCharacter("GloriteEaten", value: true);
+			}
+			float num = 1f;
+			float num2 = 0f;
+			if (_foodItem.isFruit)
+			{
+				num2 = player.GetStat(StatType.FruitManaRestore);
+			}
+			if (_foodItem.isMeal && GameSave.Farming.GetNode("Farming7b"))
+			{
+				num2 += (float)(GameSave.Farming.GetNodeAmount("Farming7b") * 5);
+			}
+			player.Heal(num * (float)_foodItem.health);
+			player.AddMana(num * (float)_foodItem.mana + num2);
+			HandleEXP(num);
+			HandleStats();
+			if (_foodItem.isPotion && _foodItem.statBuff.stats != null && _foodItem.statBuff.stats.Count > 0)
+			{
+				player.ReceiveBuff(_foodItem.statBuff.buffType, new StatBuff
+				{
+					buffType = _foodItem.statBuff.buffType,
+					buffDescription = _foodItem.statBuff.description,
+					buffName = _foodItem.statBuff.buffName,
+					duration = _foodItem.statBuff.duration,
+					entity = player,
+					stats = _foodItem.statBuff.stats
+				});
+			}
+			if (_foodItem is FishData fishData && GameSave.Fishing.GetNode("Fishing8a"))
+			{
+				wellFedBuff.entity = player;
+				player.FinishBuff(BuffType.WellFed);
+				float num3 = 0.5f + 0.5f * (float)GameSave.Fishing.GetNodeAmount("FishinFishing8ag7a");
+				switch (fishData.rarity)
+				{
+				case ItemRarity.Common:
+				case ItemRarity.Uncommon:
+					wellFedBuff.stats = new List<Stat>
+					{
+						new Stat(StatType.ManaRegen, 0.075f * num3),
+						new Stat(StatType.Movespeed, 0.02f * num3)
+					};
+					break;
+				case ItemRarity.Rare:
+				case ItemRarity.Epic:
+					wellFedBuff.stats = new List<Stat>
+					{
+						new Stat(StatType.ManaRegen, 0.125f * num3),
+						new Stat(StatType.Movespeed, 0.0275f * num3)
+					};
+					break;
+				case ItemRarity.Legendary:
+					wellFedBuff.stats = new List<Stat>
+					{
+						new Stat(StatType.ManaRegen, 0.175f * num3),
+						new Stat(StatType.Movespeed, 0.035f * num3)
+					};
+					break;
+				}
+				player.ReceiveBuff(BuffType.WellFed, wellFedBuff);
+			}
+			Dictionary<int, int> foodStats = SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.foodStats;
+			if (!foodStats.ContainsKey(_foodItem.id))
+			{
+				foodStats[_foodItem.id] = 1;
+			}
+			else
+			{
+				foodStats[_foodItem.id] = foodStats[_foodItem.id] + 1;
+			}
+			if (GameSave.Exploration.GetNode("Exploration6c") && _foodItem.isFruit && SingletonBehaviour<GameSave>.Instance.GetProgressIntCharacter("Exploration6c") < 40 * GameSave.Exploration.GetNodeAmount("Exploration6c"))
+			{
+				SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.AddStatBonus(StatType.Mana, 0.25f);
+				SingletonBehaviour<GameSave>.Instance.SetProgressIntCharacter("Exploration6c", SingletonBehaviour<GameSave>.Instance.GetProgressIntCharacter("Exploration6c") + 1);
+			}
+			_foodItem.GetStatAdditionByNumEaten();
+			if (!SingletonBehaviour<GameSave>.Instance.GetProgressBoolCharacter("Food"))
+			{
+				SingletonBehaviour<HelpTooltips>.Instance.SendNotification((string)TranslationLayer.TranslateObject("Food", "UI.HelpTooltips.Food.Title"), (string)TranslationLayer.TranslateObject("Eating food also <color=#39CCFF>increases your stats permanently</color>!\n\nThis bonus <color=#39CCFF>decreases</color> each time you eat the same food, so eat lots of <color=#39CCFF>different foods!</color>", "UI.HelpTooltips.EatingFoodAlsoColorCCFFincreasesYourStatsPermanentlycolorThisBonusColorCCFFdecreasescolorEachTimeYouEatTheSameFoodSoEatLotsOfColorCCFFdifferentFoodscolor.Title"), new List<(Transform, Vector3, Direction)>(), 4, delegate
+				{
+					SingletonBehaviour<GameSave>.Instance.SetProgressBoolCharacter("Food", value: true);
+				});
+			}
+			if (GameSave.Farming.GetNode("Farming3b") && _foodItem.isMeal && SingletonBehaviour<GameSave>.Instance.GetProgressIntCharacter("Farming3b") < GameSave.Farming.GetNodeAmount("Farming3b") * 20)
+			{
+				SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.AddStatBonus(StatType.Mana, 0.5f);
+				int value2 = SingletonBehaviour<GameSave>.Instance.GetProgressIntCharacter("Farming3b") + 1;
+				SingletonBehaviour<GameSave>.Instance.SetProgressIntCharacter("Farming3b", value2);
+			}
+			PlayerInput.AllowChangeActionBarItem = true;
+			player.Inventory.RemoveItemAt(player.ItemIndex, 1);
+			AudioManager.Instance.PlayOneShot(SingletonBehaviour<Prefabs>.Instance.eatSound, _itemGraphics.transform.position, 1.3f, 1.2f, 1.3f);
+			OnConsumeFood();
+			//yield return new WaitForSeconds(0.3f);
+			_eating = false;
+			player.moveSpeedMultipliers.Remove(moveSpeedFloatRef);
+			player.jumpMultipliers.Remove(jumpFloatRef);
+			_itemGraphics.gameObject.SetActive(value: true);
+			if (!_foodItem.hasReaction)
+			{
+				player.CancelEmote();
+			}
+			_itemGraphics.transform.DOScale(Vector3.one, 0.3f).SetEase(Ease.OutBack);
+			_itemGraphics.transform.localPosition = new Vector3(_itemGraphics.transform.localPosition.x, _itemGraphics.transform.localPosition.y, z);
+			//yield return new WaitForSeconds(0.1875f);
+			canEat = true;	
+			return false;
+		}
+	}
 }
