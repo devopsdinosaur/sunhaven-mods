@@ -6,7 +6,7 @@ using Wish;
 using UnityEngine;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.speed_boost", "Speed Boost", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.speed_boost", "Speed Boost", "0.0.2")]
 public class SpeedBoostPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.speed_boost");
@@ -17,7 +17,7 @@ public class SpeedBoostPlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.speed_boost v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.speed_boost v0.0.2 loaded.");
 		m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
         m_movement_speed = this.Config.Bind<float>("General", "Movement Speed", 0.75f, "Base movement speed before applied perks (float, 0.75f = fast, 1f+ super speed!)");
 		this.m_harmony.PatchAll();

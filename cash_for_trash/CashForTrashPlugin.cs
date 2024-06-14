@@ -6,9 +6,9 @@ using Wish;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using PSS;
 
-
-[BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.4")]
 public class CashForTrashPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.cash_for_trash");
@@ -28,7 +28,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.cash_for_trash v0.0.3 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.cash_for_trash v0.0.4 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}		
@@ -74,7 +74,9 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 							}
 						} else if (component is UIButton) {
 							UIButton button = (UIButton) component;
-							button.defaultImage = button.hoverOverImage = button.pressedImage = ItemDatabase.items[image_id].icon;
+							Database.GetData(image_id, delegate(ItemData data) {
+								button.defaultImage = button.hoverOverImage = button.pressedImage = data.icon;
+							});
 						} else if (component is TrashSlot) {
 							m_trash_slots[component.GetHashCode()] = trash_slot_id;
 						}
@@ -120,7 +122,10 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 				if (icon == null) {
 					return false;
 				}
-				ItemData data = ItemDatabase.GetItemData(icon.item);
+				ItemData data = null;
+				Database.GetData(icon.item.ID(), delegate (ItemData _data) {
+					data = _data;
+				});
 				if (data.category == ItemCategory.Quest || !data.canTrash || !m_trash_slots.ContainsKey(__instance.GetHashCode())) {
 					return false;
 				}
@@ -143,7 +148,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 								if (!BAD_ITEM_IDS.Contains(item_info.item.id)) {
 									Player.Instance.Inventory.AddItem(
 										item_info.item.GenerateItem(), 
-										recipe.ModifiedAmount(item_info.amount, item_info.item, recipe.output.item) * icon.amount, 
+										recipe.ModifiedAmount(item_info.amount, item_info.item.ID, recipe.output.item.ID, recipe.isFood) * icon.amount, 
 										true
 									);
 									item_count++;

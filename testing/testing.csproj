@@ -76,6 +76,9 @@
     <Reference Include="SunHaven.Core">
       <HintPath>..\libs\SunHaven.Core.dll</HintPath>
     </Reference>
+    <Reference Include="TranslatorPlugin">
+      <HintPath>..\libs\TranslatorPlugin.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\libs\Unity.TextMeshPro.dll</HintPath>
     </Reference>

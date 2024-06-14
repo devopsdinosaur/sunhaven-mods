@@ -57,6 +57,10 @@
     <Reference Include="BepInEx.Preloader">
       <HintPath>..\libs\BepInEx.Preloader.dll</HintPath>
     </Reference>
+    <Reference Include="PSS.Database, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\libs\PSS.Database.dll</HintPath>
+    </Reference>
     <Reference Include="Sirenix.Serialization">
       <HintPath>..\libs\Sirenix.Serialization.dll</HintPath>
     </Reference>

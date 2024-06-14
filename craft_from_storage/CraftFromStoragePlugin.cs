@@ -11,9 +11,10 @@ using System;
 using UnityEngine.Events;
 using System.Threading;
 using UnityEngine.UI;
+using PSS;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.17")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.18")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -32,7 +33,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.17" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.18" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -279,6 +280,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				logger.LogWarning("** add_chest WARN - unable to locate chest title object for '" + chest.name + "'; cannot create navigation buttons.");
 				return;
 			}
+			logger.LogInfo("here!!!!!!");
 			create_navigation_button(TEMPLATE_LEFT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonLeft", Vector3.left);
 			create_navigation_button(TEMPLATE_RIGHT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonRight", Vector3.right);
 		}
@@ -328,8 +330,12 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
             int amount = 0;
 			foreach (int id in this.m_items.Keys) {
 				foreach (SlotItemData item in this.m_items[id]) {
-					if (item.item is FishItem fish_item && ItemDatabase.GetItemData(fish_item.ID()).rarity.Equals(rarity)) {
-						amount += item.amount;
+					if (item.item is FishItem fish_item) {
+						Database.GetData(fish_item.id, delegate(ItemData data) {
+							if (data.rarity == rarity) {
+								amount += item.amount;
+							}
+						});
 					}
 				}
 			}
@@ -374,7 +380,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Player), "FixedUpdate")]
+	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_FixedUpdate {
 
 		private static bool Prefix(Player __instance) {

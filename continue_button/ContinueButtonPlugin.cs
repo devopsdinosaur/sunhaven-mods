@@ -9,7 +9,7 @@ using System.IO;
 using TMPro;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.3")]
 public class ContinueButtonPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.continue_button");
@@ -17,7 +17,7 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.continue_button v0.0.2 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.continue_button v0.0.3 loaded.");
 		this.m_harmony.PatchAll();
 	}
 
@@ -52,9 +52,9 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 			m_continue_button.transform.SetAsFirstSibling();
 			
 			//enables using the keyboard or a controller to use the up/down keys/buttons to select the continue button
-			NavigationElement navElement = play_button.gameObject.GetComponent<NavigationElement>();
-        		navElement.up = m_continue_button.GetComponent<NavigationElement>();
-        		m_continue_button.GetComponent<NavigationElement>().down = navElement;
+			//NavigationElement navElement = play_button.gameObject.GetComponent<NavigationElement>();
+        	//	navElement.up = m_continue_button.GetComponent<NavigationElement>();
+        	//	m_continue_button.GetComponent<NavigationElement>().down = navElement;
 			
 			m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 				__instance.PlayGame(latest_save_index);

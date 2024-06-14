@@ -14,6 +14,7 @@ using ZeroFormatter.Formatters;
 using ZeroFormatter.Internal;
 using ZeroFormatter.Segments;
 using System.IO;
+using System.Reflection;
 
 
 [BepInPlugin("devopsdinosaur.sunhaven.expanded_inventory", "Expanded Inventory", "0.0.1")]
@@ -39,22 +40,24 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 
 	public class ExpandedInventory {
 
+		protected const int NUM_ACTION_BAR_SLOTS = 10;
 		protected const int NUM_SLOTS = 40;
-		protected const int NUM_BAGS = 8;
-		protected const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
-		protected const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
+		protected const int NUM_BAGS = 10;
+		protected const int BAG_ICON_ID_SELECTED = ItemID.MoneyBagForageable;
+		protected const int BAG_ICON_ID_UNSELECTED = ItemID.SmallMoneyBag;
 
 		protected static ExpandedInventory m_instance = null;
-		protected static Dictionary<int, GameObject> m_object_templates = new Dictionary<int, GameObject>();
+		protected static Dictionary<int, string> m_item_id_strings = null;
 
 		protected Mutex m_thread_lock = new Mutex();
-		protected PlayerInventory m_player_inventory;
+		protected PlayerInventory m_player_inventory = null;
 		protected Transform m_inventory_panel;
 		protected Slot[] m_slots;
 		protected Transform[] m_slot_transforms = new Transform[NUM_SLOTS];
 		protected ChestData m_data = new ChestData();
-		protected Transform[] m_bag_buttons = new Transform[NUM_BAGS];
+		protected UIButton[] m_bag_buttons = new UIButton[NUM_BAGS];
 		protected Dictionary<int, int> m_bag_trashslot_map = new Dictionary<int, int>();
+		protected bool m_did_save_file_exist = false;
 		protected bool m_bag_can_be_clicked = true;
 		protected int m_current_bag_index = 0;
 
@@ -65,6 +68,19 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 		}
 
 		ExpandedInventory() {
+			if (m_item_id_strings != null) {
+				return;
+			}
+			m_item_id_strings = new Dictionary<int, string>();
+			foreach (FieldInfo field_info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
+				if (field_info.IsLiteral && !field_info.IsInitOnly) {
+					m_item_id_strings[(int) field_info.GetRawConstantValue()] = field_info.Name;
+				}
+			}
+		}
+
+		public static string item_name_from_id(int id) {
+			return (m_item_id_strings != null && m_item_id_strings.ContainsKey(id) ? m_item_id_strings[id] : $"[item_id: {id}");
 		}
 
 		public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
@@ -121,11 +137,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 			return obj;
 		}
 
-		public void attach_to_player_inventory(
-			Inventory player_inventory, 
-			Transform inventory_panel,
-			Slot[] slots
-		) {
+		public void attach_to_player_inventory(Inventory player_inventory, Transform inventory_panel,Slot[] slots) {
 			Transform trash_button = null;
 			
 			bool find_trash_button(Transform transform) {
@@ -147,9 +159,9 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 							popup.text = $"Inventory Bag #{index + 1}";
 							popup.description = "Click to open this bag.  Drop an item here to put it in the bag.";
 						}
-					} else if (component is UIButton) {
-						UIButton button = (UIButton) component;
-						button.defaultImage = button.hoverOverImage = button.pressedImage = ItemDatabase.items[(index == 2 ? ItemID.MoneyBagForageable : ItemID.SmallMoneyBag)].icon;
+					} else if (component is UIButton button) {
+						this.m_bag_buttons[index] = button;
+						button.defaultImage = button.hoverOverImage = button.pressedImage = ItemDatabase.items[(index == 0 ? BAG_ICON_ID_SELECTED : BAG_ICON_ID_UNSELECTED)].icon;
 					} else if (component is TrashSlot) {
 						this.m_bag_trashslot_map[component.GetHashCode()] = index;
 					}
@@ -167,21 +179,69 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				this.m_player_inventory = (PlayerInventory) player_inventory;
 				this.m_inventory_panel = inventory_panel;
 				this.m_slots = slots;
+				this.m_did_save_file_exist = false;
 				this.m_bag_can_be_clicked = true;
 				this.m_current_bag_index = 0;
+				this.m_player_inventory.OnInventoryUpdated = (UnityAction) Delegate.Combine(this.m_player_inventory.OnInventoryUpdated, new UnityAction(this.on_update_inventory));
 				enum_descendants(this.m_inventory_panel.parent.parent, find_trash_button);
-				logger.LogInfo($"trash_button: {trash_button}, trash_button.parent: {trash_button.parent}");
 				for (int index = 0; index < NUM_BAGS; index++) {
 					create_navigation_button(trash_button.parent, index);
 				}
+				this.load_from_file();
 			} catch (Exception e) {
 				logger.LogError("** ExpandedInventory.attach_to_player_inventory ERROR - " + e);
 			}
 		}
 
-		public bool add_item_to_bag(int bag_index, Item item) {
-			try {
+		protected void on_update_inventory() {
+			//logger.LogInfo($"expanded_inventory.on_update_inventory()");
+		}
 
+		public void on_load_inventory(PlayerInventory player_inventory) {
+			if (!player_inventory == this.m_player_inventory) {
+				return;
+			}
+			logger.LogInfo($"expanded_inventory.on_load_inventory(m_did_save_file_exist: {this.m_did_save_file_exist})");
+			short slot_index;
+			SlotItemData slot_item;
+			if (this.m_did_save_file_exist) {
+				for (slot_index = 0; slot_index < NUM_SLOTS; slot_index++) {
+					slot_item = player_inventory.Items[slot_index + NUM_ACTION_BAR_SLOTS];
+					slot_item.item = this.m_data.items[slot_index].Item;
+					slot_item.amount = this.m_data.items[slot_index].Amount;
+					logger.LogInfo($"--> slot {slot_index} = {item_name_from_id(slot_item.item.ID())} (amount: {slot_item.amount})");
+				}
+				return;
+			}
+			for (slot_index = 0; slot_index < NUM_SLOTS; slot_index++) {
+				slot_item = player_inventory.Items[slot_index + NUM_ACTION_BAR_SLOTS];
+				this.m_data.items[slot_index] = new InventoryItemData();
+				this.m_data.items[slot_index].Item = slot_item.item;
+				this.m_data.items[slot_index].Amount = slot_item.amount;
+				logger.LogInfo($"--> slot {slot_index} = {item_name_from_id(slot_item.item.ID())} (amount: {slot_item.amount})");
+			}
+		}
+
+		public bool add_item_to_bag(int bag_index, InventoryItemData item, ref short key) {
+			try {
+				logger.LogInfo($"add_item_to_bag(bag_index: {bag_index}, item: {item_name_from_id(item.Item.ID())})");
+				InventoryItemData check_item;
+				for (int slot_index = 0; slot_index < NUM_SLOTS; slot_index++) {
+					key = (short) ((bag_index << 8) + slot_index);
+					check_item = this.m_data.items[key];
+					logger.LogInfo($"--> add_item_to_bag - slot {slot_index} == {(check_item != null ? item_name_from_id(check_item.Item.ID()) : "null")}.");
+					if (check_item == null) {
+						logger.LogInfo($"--> add_item_to_bag - new stack for item '{item.Item}' in slot {slot_index}.");
+						this.m_data.items[key] = item;
+						return true;
+					}
+					if (check_item.Item.ID() == item.Item.ID() && check_item.Amount < ItemDatabase.items[check_item.Item.ID()].stackSize) {
+						logger.LogInfo($"--> add_item_to_bag - added item to existing stack for item '{item_name_from_id(item.Item.ID())}' in slot {slot_index}.");
+						this.m_data.items[key].Amount += item.Amount;
+						return true;
+					}
+				}
+				logger.LogInfo($"--> add_item_to_bag - no space in bag.");
 				return false;
 			} catch (Exception e) {
 				logger.LogError($"** ExpandedInventory.add_item_to_bag ERROR - {e}");
@@ -198,15 +258,20 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				if (icon == null) {
 					return false;
 				}
-				ItemData data = ItemDatabase.GetItemData(icon.item);
+				InventoryItemData item = new InventoryItemData();
+				item.Item = icon.item;
+				item.Amount = icon.amount;
 				if (!m_bag_trashslot_map.ContainsKey(trash_slot.GetHashCode())) {
 					return false;
 				}
 				this.m_bag_can_be_clicked = false;
 				int bag_index = m_bag_trashslot_map[trash_slot.GetHashCode()];
-				Item item = data.GetItem();
-				logger.LogInfo($"ExpandedInventory.drop_item_in_bag({bag_index}, {item})");
-				if (this.add_item_to_bag(bag_index, item)) {
+				if (bag_index == this.m_current_bag_index) {
+					return false;
+				}
+				logger.LogInfo($"ExpandedInventory.drop_item_in_bag({bag_index}, {item_name_from_id(item.Item.ID())})");
+				short key = -1;
+				if (this.add_item_to_bag(bag_index, item, ref key)) {
 					icon.RemoveItemIcon();
 					this.m_player_inventory.UpdateInventory();
 				}
@@ -215,14 +280,6 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				logger.LogError($"** ExpandedInventory.drop_item_in_bag ERROR - {e}");
 			}
 			return true;
-		}
-
-		[HarmonyPatch(typeof(TrashSlot), "OnPointerDown")]
-		class HarmonyPatch_TrashSlot_OnPointerDown {
-			
-			private static bool Prefix(TrashSlot __instance) {
-				return ExpandedInventory.Instance.drop_item_in_bag(__instance);
-			}
 		}
 
 		protected void change_inventory_bag(int bag_index) {
@@ -234,44 +291,117 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					this.m_bag_can_be_clicked = true;
 					return;
 				}
-				logger.LogInfo($"change_inventory_page({bag_index})");
-				
-				
+				if (bag_index == this.m_current_bag_index) {
+					return;
+				}
+				logger.LogInfo($"expanded_inventory.change_inventory_page({bag_index})");
+				int index;
+				this.m_current_bag_index = bag_index;
+				this.m_player_inventory.SavePlayerInventory();
+				for (index = 0; index < NUM_BAGS; index++) {
+					this.m_bag_buttons[index].defaultImage = 
+						this.m_bag_buttons[index].hoverOverImage = 
+						this.m_bag_buttons[index].pressedImage = 
+						ItemDatabase.items[(index == bag_index ? BAG_ICON_ID_SELECTED : BAG_ICON_ID_UNSELECTED)].icon;
+					this.m_bag_buttons[index].image.sprite = this.m_bag_buttons[index].defaultImage;
+				}
+				//SlotItemData slot;
+				InventoryItemData item;
+				int slot_index = NUM_ACTION_BAR_SLOTS;
+				for (index = 0; index < NUM_SLOTS; index++) {
+					item = this.m_data.items[(short) ((bag_index << 8) + index)];
+					logger.LogInfo($"this.m_data.items[(short) ((bag_index << 8) + index)] = {this.m_data.items[(short) ((bag_index << 8) + index)]}");
+					//slot = this.m_player_inventory.Items[index + NUM_ACTION_BAR_SLOTS];
+					//slot.item = item.Item;
+					//slot.amount = item.Amount;
+					this.m_player_inventory.RemoveItemAt(slot_index);
+					this.m_player_inventory.AddItem(item.Item.ID(), item.Amount, slot_index++, true);
+					logger.LogInfo($"--> slot {index} = {item_name_from_id(item.Item.ID())} (amount: {item.Amount})");
+				}
+				this.m_player_inventory.UpdateInventory();
 			} catch (Exception e) {
 				logger.LogError($"** ExpandedInventory.change_inventory_bag ERROR - {e}");
 			}
 		}
 
-		public void save_to_file() {
+		public void load_from_file() {
 			try {
-				string out_file_path = $"{Application.persistentDataPath}/Saves/{GameSave.Instance.CurrentSave.fileName}.expanded_inventory";
-				logger.LogInfo($"expanded_inventory.save_to_file('{out_file_path}')");
-				File.WriteAllBytes(
-					out_file_path,
-					GameSave.CompressBytes(ZeroFormatterSerializer.Serialize(this.m_data))
-				);
+				string path = $"{Application.persistentDataPath}/Saves/{GameSave.Instance.CurrentSave.fileName}.expanded_inventory";
+				this.m_did_save_file_exist = File.Exists(path);
+				logger.LogInfo($"expanded_inventory.load_from_file(path: '{path}', m_did_save_file_exist: {this.m_did_save_file_exist})");
+				if (this.m_did_save_file_exist) {
+					this.m_data = ZeroFormatterSerializer.Deserialize<ChestData>(GameSave.DecompressBytes(File.ReadAllBytes(path)));
+				}
+				else {
+					this.m_data = new ChestData();
+				}
+				short key;
+				for (int bag_index = 0; bag_index < NUM_BAGS; bag_index++) {
+					for (int slot_index = 0; slot_index < NUM_SLOTS; slot_index++) {
+						key = (short) ((bag_index << 8) + slot_index);
+						if (!this.m_data.items.ContainsKey(key)) {
+							this.m_data.items[key] = new InventoryItemData();
+							this.m_data.items[key].Item = new NormalItem(0);
+						}
+					}
+				}
 			} catch (Exception e) {
 				logger.LogError($"** ExpandedInventory.save_to_file ERROR - {e}");
 			}
 		}
-	}
 
-	[HarmonyPatch(typeof(Inventory), "Start")]
-	class HarmonyPatch_Inventory_Start {
-
-		protected static bool Prefix(
-			Inventory __instance, 
-			Transform ____inventoryPanel,
-			Slot[]  ____slots
-		) {
-			if (m_enabled.Value && __instance is PlayerInventory) {
-				ExpandedInventory.Instance.attach_to_player_inventory(
-					__instance, 
-					____inventoryPanel,
-					____slots
-				);
+		public void save_to_file() {
+			try {
+				string path = $"{Application.persistentDataPath}/Saves/{GameSave.Instance.CurrentSave.fileName}.expanded_inventory";
+				logger.LogInfo($"expanded_inventory.save_to_file('{path}')");
+				File.WriteAllBytes(path, GameSave.CompressBytes(ZeroFormatterSerializer.Serialize(this.m_data)));
+			} catch (Exception e) {
+				logger.LogError($"** ExpandedInventory.save_to_file ERROR - {e}");
 			}
-			return true;
+		}
+
+		[HarmonyPatch(typeof(Inventory), "Start")]
+		class HarmonyPatch_Inventory_Start {
+
+			protected static bool Prefix(Inventory __instance, Transform ____inventoryPanel, Slot[]  ____slots) {
+				if (m_enabled.Value && __instance is PlayerInventory) {
+					ExpandedInventory.Instance.attach_to_player_inventory(
+						__instance, 
+						____inventoryPanel,
+						____slots
+					);
+				}
+				return true;
+			}
+		}
+
+		[HarmonyPatch(typeof(Inventory), "LoadInventory")]
+		class HarmonyPatch_Inventory_LoadInventory {
+
+			protected static void Postfix(Inventory __instance) {
+				if (m_enabled.Value && __instance is PlayerInventory player_inventory) {
+					ExpandedInventory.Instance.on_load_inventory(player_inventory);
+				}
+			}
+		}
+		
+		[HarmonyPatch(typeof(PlayerInventory), "SavePlayerInventory")]
+		class HarmonyPatch_PlayerInventory_SavePlayerInventory {
+
+			protected static bool Prefix() {
+				if (m_enabled.Value) {
+					ExpandedInventory.Instance.save_to_file();
+				}
+				return true;
+			}
+		}
+
+		[HarmonyPatch(typeof(TrashSlot), "OnPointerDown")]
+		class HarmonyPatch_TrashSlot_OnPointerDown {
+			
+			private static bool Prefix(TrashSlot __instance) {
+				return ExpandedInventory.Instance.drop_item_in_bag(__instance);
+			}
 		}
 	}
 }
