@@ -14,7 +14,7 @@ using UnityEngine.UI;
 using PSS;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.18")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.19")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
@@ -33,7 +33,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.18" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.19" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -49,8 +49,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		private Chest m_current_chest = null;
 		private const float CHECK_FREQUENCY = 1.0f;
 		private float m_elapsed = CHECK_FREQUENCY;
-		private GameObject m_transfer_similar_button = null;
-		private GameObject[] m_chest_navigate_buttons = new GameObject[2];
 		private Mutex m_thread_lock = new Mutex();
 		private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
 		private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
@@ -144,59 +142,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 			}
 		}
 
-		private void create_send_similar_button(Transform chest_transform, Inventory player_inventory) {
-			GameObject chest_transfer_similar_button = null;
-			GameObject sort_button = null;
-			
-			bool __enum_descendants_callback_find_same_button__(Transform transform) {
-				if (transform.name == "TransferSimilarToChestButton") {
-					chest_transfer_similar_button = transform.gameObject;
-					return false;
-				} 
-				return true;
-			}
-
-			bool __enum_descendants_callback_find_sort_button__(Transform transform) {
-				if (sort_button == null && transform.name == "SortButton") {
-					sort_button = transform.gameObject; 
-					return false;
-				}
-				return true;
-			}
-
-			enum_descendants(chest_transform, __enum_descendants_callback_find_same_button__);
-			enum_descendants(player_inventory.transform, __enum_descendants_callback_find_sort_button__);
-			this.m_transfer_similar_button = GameObject.Instantiate<GameObject>(chest_transfer_similar_button, sort_button.transform.parent);
-			this.m_transfer_similar_button.GetComponent<RectTransform>().position =
-				sort_button.GetComponent<RectTransform>().position +
-				Vector3.right * sort_button.GetComponent<RectTransform>().rect.width * 3;
-			this.m_transfer_similar_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
-				this.transfer_similar_items();
-			});
-		}
-
-		public void transfer_similar_items() {
-			this.refresh();
-			this.get_thread_lock();
-			try {
-				Inventory player_inventory = Player.Instance.Inventory;
-				Inventory inventory;
-				for (int index = (m_use_inventory_first.Value ? 1 : 0); index < (!m_use_inventory_first.Value ? this.m_inventories.Count - 1 : this.m_inventories.Count); index++) {
-					try {
-						inventory = this.m_inventories[index];
-						player_inventory.TransferPlayerSimilarToOtherInventory(inventory);
-						inventory.UpdateInventory();
-						player_inventory.UpdateInventory();
-					} catch {
-					}
-				}
-			} catch (Exception e) {
-				logger.LogError("** transfer_similar_items ERROR - " + e);
-			}
-			this.release_thread_lock();
-			this.refresh();
-		}
-
 		public void refresh() {
 			this.get_thread_lock();
 			try {
@@ -221,9 +166,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 					if (!(type_name == "Chest" || type_name == "AutoCollector" || type_name == "Hopper")) {
 						continue;
 					}
-					if (this.m_transfer_similar_button == null) {
-						this.create_send_similar_button(kvp.Value.transform, player_inventory);
-					}
 					this.m_added_hashes.Add(hash);
 					this.add_inventory(((Chest) kvp.Value).sellingInventory);
 					this.add_chest((Chest) kvp.Value);
@@ -231,9 +173,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				if (!m_use_inventory_first.Value) {
 					this.add_inventory(player_inventory);
 				}
-				Popup popup = this.m_transfer_similar_button.GetComponent<Popup>();
-				popup.text = "Zone Send Similar";
-				popup.description = "Send similar items to nearby chests within the current zone (note: house and outside are different zones).\nNearby chests: " + Math.Max(this.m_inventories.Count - 1, 0);
 			} catch {
 			}
 			this.release_thread_lock();
@@ -280,7 +219,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 				logger.LogWarning("** add_chest WARN - unable to locate chest title object for '" + chest.name + "'; cannot create navigation buttons.");
 				return;
 			}
-			logger.LogInfo("here!!!!!!");
 			create_navigation_button(TEMPLATE_LEFT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonLeft", Vector3.left);
 			create_navigation_button(TEMPLATE_RIGHT_ARROW_BUTTON, "CraftFromStorage_NavigateButtonRight", Vector3.right);
 		}
@@ -396,18 +334,6 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 
 		private static void Postfix() {
 			OmniChest.Instance.refresh();
-		}
-	}
-
-	[HarmonyPatch(typeof(Inventory), "TransferPlayerSimilarToOtherInventory")]
-	class HarmonyPatch_Inventory_TransferPlayerSimilarToOtherInventory {
-
-		private static bool Prefix(ref Inventory __instance, Inventory otherInventory) {
-			if (m_enabled.Value && m_transfer_from_action_bar.Value) {
-				__instance.TransferSimilarToOtherInventory(otherInventory);
-				return false;
-			}
-			return true;
 		}
 	}
 }

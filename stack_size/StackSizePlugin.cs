@@ -8,7 +8,7 @@ using PSS;
 using System.Reflection;
 using UnityEngine;
 
-[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.4")]
 public class StackSizePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.stack_size");
@@ -25,7 +25,7 @@ public class StackSizePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
