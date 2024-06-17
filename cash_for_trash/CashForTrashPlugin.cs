@@ -66,16 +66,19 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 
 				void update_button(Transform transform, string text, string description, int image_id, int trash_slot_id) {
 					foreach (Component component in transform.GetComponents<Component>()) {
-						if (component is Popup) {
-							Popup popup = (Popup) component;
+						if (component is Popup popup) {
 							if (popup.text != "") {
 								popup.text = text;
 								popup.description = description;
 							}
-						} else if (component is UIButton) {
-							UIButton button = (UIButton) component;
+						} else if (component is UIButton wish_button) {
 							Database.GetData(image_id, delegate(ItemData data) {
-								button.defaultImage = button.hoverOverImage = button.pressedImage = data.icon;
+								try {
+									wish_button.defaultImage = wish_button.hoverOverImage = wish_button.pressedImage = data.icon;
+									wish_button.gameObject.GetComponent<UnityEngine.UI.Image>().sprite = data.icon;
+								} catch (Exception e) {
+									logger.LogError("** Database.GetData callback ERROR - " + e);
+								}
 							});
 						} else if (component is TrashSlot) {
 							m_trash_slots[component.GetHashCode()] = trash_slot_id;
@@ -86,7 +89,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value || m_trash_button != null) {
 					return;
 				}
-				enum_descendants(____actionBarPanel.parent, enum_descendants_callback);
+				enum_descendants(____actionBarPanel.parent.parent, enum_descendants_callback);
 				update_button(m_trash_button, "Sell Item", "Drop an item here to sell it for full price!", ItemID.SmallMoneyBag, TRASH_SLOT_TRASH);
 				Transform recycle_button = GameObject.Instantiate(m_trash_button, m_trash_button.parent);
 				update_button(recycle_button, "Recycle Item", "Drop a crafted item here to recyle it into its original ingredients.  Note that if there are multiple recipes for the item then only the first in memory will be used (for example: Fire Crystal yields Soot and not coal).", ItemID.SpringToken, TRACK_SLOT_RECYCLE);
@@ -142,16 +145,25 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 					break;
 				case TRACK_SLOT_RECYCLE:
 					foreach (Recipe recipe in Resources.FindObjectsOfTypeAll<Recipe>()) {
-						if (recipe.output != null && recipe.output.item != null && recipe.output.item.id == item.ID()) {
+						if (recipe.output2?.id == item.ID()) {
+							logger.LogInfo($"{recipe.name}");
 							int item_count = 0;
-							foreach (ItemInfo item_info in recipe.input) {
-								if (!BAD_ITEM_IDS.Contains(item_info.item.id)) {
-									Player.Instance.Inventory.AddItem(
-										item_info.item.GenerateItem(), 
-										recipe.ModifiedAmount(item_info.amount, item_info.item.ID, recipe.output.item.ID, recipe.isFood) * icon.amount, 
-										true
-									);
-									item_count++;
+							foreach (SerializedItemDataNamedAmount item2 in recipe.Input) {
+								if (!BAD_ITEM_IDS.Contains(item2.id)) {
+									Database.GetData(item2.id, delegate(ItemData item_data) {
+										try {
+											logger.LogInfo($"{item_data.Name}");
+											logger.LogInfo($"{item_data.GenerateItem()?.ID()}");
+											Player.Instance.Inventory.AddItem(
+												item_data.GenerateItem(),
+												recipe.ModifiedAmount(item2.amount, item_data.ID, recipe.output.item.ID, recipe.isFood) * icon.amount, 
+												true
+											);
+											item_count++;
+										} catch (Exception e) {
+											logger.LogError("** TrashSlot.OnPointerDown_Prefix_Recycle ERROR - " + e);
+										}
+									}, delegate { logger.LogError("** Couldn't get item!"); });
 								}
 							}
 							if (item_count > 0) {
@@ -165,7 +177,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 				}
 				return false;
 			} catch (Exception e) {
-				logger.LogError("** TrashSlot.OnPointerDown_Prefix ERROR -" + e);
+				logger.LogError("** TrashSlot.OnPointerDown_Prefix ERROR - " + e);
 			}
 			return true;
 		}

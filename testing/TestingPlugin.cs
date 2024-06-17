@@ -6,6 +6,7 @@ using Wish;
 using QFSW.QC;
 using System;
 using System.Reflection;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -388,4 +389,6 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 			GameObject.Destroy(__instance.transform.GetComponent<BoxCollider2D>());
 		}
 	}
+
+	
 }
