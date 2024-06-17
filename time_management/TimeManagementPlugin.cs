@@ -4,14 +4,14 @@ using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
-using System.Linq;
+using System.Collections;
 using System.Collections.Generic;
 using Wish;
 using TMPro;
 using System;
 using System.Reflection;
 using PSS;
-
+using I2.Loc;
 
 [BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.10")]
 public class TimeManagementPlugin : BaseUnityPlugin {
@@ -259,216 +259,6 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Recipe), "GetHoursToCraft")]
-	class HarmonyPatch_Recipe_GetHoursToCraft {
-	
-		private static bool Prefix(Recipe __instance, ref float __result, float speedMultiplier) {
-			try {
-				if (!(m_enabled.Value && m_use_time_scale.Value)) {
-					return true;
-				}
-				if (GameSave.Farming.GetNode("Farming6c")) {
-					speedMultiplier += 0.05f + 0.05f * (float) GameSave.Farming.GetNodeAmount("Farming6c");
-				}
-				if (__instance.recipeType == RecipeType.Anvil || (__instance.recipeType == RecipeType.Furnace && GameSave.Mining.GetNode("Mining1b"))) {
-					speedMultiplier += 0.1f * (float)GameSave.Mining.GetNodeAmount("Mining1b");
-				}
-				try {
-					ItemSellInfo itemSellInfo = SingletonBehaviour<ItemInfoDatabase>.Instance.allItemSellInfos[__instance.output2.id];
-					if ((itemSellInfo.isMeal || itemSellInfo.isPotion) && GameSave.Farming.GetNode("Farming6b")) {
-						speedMultiplier += 0.1f * (float) GameSave.Farming.GetNodeAmount("Farming6b");
-					}
-				} catch {
-				}
-				__result = __instance.hoursToCraft * 60f / speedMultiplier / (m_time_speed.Value <= 0 ? 0.001f : m_time_speed.Value);
-				logger.LogInfo($"GetHoursToCraft(recipe: {__instance.name}, speedMultiplier: {speedMultiplier}) = {__result} (Settings.DaySpeedMultiplier = {Settings.DaySpeedMultiplier})");
-				return false;
-			} catch (Exception e) {
-				logger.LogError("** Recipe.GetHoursToCraft_Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-	/*
-	[HarmonyPatch(typeof(CraftingTable), "SetupCraftingQueue")]
-	class HarmonyPatch_CraftingTable_SetupCraftingQueue {
-
-		private static bool Prefix(
-			CraftingPanel __instance,
-			List<Coroutine> ___craftRoutines,
-			HashSet<Tween> ___craftTweens,
-			CraftingTableData ___craftingData,
-			ref float ___queueTime,
-			Animator ___animator
-		) {
-			try {
-
-				float TimeFromDate(DateTime date) {
-					return (float) (date.Minute + date.Hour * 60 + date.Day * 24 * 60) + (float) date.Second / 60f + (float) (date.Year * 28 * 24 * 60);
-				}
-
-				if (!(m_enabled.Value && m_use_time_scale.Value)) {
-					return true;
-				}
-				foreach (Coroutine craftRoutine in ___craftRoutines) {
-					if (craftRoutine != null) {
-						__instance.StopCoroutine(craftRoutine);
-					}
-				}
-				foreach (Tween craftTween in ___craftTweens) {
-					craftTween?.Kill();
-				}
-				___craftTweens.Clear();
-				__instance.GetType().GetMethod("DisableSliders", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-				float num = TimeFromDate(SingletonBehaviour<DayCycle>.Instance.Time) - ___craftingData.timeStart;
-				float timeStart = ___craftingData.timeStart;
-				float num2 = 0f;
-				foreach (ItemAmount completeItem in ___craftingData.completeItems) {
-					__instance.GetType().GetMethod("SetNotificationBubble", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {completeItem.item, completeItem.amount});
-				}
-				foreach (ItemCraftInfo item2 in ___craftingData.items.ToList()) {
-					num2 += item2.craftTime;
-					if (num > num2) {
-						__instance.GetType().GetMethod("FinishItem", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {item2});
-						continue;
-					}
-					___craftingData.timeStart = timeStart + num2 - item2.craftTime;
-					break;
-				}
-				___queueTime = 0f;
-				num = TimeFromDate(SingletonBehaviour<DayCycle>.Instance.Time) - ___craftingData.timeStart;
-				foreach (ItemCraftInfo item3 in ___craftingData.items.ToList()) {
-					logger.LogInfo(item3.craftTime);
-					//Coroutine item = StartCoroutine(DelayCraft(queueTime - num, item3));
-					//craftRoutines.Add(item);
-					//queueTime += item3.craftTime;
-				}
-				if (___craftingData.completeItems.Count > 0 && ___craftingData.items.Count <= 0 && ___animator != null) {
-					___animator.SetTrigger("Finished");
-				}
-				__instance.GetType().GetMethod("SetCraftingQueueImages", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-				return false;
-			} catch (Exception e) {
-				logger.LogError("**HarmonyPatch_CraftingTable_SetupCraftingQueue.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-	*/
-
-	[HarmonyPatch(typeof(CraftingPanel), "Initialize")]
-	class HarmonyPatch_CraftingPanel_Initialize {
-
-		class CraftingPanel_Initializer : MonoBehaviour {
-			
-			private CraftingPanel m_panel;
-			private Recipe m_recipe;
-			private float m_speed_multiplier;
-			private Action m_on_finished_initializing;
-
-			public void initialize(CraftingPanel panel, Recipe recipe, float speed_multiplier, Action on_finished_initializing) {
-				this.m_panel = panel;
-				this.m_recipe = recipe;
-				this.m_speed_multiplier = speed_multiplier;
-				this.m_on_finished_initializing	= on_finished_initializing;
-				this.update_item_images();
-			}
-
-			private IEnumerator update_item_images() {
-				yield return InitializeInput(this.m_recipe, this.m_panel.input1Image, 0);
-				if (this.m_recipe.Input.Count >= 2) {
-					yield return InitializeInput(this.m_recipe, this.m_panel.input2Image, 1);
-				} else {
-					this.m_panel.input2Image.Initialize(null);
-					this.m_panel.input2Image.SetAmount("", 1);
-				}
-				if (this.m_recipe.Input.Count >= 3) {
-					yield return InitializeInput(this.m_recipe, this.m_panel.input3Image, 2);
-				} else {
-					this.m_panel.input3Image.Initialize(null);
-					this.m_panel.input3Image.SetAmount("", 1);
-				}
-				bool loaded = false;
-				Database.GetData(this.m_recipe.output2.id, delegate (ItemData data)
-				{
-					outputImage.Initialize(data.GetItem());
-					outputImage.SetAmount((recipe.output2.amount > 1) ? recipe.output2.amount.ToString() : "", recipe.output2.amount);
-					loaded = true;
-				});
-				while (!loaded) {
-					yield return null;
-				}
-				float num = this.m_recipe.GetHoursToCraft(this.m_speed_multiplier) / 60f;
-				craftTimeTMP.text = ((num < 1f) ? ($"{num * 60f:0}" + " " + ScriptLocalization.CraftTime_Minute) : ($"{num:0.0}" + ((num >= 1.1f) ? (" " + ScriptLocalization.CraftTime_Hour) : (" " + ScriptLocalization.CraftTime_Hours))));
-				outputTMP.text = recipe.output2.name;
-				onFinishedInitializing?.Invoke();
-			}
-		}
-
-		private static bool Prefix(
-			CraftingPanel __instance,
-			CraftingTable craftingTable,
-			Recipe recipe, 
-			float speedMultiplier, 
-			Action onFinishedInitializing,
-			ref CraftingTable ___craftingTable,
-			ref Recipe ___recipe,
-			ref float ___speedMultiplier
-		) {
-			try {
-				if (!m_enabled.Value || !m_use_time_scale.Value) {
-					return true;
-				}
-				___craftingTable = craftingTable;
-				___recipe = recipe;
-				___speedMultiplier = speedMultiplier;
-				__instance.gameObject.AddComponent<CraftingPanel_Initializer>().initialize(recipe, speedMultiplier, onFinishedInitializing);
-				return false;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CraftingPanel_Initialize.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-			
-			
-			
-			/*
-			float craft_time = recipe.GetHoursToCraft(___speedMultiplier) / 60f;
-			if (!m_realtime_craft_info.Value) {
-				craft_time *= m_time_speed.Value;
-				__instance.craftTimeTMP.text = craft_time.ToString(); //((craft_time < 1f) ? ($"{craft_time * 60f:0}" + " min") : ($"{craft_time:0.0}" + ((craft_time >= 1.1f) ? " hours" : " hour")));
-				return;
-			}
-			int seconds = (int) ((craft_time - Math.Truncate(craft_time)) * 60f);
-			craft_time = (float) Math.Truncate(craft_time);
-			int hours = (int) (craft_time / 60f);
-			int minutes = (int) (craft_time - (float) hours * 60f);
-			__instance.craftTimeTMP.text = string.Format("{0,2:D2}h:{1,2:D2}m:{2,2:D2}s", hours, minutes, seconds);
-			*/
-		}
-	}
-
-	[HarmonyPatch(typeof(CraftingPanel), "UpdateItemImages")]
-	class HarmonyPatch_CraftingPanel_UpdateItemImages {
-	
-		private static void Postfix(CraftingPanel __instance, Recipe recipe, float ___speedMultiplier) {
-			if (!(m_enabled.Value && m_use_time_scale.Value)) {
-				return;
-			}
-			float craft_time = recipe.GetHoursToCraft(___speedMultiplier) / 60f;
-			if (!m_realtime_craft_info.Value) {
-				craft_time *= m_time_speed.Value;
-				__instance.craftTimeTMP.text = craft_time.ToString(); //((craft_time < 1f) ? ($"{craft_time * 60f:0}" + " min") : ($"{craft_time:0.0}" + ((craft_time >= 1.1f) ? " hours" : " hour")));
-				return;
-			}
-			int seconds = (int) ((craft_time - Math.Truncate(craft_time)) * 60f);
-			craft_time = (float) Math.Truncate(craft_time);
-			int hours = (int) (craft_time / 60f);
-			int minutes = (int) (craft_time - (float) hours * 60f);
-			__instance.craftTimeTMP.text = string.Format("{0,2:D2}h:{1,2:D2}m:{2,2:D2}s", hours, minutes, seconds);
-		}
-	}
-
 	private static bool is_sleepy_hour(DateTime time) {
 		return (time.Hour >= m_passout_hour.Value && time.Hour < SLEEPY_HOUR_STOP);
 	}
@@ -528,21 +318,22 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(MainUIManager), "SetBackgroundBlur")]
-	class HarmonyPatch_MainUIManager_SetBackgroundBlur {
+	[HarmonyPatch(typeof(GameManager), "EnableUI")]
+	class HarmonyPatch_GameManager_EnableUI {
 
-		private static void Postfix(bool active) {
-			try {
-				m_is_ui_visible = !active;
-				if (DayCycle.Instance != null) {
-					typeof(DayCycle).GetMethod("UpdateTimeText", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(DayCycle.Instance, new object[] {});
-				}
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_MainUIManager_SetBackgroundBlur.Postfix ERROR - " + e);
-			}
+		private static void Postfix() {
+			m_is_ui_visible = true;
 		}
 	}
-	
+
+	[HarmonyPatch(typeof(GameManager), "DisableUI")]
+	class HarmonyPatch_GameManager_DisableUI {
+
+		private static void Postfix() {
+			m_is_ui_visible = false;
+		}
+	}
+
 	[HarmonyPatch(typeof(DayCycle))]
 	[HarmonyPatch("OutsideLightIntensity", MethodType.Getter)]
 	class HarmonyPatch_DayCycle_OutsideLightIntensity_Getter {
@@ -622,7 +413,11 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 							num = 0f;
 						}
 						if ((GameManager.Multiplayer || (!Cutscene.Active && !Cutscene.WithinMultipartCutscene)) && (flag || !is_sleepy_hour(__instance.Time)) && __instance.IncrementTime && (!GameManager.Multiplayer || GameManager.Host)) {
+							DateTime current_time = __instance.Time;
 							__instance.Time = __instance.Time.AddSeconds(m_time_direction_multiplier * UnityEngine.Time.deltaTime * PlaySettingsManager.PlaySettings.daySpeed * num * (is_almost_sleepy_time(__instance.Time) ? 0.5f : 1f));
+							if (m_time_direction_multiplier == -1f && is_sleepy_time(__instance.Time)) {
+								__instance.Time = current_time;
+							}
 							if (__instance.Time.Month != 2 || __instance.Time.Day > 28) {
 								__instance.Time = new DateTime(__instance.Time.Year + 1, 2, 1, __instance.Time.Hour, __instance.Time.Minute, __instance.Time.Second, DateTimeKind.Utc).ToUniversalTime();
 							}
@@ -700,75 +495,4 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			return true;
 		}
 	}
-
-	/*
-	[HarmonyPatch(typeof(DayCycle), "LerpLightSettings")]
-	class HarmonyPatch_DayCycle_LerpLightSettings {
-
-		private static bool Prefix(
-			LightSettings[] actualLightSettings,
-			DayCycle __instance,
-			Light ____globalLight,
-			LightSettings ____dayLightSettings,
-			DateTime ___nextDay,
-			int ___currentLight,
-			LightSettings[] ____lightSettings,
-			LightSettings[] ____overrideLightSettings,
-			Vector3 ____dayStartRotation,
-			Vector3 ____dayEndRotation
-		) {
-			try {
-				float num = 1f;
-				if (SceneSettingsManager.Instance.GetCurrentSceneSettings != null) {
-					num = SceneSettingsManager.Instance.GetCurrentSceneSettings.globalLightMultiplier;
-				}
-				if (!PlaySettingsManager.PlaySettings.enableDayCycle) {
-					____globalLight.color = ____dayLightSettings.globalLightColor;
-					____globalLight.intensity = ____dayLightSettings.globalLightIntensity * num;
-					____globalLight.shadowStrength = 0.6f;
-				} else if (actualLightSettings.Length == 1) {
-					____globalLight.color = actualLightSettings[0].globalLightColor;
-					____globalLight.intensity = actualLightSettings[0].globalLightIntensity * num;
-				} else {
-					int num2 = __instance.Time.Hour;
-					if (__instance.Time.Day == ___nextDay.Day) {
-						num2 += 24;
-					}
-					for (int i = 0; i < actualLightSettings.Length - 1; i++) {
-						if (actualLightSettings[i + 1].hour > num2) {
-							___currentLight = i;
-							break;
-						}
-					}
-					logger.LogInfo($"currentLight.hour = {actualLightSettings[___currentLight].hour}");
-					float num3 = (float) actualLightSettings[___currentLight].hour * 3600f;
-					float num4 = (float) actualLightSettings[___currentLight + 1].hour * 3600f;
-					float num5 = ((float) num2 * 3600f + (float) __instance.Time.Minute * 60f + (float) __instance.Time.Second - num3) / (num4 - num3);
-					num5 = (float) (int) (num5 * 100f) / 100f;
-					logger.LogInfo($"num2: {num2}");
-					____globalLight.color = Color.LerpUnclamped(actualLightSettings[___currentLight].globalLightColor, actualLightSettings[___currentLight + 1].globalLightColor, num5);
-					____globalLight.intensity = Mathf.LerpUnclamped(actualLightSettings[___currentLight].globalLightIntensity, actualLightSettings[___currentLight + 1].globalLightIntensity, num5) * num;
-					if (__instance.Raining) {
-						____globalLight.intensity = Mathf.Clamp(____globalLight.intensity * 0.75f, 0f, 0.8f);
-						if (!__instance.GloomyRain) {
-							____globalLight.color = Color.Lerp(____globalLight.color, Color.blue, 0.22f);
-						} else {
-							____globalLight.color = Color.Lerp(new Color(0.3f, 0.3f, 1f), Color.white, 0.22f);
-						}
-					} else if (__instance.Foggy) {
-						____globalLight.intensity = Mathf.Clamp(____globalLight.intensity * 0.75f, 0f, 0.8f);
-					} else if (__instance.Heatwave) {
-						____globalLight.color = Color.Lerp(____globalLight.color, Color.red, 0.15f);
-					}
-				}
-				____globalLight.transform.eulerAngles = Vector3.Slerp(____dayStartRotation, ____dayEndRotation, 0.66f);
-				logger.LogInfo($"globalLight - color: {____globalLight.color}, intensity: {____globalLight.intensity}, angle: {____globalLight.transform.eulerAngles}");
-				return false;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_DayCycle_LerpLightSettings.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-	*/
 }
