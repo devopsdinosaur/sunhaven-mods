@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <AssemblyName>devopsdinosaur.sunhaven.$(MSBuildProjectName)</AssemblyName>
-    <RootNamespace>$(ProjectName)</RootNamespace>
+    <RootNamespace>$(MSBuildProjectName)</RootNamespace>
     <TargetFramework>net480</TargetFramework>
     <Platforms>AnyCPU</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -68,9 +68,14 @@
       <HintPath>$(ManagedDataPath)\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="Sirenix.Serialization">
+    <Reference Include="Mirror">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(ManagedDataPath)\Sirenix.Serialization.dll</HintPath>
+      <HintPath>$(ManagedDataPath)\Mirror.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+	  <Reference Include="PSS.Database">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\PSS.Database.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="QFSW.QC">
@@ -78,9 +83,19 @@
       <HintPath>$(ManagedDataPath)\QFSW.QC.dll</HintPath>
       <Private>False</Private>
     </Reference>
-	<Reference Include="PSS.Database">
+    <Reference Include="Sirenix.Serialization">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(ManagedDataPath)\PSS.Database.dll</HintPath>
+      <HintPath>$(ManagedDataPath)\Sirenix.Serialization.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ZeroFormatter">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\ZeroFormatter.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="ZeroFormatter.Interfaces">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\ZeroFormatter.Interfaces.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

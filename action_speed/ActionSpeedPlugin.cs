@@ -20,7 +20,6 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 	private void Awake() {
 		logger = this.Logger;
 		try {
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.action_speed v0.0.2 loaded.");
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_tool_speed = this.Config.Bind<float>("General", "Tool Speed", 2f, "Action speed for tools (float, 1 = game default, all perk modifiers will be applied in addition to this value)");
 			m_sword_speed = this.Config.Bind<float>("General", "Sword Speed", 1f, "Action speed for swords (float, 1 = game default, all perk modifiers will be applied in addition to this value)");

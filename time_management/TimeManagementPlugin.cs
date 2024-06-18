@@ -13,7 +13,7 @@ using System.Reflection;
 using PSS;
 using I2.Loc;
 
-[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.10")]
+[BepInPlugin("devopsdinosaur.sunhaven.time_management", "Time Management", "0.0.11")]
 public class TimeManagementPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.time_management");
@@ -30,7 +30,6 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_twenty_four_hour_format;
 	private static ConfigEntry<bool> m_use_time_scale;
 	private static ConfigEntry<bool> m_pause_in_ui;
-	private static ConfigEntry<bool> m_realtime_craft_info;
 	private static ConfigEntry<int> m_passout_hour;
 	private static ConfigEntry<string> m_weekdays;
 
@@ -66,7 +65,6 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			m_show_time_factor = this.Config.Bind<bool>("General", "Display Time Scale", true, "If true then the game time display will show a '[XX m/s]' time factor postfix representing the current game speed in gametime minutes per realtime seconds.  This value is calculated every realtime second based on simulation time vs real time, so it will show that, for example, the clock pauses when the UI is displayed.  Some people might want the option to hide this, so it's here.");
 			m_use_time_scale = this.Config.Bind<bool>("General", "Use Time Scale", true, "Setting this option to false will disable the primary function of this mod, disabling the time scaling and using the usual simulation clock.  It is here for users desiring only to use the Pause in Chests / Crafting functionality and should always be true otherwise.  Note that the time scale will still be displayed on the clock and will represent the Day Speed setting in the game options.");
 			m_pause_in_ui = this.Config.Bind<bool>("General", "Pause in Chests / Crafting", true, "This should always be true unless you want time to continue when opening chests and crafting tables.");
-			m_realtime_craft_info = this.Config.Bind<bool>("General", "Realtime Craft Times", true, "If true then craft times will be displayed as real-time representing the current time scale.  If false then it will display the game default of simulation time.");
 			m_passout_hour = this.Config.Bind<int>("General", "End of Day Hour", 3, "This is the hour representing the end of the day (int, must be between 1 and 5; if set to 0 then the late-night functionality will be disabled)");
 			if (m_passout_hour.Value < 0 || m_passout_hour.Value >= SLEEPY_HOUR_STOP - 1) {
 				m_passout_hour.Value = 3;
@@ -93,7 +91,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.10" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.time_management v0.0.11" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -459,12 +457,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 				}
 				___previousValues.minute = __instance.Time.Minute;
 				___previousValues.hour = __instance.Time.Hour;
-				if (___previousValues.coins != (float) GameSave.Coins || ___previousValues.tickets != (float) GameSave.Tickets || ___previousValues.orbs != (float) GameSave.Orbs) {
-					__instance.GetType().GetTypeInfo().GetMethod("UpdateMoneyText", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
-				}
-				___previousValues.coins = (float) GameSave.Coins;
-				___previousValues.tickets = (float) GameSave.Tickets;
-				___previousValues.orbs = (float) GameSave.Orbs;
+				__instance.GetType().GetTypeInfo().GetMethod("UpdateMoneyText", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
 				if (____globalLight != null) {
 					if (__instance.OverrideLightSettings) {
 						____globalLight.color = __instance.OverrideColor;
