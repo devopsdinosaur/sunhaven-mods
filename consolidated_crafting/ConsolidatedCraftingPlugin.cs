@@ -1,5 +1,4 @@
-﻿
-using BepInEx;
+﻿using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Configuration;
 using HarmonyLib;
@@ -11,8 +10,7 @@ using System;
 using System.Reflection;
 using UnityEngine.Events;
 
-
-[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.3")]
 public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.consolidated_crafting");
@@ -28,7 +26,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -59,7 +57,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 		}
 
 		public void refresh_dropdown() {
-			this.m_dropdown.options.Clear();
+			this.m_dropdown.ClearOptions();
 			int index = 0;
 			int selected_index = -1;
 			List<string> sorted_names = new List<string>(m_table_recipes.Keys);
@@ -92,39 +90,43 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(CraftingTable), "Awake")]
-	class HarmonyPatch_CraftingTable_Awake {
+	[HarmonyPatch(typeof(CraftingTable), "Interact")]
+	class HarmonyPatch_CraftingTable_Interact {
 
-		private static bool Prefix(CraftingTable __instance, GameObject ___ui, RecipeList ___recipeList, List<Recipe> ____craftingRecipes) {
+        private static List<int> m_jam_ids = null;
+
+        private static bool Prefix(CraftingTable __instance, GameObject ___ui, RecipeList ___recipeList, List<Recipe> ____craftingRecipes) {
 			try {
 				if (!m_enabled.Value) {
 					return true;
 				}
-				List<int> jam_ids = new List<int>();
-				foreach (FieldInfo field_info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
-					if (field_info.IsLiteral && !field_info.IsInitOnly && field_info.Name.EndsWith("Jam")) {
-						jam_ids.Add((int) field_info.GetRawConstantValue());
+				if (m_jam_ids == null) {
+					m_jam_ids = new List<int>();
+					foreach (FieldInfo field_info in typeof(ItemID).GetFields(BindingFlags.Public | BindingFlags.Static)) {
+						if (field_info.IsLiteral && !field_info.IsInitOnly && field_info.Name.EndsWith("Jam")) {
+							m_jam_ids.Add((int) field_info.GetRawConstantValue());
+						}
 					}
 				}
-				if (m_all_recipes == null) {
+                if (m_all_recipes == null) {
 					m_all_recipes = new List<Recipe>(Resources.FindObjectsOfTypeAll<Recipe>());
 					foreach (RecipeList recipes in Resources.FindObjectsOfTypeAll<RecipeList>()) {
 						m_table_recipes[recipes.name.Replace("RecipeList_", "").Replace('_', ' ').Replace("RecipeList", "").Trim()] = recipes;
 					}
-					if (!m_table_recipes.ContainsKey("Jam Maker")) {
+                    if (!m_table_recipes.ContainsKey("Jam Maker")) {
 						// jam maker has no RecipeList, for some reason
 						RecipeList recipes = new RecipeList();
 						recipes.name = "Jam_Maker";
 						foreach (Recipe recipe in m_all_recipes) {
-							if (jam_ids.Contains(recipe.output.item.id)) {
+							if (m_jam_ids.Contains(recipe.output2.id)) {
 								recipes.craftingRecipes.Add(recipe);
 							}
 						}
 						m_table_recipes["Jam Maker"] = recipes;
 					}
 				}
-				if (___recipeList == null) {
-					if (____craftingRecipes.Count >= 1 && jam_ids.Contains(____craftingRecipes[0].output.item.id)) {
+                if (___recipeList == null) {
+					if (____craftingRecipes.Count >= 1 && m_jam_ids.Contains(____craftingRecipes[0].output.item.id)) {
 						___recipeList = m_table_recipes["Jam Maker"];
 					}
 				}
@@ -145,9 +147,14 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					logger.LogError("** HarmonyPatch_CraftingTable_Awake ERROR - unable to locate 'HighToLowPriceToggle' object; cannot create dropdown.");
 					return true;
 				}
-				TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[0], adjacent_transform.parent);
-				RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
+				foreach (TMP_Dropdown tmp in Resources.FindObjectsOfTypeAll<TMP_Dropdown>()) {
+					logger.LogInfo($"{tmp.name}, {tmp.transform.parent.name}");
+				}
+				//TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[0], adjacent_transform.parent);
+                TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[2], adjacent_transform.parent);
+                RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
 				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 20f);
+                dropdown.name = "ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown";
 				dropdown.onValueChanged.AddListener(new UnityAction<int>(delegate {
 					try {
 						FieldInfo field_info = __instance.GetType().GetField("_craftingRecipes", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -164,7 +171,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				___ui.AddComponent<RecipeListSelector>().initialize(dropdown, ___recipeList);
 				return true;
 			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_CraftingTable_Awake_Prefix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_CraftingTable_Interact_Prefix ERROR - " + e);
 			}
 			return true;
 		}

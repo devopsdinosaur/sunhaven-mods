@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.11")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.12")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -69,7 +69,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.11" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.12" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -148,16 +148,48 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value || !m_water_overnight.Value) {
 					return true;
 				}
-				foreach (KeyValuePair<short, Dictionary<KeyTuple<ushort, ushort>, byte>> item in SingletonBehaviour<GameSave>.Instance.CurrentWorld.FarmingInfo.ToList()) {
-					short key = item.Key;
-					foreach (KeyValuePair<KeyTuple<ushort, ushort>, byte> item2 in item.Value.ToList()) {
-						TileManager.Instance.Water(new Vector2Int(item2.Key.Item1, item2.Key.Item2), key);
-					}
-				}
-				// There are some other weird random hoe and pet chance things,
-				// so we return true to let it run through the base method.
-				return true;
-			} catch (Exception e) {
+                int nodeAmount = GameSave.Farming.GetNodeAmount("Farming3a");
+                float num = 1f;
+                if (nodeAmount > 0) {
+                    num -= 0.05f * (float) nodeAmount;
+                }
+                bool flag = false;
+                foreach (KeyValuePair<PetPositionData, Pet> pet in SingletonBehaviour<NPCManager>.Instance.pets) {
+                    if (pet.Key.id == 13125) {
+                        flag = true;
+                        break;
+                    }
+                }
+                if (Player.Instance.PlayerPet != null && Player.Instance.PlayerPet.petItemData != null && Player.Instance.PlayerPet.petItemData.id == 13125) {
+                    flag = true;
+                }
+                if (GameManager.Multiplayer) {
+                    foreach (NetworkGamePlayer value in NetworkLobbyManager.Instance.GamePlayers.Values) {
+                        if ((bool) value.player && value.player.PlayerPet != null && value.player.PlayerPet.petItemData != null && value.player.PlayerPet.petItemData.id == 13125) {
+                            flag = true;
+                            break;
+                        }
+                    }
+                }
+                if (flag) {
+                    num -= 0.1f;
+                }
+                foreach (KeyValuePair<short, Dictionary<KeyTuple<ushort, ushort>, byte>> item in SingletonBehaviour<GameSave>.Instance.CurrentWorld.FarmingInfo.ToList()) {
+                    short key = item.Key;
+                    int num2 = 0;
+                    foreach (KeyValuePair<KeyTuple<ushort, ushort>, byte> item2 in item.Value.ToList()) {
+                        Vector2Int position = new Vector2Int(item2.Key.Item1, item2.Key.Item2);
+                        if (item2.Value == (int) FarmingTileInfo.Hoed) {
+                            SingletonBehaviour<TileManager>.Instance.Water(position, key);
+                        }
+                        if (item2.Value == (int) FarmingTileInfo.Watered && Utilities.Chance(num)) {
+                            SingletonBehaviour<TileManager>.Instance.Hoe(position, key);
+                        }
+                        num2++;
+                    }
+                }
+				return false;
+            } catch (Exception e) {
 				logger.LogError("** HarmonyPatch_GameManager_UpdateWaterOvernight.Prefix ERROR - " + e);
 			}
 			return true;
