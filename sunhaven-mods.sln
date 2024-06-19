@@ -33,6 +33,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "cash_for_trash", "cash_for_
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "consolidated_crafting", "consolidated_crafting\consolidated_crafting.csproj", "{E335C0F7-7BB0-4305-A023-A162E6916443}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "stack_size", "stack_size\stack_size.csproj", "{E30EBD9B-F788-4122-A3D4-89A3E5A85223}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "free_rides", "free_rides\free_rides.csproj", "{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +87,14 @@ Global
 		{E335C0F7-7BB0-4305-A023-A162E6916443}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E335C0F7-7BB0-4305-A023-A162E6916443}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E335C0F7-7BB0-4305-A023-A162E6916443}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E30EBD9B-F788-4122-A3D4-89A3E5A85223}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E30EBD9B-F788-4122-A3D4-89A3E5A85223}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E30EBD9B-F788-4122-A3D4-89A3E5A85223}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E30EBD9B-F788-4122-A3D4-89A3E5A85223}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

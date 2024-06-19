@@ -1,23 +1,32 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using UnityEngine;
 using System.Collections.Generic;
-using DG.Tweening;
+using System;
 using TMPro;
+using DG.Tweening;
 
-
-[BepInPlugin("devopsdinosaur.sunhaven.free_rides", "Free Rides", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.free_rides", "Free Rides", "0.0.3")]
 public class FreeRidesPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.free_rides");
 	public static ManualLogSource logger;
+	private static ConfigEntry<bool> m_enabled;
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.free_rides v0.0.1 loaded.");
-		this.m_harmony.PatchAll();
+		try {
+			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			if (m_enabled.Value) {
+				this.m_harmony.PatchAll();
+			}
+			logger.LogInfo("devopsdinosaur.sunhaven.free_rides v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+		} catch (Exception e) {
+			logger.LogError("** Awake FATAL - " + e);
+		}
 	}
 
 	[HarmonyPatch(typeof(SunHavenTaxi), "Interact")]
@@ -327,6 +336,5 @@ public class FreeRidesPlugin : BaseUnityPlugin {
 			return false;
 		}
 	}
-
 
 }

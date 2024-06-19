@@ -4,11 +4,8 @@ using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using System;
-using PSS;
-using System.Reflection;
-using UnityEngine;
 
-[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.5")]
 public class StackSizePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.stack_size");
@@ -25,9 +22,22 @@ public class StackSizePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
+		}
+	}
+
+	[HarmonyPatch(typeof(GameManager), "Awake")]
+	class HarmonyPatch_GameManager_Awake {
+
+		private static void Postfix(ItemData __instance) {
+			if (!m_enabled.Value) {
+				return;
+			}
+			foreach (ItemSellInfo item_info in ItemInfoDatabase.Instance.allItemSellInfos.Values) {
+				item_info.stackSize = m_stack_size.Value;
+			}
 		}
 	}
 

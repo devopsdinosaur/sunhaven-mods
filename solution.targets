@@ -68,6 +68,11 @@
       <HintPath>$(ManagedDataPath)\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DOTween">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\DOTween.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Mirror">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(ManagedDataPath)\Mirror.dll</HintPath>

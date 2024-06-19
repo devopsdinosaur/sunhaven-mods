@@ -81,7 +81,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value) {
 					return true;
 				}
-				___ui.GetComponent<RecipeListSelector>().refresh_dropdown();
+				//___ui.GetComponent<RecipeListSelector>().refresh_dropdown();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_OpenUI_Prefix ERROR - " + e);
@@ -150,9 +150,11 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				foreach (TMP_Dropdown tmp in Resources.FindObjectsOfTypeAll<TMP_Dropdown>()) {
 					logger.LogInfo($"{tmp.name}, {tmp.transform.parent.name}");
 				}
-				//TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[0], adjacent_transform.parent);
-                TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[2], adjacent_transform.parent);
-                RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
+				if (adjacent_transform.parent.Find("ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown") != null) {
+					return true;
+				}
+				TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[2], adjacent_transform.parent);	
+				RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
 				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 20f);
                 dropdown.name = "ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown";
 				dropdown.onValueChanged.AddListener(new UnityAction<int>(delegate {
