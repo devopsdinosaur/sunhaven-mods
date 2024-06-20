@@ -5,7 +5,7 @@ using HarmonyLib;
 using Wish;
 using System;
 
-[BepInPlugin("devopsdinosaur.sunhaven.action_speed", "Action Speed", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.action_speed", "Action Speed", "0.0.3")]
 public class ActionSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.action_speed");
@@ -28,7 +28,7 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.action_speed v0.0.2" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.action_speed v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}

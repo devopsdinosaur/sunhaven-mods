@@ -73,6 +73,11 @@
       <HintPath>$(ManagedDataPath)\DOTween.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="I2Localization">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(ManagedDataPath)\I2Localization.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Mirror">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(ManagedDataPath)\Mirror.dll</HintPath>

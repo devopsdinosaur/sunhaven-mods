@@ -37,6 +37,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "stack_size", "stack_size\st
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "free_rides", "free_rides\free_rides.csproj", "{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "easy_animals", "easy_animals\easy_animals.csproj", "{70ABB685-286F-4E94-B04A-846ACE7EC5D2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "always_open", "always_open\always_open.csproj", "{78D67C8B-F393-4014-BBD3-CF8551CD8C9D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -95,6 +99,14 @@ Global
 		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A9FCB02-A054-4DEC-BB64-EBD5C76CA54C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70ABB685-286F-4E94-B04A-846ACE7EC5D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70ABB685-286F-4E94-B04A-846ACE7EC5D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70ABB685-286F-4E94-B04A-846ACE7EC5D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70ABB685-286F-4E94-B04A-846ACE7EC5D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78D67C8B-F393-4014-BBD3-CF8551CD8C9D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78D67C8B-F393-4014-BBD3-CF8551CD8C9D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78D67C8B-F393-4014-BBD3-CF8551CD8C9D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78D67C8B-F393-4014-BBD3-CF8551CD8C9D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

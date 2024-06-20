@@ -9,13 +9,73 @@ using TMPro;
 using System;
 using System.Reflection;
 using UnityEngine.Events;
+using PSS;
 
 [BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.3")]
 public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 
+	private static int[] TABLE_IDS = new int[] {
+		ItemID.AdvancedFurnitureTable,
+		ItemID.AlchemyTable,
+		ItemID.Anvil,
+		ItemID.BakersStation,
+		ItemID.BasicFurnitureTable,
+		ItemID.BeeBox,
+		ItemID.Composter,
+		ItemID.ConstructionTable,
+		ItemID.CookingPot,
+		ItemID.CraftingTable,
+		ItemID.ElvenCraftingTable,
+		ItemID.ElvenFurnace,
+		ItemID.ElvenFurnitureTable,
+		ItemID.ElvenJuicer,
+		ItemID.ElvenLoom,
+		ItemID.ElvenSeedMaker,
+		ItemID.FarmersTable,
+		ItemID.FishGrill,
+		ItemID.Furnace,
+		ItemID.FurnitureTable,
+		ItemID.Grinder,
+		ItemID.IceCreamCart,
+		ItemID.JamMaker,
+		ItemID.JewelersDesk,
+		ItemID.Juicer,
+		ItemID.SeltzerKeg,
+		ItemID.Loom,
+		ItemID.ManaAnvil,
+		ItemID.ManaAnvil,
+		ItemID.ManaComposter,
+		ItemID.MonsterComposter,
+		ItemID.MonsterCraftingTable,
+		ItemID.ManaInfuserTable,
+		ItemID.ManaSiphoner,
+		ItemID.MonsterAnvil,
+		ItemID.MonsterComposter,
+		ItemID.MonsterFurnace,
+		ItemID.MonsterFurnitureTable,
+		ItemID.MonsterJuicer,
+		ItemID.MonsterLoom,
+		ItemID.MonsterSeedMaker,
+		ItemID.MonsterSushiTable,
+		ItemID.NurseryCraftingTable,
+		ItemID.Oven,
+		ItemID.PaintersEasel,
+		ItemID.PaintersDesignEasel,
+		ItemID.RecyclingMachine,
+		ItemID.SeedMaker,
+		ItemID.SodaMachine,
+		ItemID.SushiTable,
+		ItemID.TeaKettle,
+		ItemID.TileMaker,
+		ItemID.WithergateAnvil,
+		ItemID.WithergateFurnace,
+		ItemID.WizardCraftingTable
+	};
+
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.consolidated_crafting");
 	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
+	private static TMP_Dropdown m_dropdown_template = null;
 	private static List<Recipe> m_all_recipes = null;
 	private static Dictionary<string, RecipeList> m_table_recipes = new Dictionary<string, RecipeList>();
 	
@@ -45,7 +105,35 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 		}
 		return true;
 	}
-	
+
+	[HarmonyPatch(typeof(GameManager), "Awake")]
+	class HarmonyPatch_GameManager_Awake {
+
+		private static void Postfix() {
+			try {
+				if (!m_enabled.Value) {
+					return;
+				}
+				// Need to instantiate then destroy all of the tables to get the recipelists in resources for later
+				Vector3Int pos = new Vector3Int(0, 0, 0);
+				byte[] meta = new byte[] {};
+				foreach (int id in TABLE_IDS) {
+					Database.GetData(id, delegate(ItemData data) {
+						try {
+							GameManager.Instance.SetDecorationSubTile(pos, id, meta, onDecorationPlaced: delegate(Decoration decoration) {
+								GameObject.Destroy(decoration.gameObject);
+							});
+						} catch (Exception e) {
+							logger.LogError($"** HarmonyPatch_GameManager_Awake_Postfix.SetDecorationSubTile WARNING - " + e);
+						}
+					});
+				}
+			} catch (Exception e) {
+				logger.LogError($"** HarmonyPatch_GameManager_Awake_Postfix ERROR - " + e);
+			}
+		}
+	}
+
 	class RecipeListSelector : MonoBehaviour {
 		
 		private TMP_Dropdown m_dropdown = null;
@@ -81,7 +169,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value) {
 					return true;
 				}
-				//___ui.GetComponent<RecipeListSelector>().refresh_dropdown();
+				___ui.GetComponent<RecipeListSelector>().refresh_dropdown();
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_OpenUI_Prefix ERROR - " + e);
@@ -93,10 +181,23 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(CraftingTable), "Interact")]
 	class HarmonyPatch_CraftingTable_Interact {
 
+		private static string DROPDOWN_OBJECT_NAME = "ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown";
         private static List<int> m_jam_ids = null;
 
         private static bool Prefix(CraftingTable __instance, GameObject ___ui, RecipeList ___recipeList, List<Recipe> ____craftingRecipes) {
 			try {
+				Transform adjacent_transform = null;
+				RectTransform adjacent_rect = null;
+
+				bool find_high_to_low_price_toggle(Transform transform) {
+					if (transform.name == "HighToLowPriceToggle") {
+						adjacent_transform = transform;
+						adjacent_rect = transform.GetComponent<RectTransform>();
+						return false;
+					}
+					return true;
+				}
+
 				if (!m_enabled.Value) {
 					return true;
 				}
@@ -130,33 +231,36 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 						___recipeList = m_table_recipes["Jam Maker"];
 					}
 				}
-				Transform adjacent_transform = null;
-				RectTransform adjacent_rect = null;
-				
-				bool find_high_to_low_price_toggle(Transform transform) {
-					if (transform.name == "HighToLowPriceToggle") {
-						adjacent_transform = transform;
-						adjacent_rect = transform.GetComponent<RectTransform>();
-						return false;
-					}
-					return true;
-				}
-				
 				enum_descendants(___ui.transform, find_high_to_low_price_toggle);
 				if (adjacent_rect == null) {
-					logger.LogError("** HarmonyPatch_CraftingTable_Awake ERROR - unable to locate 'HighToLowPriceToggle' object; cannot create dropdown.");
+					logger.LogError("** HarmonyPatch_CraftingTable_Interact ERROR - unable to locate 'HighToLowPriceToggle' object; cannot create dropdown.");
 					return true;
 				}
-				foreach (TMP_Dropdown tmp in Resources.FindObjectsOfTypeAll<TMP_Dropdown>()) {
-					logger.LogInfo($"{tmp.name}, {tmp.transform.parent.name}");
-				}
-				if (adjacent_transform.parent.Find("ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown") != null) {
+				if (adjacent_transform.parent.Find(DROPDOWN_OBJECT_NAME) != null) {
 					return true;
 				}
-				TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(Resources.FindObjectsOfTypeAll<TMP_Dropdown>()[2], adjacent_transform.parent);	
+				if (m_dropdown_template == null) {
+					foreach (TMP_Dropdown tmp in Resources.FindObjectsOfTypeAll<TMP_Dropdown>()) {
+						if (tmp.name == "LanguageSettingsDropdown") {
+							m_dropdown_template = tmp;
+							break;
+						}
+					}
+					if (m_dropdown_template == null) {
+						logger.LogError("** HarmonyPatch_CraftingTable_Interact ERROR - unable to locate a TMP_Dropdown for cloning.");
+						return true;
+					}
+				}
+				TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(m_dropdown_template, adjacent_transform.parent);
+				foreach (Component component in dropdown.gameObject.GetComponents<Component>()) {
+					if (component.GetType().Assembly.GetName().Name == "I2Localization") {
+						GameObject.Destroy(component);
+						break;
+					}
+				}
 				RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
-				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 20f);
-                dropdown.name = "ConsolidatedCraftingPlugin_Choose_Recipe_List_Dropdown";
+				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 30f) + Vector3.right * adjacent_rect.rect.width * 2;
+                dropdown.name = DROPDOWN_OBJECT_NAME;
 				dropdown.onValueChanged.AddListener(new UnityAction<int>(delegate {
 					try {
 						FieldInfo field_info = __instance.GetType().GetField("_craftingRecipes", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -170,6 +274,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 						logger.LogError("** CraftingTable_RecipeListSelector_onValueChanged ERROR - " + e);
 					}
 				}));
+				dropdown.gameObject.SetActive(true);
 				___ui.AddComponent<RecipeListSelector>().initialize(dropdown, ___recipeList);
 				return true;
 			} catch (Exception e) {

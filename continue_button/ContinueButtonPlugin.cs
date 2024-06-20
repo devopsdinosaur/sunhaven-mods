@@ -7,8 +7,9 @@ using UnityEngine;
 using System;
 using System.IO;
 using TMPro;
+using I2.Loc;
 
-[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.4")]
+[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.5")]
 public class ContinueButtonPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.continue_button");
@@ -22,7 +23,7 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.continue_button v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.continue_button v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -58,13 +59,7 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 				m_continue_button = GameObject.Instantiate<GameObject>(play_button.gameObject, play_button.parent);
 				m_continue_button.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Continue";
 				m_continue_button.transform.SetAsFirstSibling();
-			
-				// * NavElement seems to have been deprecated
-				//enables using the keyboard or a controller to use the up/down keys/buttons to select the continue button
-				//NavigationElement navElement = play_button.gameObject.GetComponent<NavigationElement>();
-        		//	navElement.up = m_continue_button.GetComponent<NavigationElement>();
-        		//	m_continue_button.GetComponent<NavigationElement>().down = navElement;
-			
+				GameObject.Destroy(m_continue_button.transform?.GetChild(0)?.gameObject?.GetComponent<Localize>());
 				m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
 					__instance.PlayGame(latest_save_index);
 				});

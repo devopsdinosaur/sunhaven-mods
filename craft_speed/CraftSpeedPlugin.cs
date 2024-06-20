@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.5")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.6")]
 public class CraftSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_speed");
@@ -38,7 +38,8 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Cooking Pot", 
 		"Crafting Table", 
 		"Elven Crafting Table", 
-		"Elven Furnace", 
+		"Elven Furnace",
+		"Elven Furniture Table",
 		"Elven Juicer", 
 		"Elven Loom", 
 		"Elven Seed Maker", 
@@ -46,6 +47,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Farmers Table", 
 		"Fish Grill", 
 		"Furnace", 
+		"Furniture Table",
 		"Grinder", 
 		"Ice Cream Cart", 
 		"Jam Maker",
@@ -57,6 +59,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Mana Composter",
 		"Monster Crafting Table", 
 		"Mana Infuser Table", 
+		"Mana Siphoner",
 		"Monster Anvil", 
 		"Monster Composter", 
 		"Monster Furnace", 
@@ -65,6 +68,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Monster Loom", 
 		"Monster Seed Maker", 
 		"Monster Sushi Table", 
+		"Nursery Crafting Table",
 		"Oven", 
 		"Painters Easel", 
 		"Recycling Machine", 
@@ -72,7 +76,9 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Soda Machine", 
 		"Sushi Table", 
 		"Tea Kettle", 
-		"Tile Maker", 
+		"Tile Maker",
+		"Withergate Anvil",
+		"Withergate Furnace",
 		"Wizard Crafting Table"
 	};
 	private static ConfigEntry<bool>[] m_table_enabled = new ConfigEntry<bool>[m_table_names.Length];
@@ -95,7 +101,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -120,7 +126,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 						return;
 					}
 				}
-				logger.LogWarning("* unknown crafting table name '" + name + "'; this table will be ignored.  Please let devopsdinosaur know via email or Nexus PM.");
+				logger.LogWarning("* unknown crafting table name '" + name + "'; this table will be ignored.  Please let @devopsdinosaur on the official Sun Haven Discord game-mods channel.");
 			} catch (Exception e) {
 				logger.LogError("** CraftingTable.Awake_Postfix ERROR - " + e);
 			}

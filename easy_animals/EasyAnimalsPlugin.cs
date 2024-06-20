@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.easy_animals", "Easy Animals", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.easy_animals", "Easy Animals", "0.0.2")]
 public class EasyAnimalsPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.easy_animals");
@@ -25,7 +25,7 @@ public class EasyAnimalsPlugin : BaseUnityPlugin {
 			m_pet_relationship_inc = this.Config.Bind<float>("General", "Relationship Increase on Pet", 20f, "The extra amount to increase your relationship with the animal when petting (float, set to 0 to disable, this is in addition to the game default of 1f [max relationship is 20f])");
 			m_never_hungry = this.Config.Bind<bool>("General", "Never Hungry", true, "If true then animals never need food");
 			this.m_harmony.PatchAll();	
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.easy_animals v0.0.1 loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.easy_animals v0.0.2 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
