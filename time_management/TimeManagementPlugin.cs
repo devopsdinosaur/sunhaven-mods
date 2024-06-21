@@ -558,7 +558,7 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 					recipe_info.m_start_time = DayCycle.Instance.Time;
 				}
 				item.craftTime = (float) (DayCycle.Instance.Time - recipe_info.m_start_time).TotalSeconds / 60f;
-				logger.LogInfo($"instance: {__instance.name}, craftTime: {item.craftTime}, recipe_time: {recipe_info.m_total_time}, craftingUI.value: {___craftingUI.value}");
+				//logger.LogInfo($"instance: {__instance.name}, craftTime: {item.craftTime}, recipe_time: {recipe_info.m_total_time}, craftingUI.value: {___craftingUI.value}");
 				if (item.craftTime >= recipe_info.m_total_time) {
 					___craftingData.items.RemoveAt(0);
 					recipe_info.m_total_time = -1;

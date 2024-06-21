@@ -9,8 +9,7 @@ using Wish;
 using System;
 using System.Reflection;
 
-
-[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.bulldozer", "Bulldozer", "0.0.4")]
 public class BulldozerPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.bulldozer");
@@ -62,7 +61,7 @@ public class BulldozerPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.bulldozer v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -112,7 +111,7 @@ public class BulldozerPlugin : BaseUnityPlugin {
 			}
 
 			void bulldoze_tree(Vector2Int pos, ref bool done) {
-				if (done || !m_harvest_trees.Value || !GameManager.Instance.TryGetObjectSubTile<Tree>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Tree tree)) {
+				if (done || !m_harvest_trees.Value || !GameManager.Instance.TryGetObjectSubTile<Wish.Tree>(new Vector3Int(pos.x * 6, pos.y * 6, 0), out Wish.Tree tree)) {
 					return;
 				}
 				done = true;
@@ -147,7 +146,7 @@ public class BulldozerPlugin : BaseUnityPlugin {
 						Pickup.Spawn(spot_pos.x + 0.1f, spot_pos.y, spot_pos.z, fruit.id, 1, homeIn: false, 0.1f, Pickup.BounceAnimation.Fall, 1.5f, 125f);
 					}
 					if (Utilities.Chance(0.004f)) {
-						Pickup.Spawn(spot_pos.x - 0.1f, spot_pos.y, spot_pos.z, Utilities.RandomItem(Tree.explorationMuseumItems), 1, homeIn: false, 0.1f, Pickup.BounceAnimation.Fall, 1.5f, 125f);
+						Pickup.Spawn(spot_pos.x - 0.1f, spot_pos.y, spot_pos.z, Utilities.RandomItem(Wish.Tree.explorationMuseumItems), 1, homeIn: false, 0.1f, Pickup.BounceAnimation.Fall, 1.5f, 125f);
 					}
 					Player.Instance.AddEXP(ProfessionType.Exploration, (float) tree.GetType().GetField("forageEXP", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(tree));
 					SetFruit.Invoke(tree, new object[] {index, false});

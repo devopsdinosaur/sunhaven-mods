@@ -13,7 +13,6 @@ using System.Threading;
 using UnityEngine.UI;
 using PSS;
 
-
 [BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.19")]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 

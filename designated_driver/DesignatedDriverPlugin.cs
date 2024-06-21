@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.designated_driver", "Designated Driver", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.designated_driver", "Designated Driver", "0.0.4")]
 public class DesignatedDriverPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.designated_driver");
@@ -25,7 +25,7 @@ public class DesignatedDriverPlugin : BaseUnityPlugin {
 			this.m_harmony.PatchAll();
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
 			m_cheat_death = this.Config.Bind<bool>("General", "No Death Penalty", false, "Your invisible buddy whisks you home just before death.");
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.designated_driver v0.0.3 loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.designated_driver v0.0.4 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -49,46 +49,23 @@ public class DesignatedDriverPlugin : BaseUnityPlugin {
 				Cart.rewardRoom = "";
 				CombatDungeon.CurrentFloor = 0;
 				Utilities.UnlockAcheivement(83);
-				Player.onPassOut?.Invoke();
-				DialogueController.Instance.PushDialogue(
+                __instance.EndInteraction();
+                DialogueController.Instance.PushDialogue(
 					new DialogueNode {
 						dialogueText = new List<string> {"You passed out, but your invisible friend brought you home.  What a pal!"}
 					}, delegate {
 						__instance.GetType().GetTypeInfo().GetMethod("Sleep", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
 					}
 				);
-
-				// This is a partial (not quite working) attempt to fix the issue in the game (not just the mod)
-				// where items in the FarmSellingCrate disappear but don't give cash when player passes out.
-				
-				/*
-				List<int> hashes = new List<int>();
-				foreach (KeyValuePair<Vector3Int, Decoration> kvp in GameManager.Instance.objects) {
-					if (!(kvp.Value is FarmSellingCrate)) {
-						continue;
-					}
-					FarmSellingCrate crate  = (FarmSellingCrate) kvp.Value;
-					if (hashes.Contains(crate.GetHashCode())) {
-						continue;
-					}
-					hashes.Add(crate.GetHashCode());
-					logger.LogInfo("coins: " + GameSave.Coins + ", orbs: " + GameSave.Orbs + ", tickets: " + GameSave.Tickets);
-					DecorationPositionData data = new DecorationPositionData();
-					data.meta = crate.meta;
-					crate.UpdateMetaOvernight(ref data);
-					crate.meta = data.meta;
-					logger.LogInfo("coins: " + GameSave.Coins + ", orbs: " + GameSave.Orbs + ", tickets: " + GameSave.Tickets);
-				}
-				*/
 				return false;
 			} catch (Exception e) {
-				logger.LogError(" ERROR - " + e);
+				logger.LogError("** HarmonyPatch_Player_PassOut.Prefix ERROR - " + e);
 			}
 			return true;
 		}
 	}
-
-	[HarmonyPatch(typeof(Player), "Die")]
+	
+    [HarmonyPatch(typeof(Player), "Die")]
 	class HarmonyPatch_Player_Die {
 
 		private static bool Prefix(Player __instance) {
@@ -102,8 +79,21 @@ public class DesignatedDriverPlugin : BaseUnityPlugin {
 				Cart.currentRoom = 0;
 				Cart.rewardRoom = "";
 				if (PlaySettingsManager.PlaySettings.allowDeath) {
-					__instance.PassOut();
-				} else {
+					if (CombatDungeon.CurrentFloor > 0) {
+						SingletonBehaviour<ScenePortalManager>.Instance.ChangeScene(new Vector2(136.48f, 193.92f), "CombatDungeonEntrance", delegate {
+							__instance.RemovePauseObject("death");
+							__instance.Health = __instance.MaxHealth / 2f;
+                            __instance.GetType().GetProperty("Dying", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.SetProperty).SetValue(__instance, false);
+                            __instance.overrideFacingDirection = false;
+							__instance.facingDirection = Direction.South;
+							__instance.Invincible = false;
+							__instance.GetType().GetMethod("AddDeath", BindingFlags.Instance| BindingFlags.NonPublic).Invoke(__instance, new object[] { });
+							__instance.partyState = 0;
+						}, null, null, SceneFadeType.Fade, 2.5f);
+					} else {
+						__instance.PassOut();
+					}
+                } else {
 					__instance.Health = __instance.MaxHealth;
 				}
 				return false;

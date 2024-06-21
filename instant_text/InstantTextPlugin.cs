@@ -4,7 +4,7 @@ using HarmonyLib;
 using Wish;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.instant_text", "Instant Text", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.instant_text", "Instant Text", "0.0.2")]
 public class InstantTextPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.instant_text");
@@ -12,7 +12,7 @@ public class InstantTextPlugin : BaseUnityPlugin {
 
 	private void Awake() {
 		logger = this.Logger;
-		logger.LogInfo((object) "devopsdinosaur.sunhaven.instant_text v0.0.1 loaded.");
+		logger.LogInfo((object) "devopsdinosaur.sunhaven.instant_text v0.0.2 loaded.");
 		this.m_harmony.PatchAll();
 	}
 

@@ -15,7 +15,6 @@ using DG.Tweening;
 using ZeroFormatter;
 using UnityEngine.SceneManagement;
 
-
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
 public class ActionSpeedPlugin : BaseUnityPlugin {
 
@@ -75,38 +74,54 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Player), "RequestSleep")]
+    [HarmonyPatch(typeof(PlayerSettings), "SetCheatsEnabled")]
+    class HarmonyPatch_PlayerSettings_SetCheatsEnabled {
+
+        private static bool Prefix(ref bool enable) {
+			logger.LogInfo("Enabling cheats.");
+            enable = true;
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(Player), "RequestSleep")]
 	class HarmonyPatch_Player_RequestSleep {
 
 		private static bool Prefix(Player __instance, Bed bed, ref bool ____paused, ref UnityAction ___OnUnpausePlayer) {
-			DialogueController.Instance.SetDefaultBox();
-			DialogueController.Instance.PushDialogue(new DialogueNode {
-				dialogueText = new List<string> { "Would you like to sleep?" },
-				responses = new Dictionary<int, Response> {{
-					0,
-					new Response
-					{
-						responseText = () => "Yes",
-						action = delegate {
-							__instance.GetType().GetTypeInfo().GetMethod("StartSleep", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {bed});
+			try {
+				DialogueController.Instance.SetDefaultBox();
+				DialogueController.Instance.PushDialogue(new DialogueNode {
+					dialogueText = new List<string> { "Would you like to sleep?" },
+					responses = new Dictionary<int, Response> {{
+						0,
+						new Response
+						{
+							responseText = () => "Yes",
+							action = delegate {
+								__instance.GetType().GetTypeInfo().GetMethod("StartSleep", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {bed});
+							}
 						}
-					}
-				}, {
-					1,
-					new Response
-					{
-						responseText = () => "No",
-						action = delegate {
-							DialogueController.Instance.CancelDialogue(animate: true, null, showActionBar: true);
+					}, {
+						1,
+						new Response
+						{
+							responseText = () => "No",
+							action = delegate {
+								DialogueController.Instance.CancelDialogue(animate: true, null, showActionBar: true);
+							}
 						}
 					}
 				}
-			}});
-			____paused = true;
-			___OnUnpausePlayer = (UnityAction) Delegate.Combine(___OnUnpausePlayer, (UnityAction) delegate {
-				DialogueController.Instance.CancelDialogue();
-			});
-			return false;
+				});
+				____paused = true;
+				___OnUnpausePlayer = (UnityAction) Delegate.Combine(___OnUnpausePlayer, (UnityAction) delegate {
+					DialogueController.Instance.CancelDialogue();
+				});
+				return false;
+			} catch (Exception e) { 
+				logger.LogError("** HarmonyPatch_Player_RequestSleep.Prefix ERROR - " + e);
+			}
+			return true;
 		}
 	}
 
@@ -129,5 +144,4 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 			return false;
 		}
 	}
-
 }

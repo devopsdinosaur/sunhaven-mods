@@ -9,8 +9,7 @@ using UnityEngine;
 using ZeroFormatter;
 using DG.Tweening;
 
-
-[BepInPlugin("devopsdinosaur.sunhaven.arborist", "Arborist", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.arborist", "Arborist", "0.0.4")]
 public class ArboristPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.arborist");
@@ -39,68 +38,52 @@ public class ArboristPlugin : BaseUnityPlugin {
 			m_seed_drop_chance = this.Config.Bind<float>("General", "Seed Drop Chance", 0.15f, "Float value between 0 (no chance) and 1 (100% chance) of seed dropping when tree if cut down (default is game default of 0.15f [halved for stumps]).");			
 			m_museum_item_drop_chance = this.Config.Bind<float>("General", "Museum Item Drop Chance", 0.035f, "Float value between 0 (no chance) and 1 (100% chance) of museum item dropping when tree if cut down (default is game default of 0.035f [halved for stumps]).");			
 			this.m_harmony.PatchAll();	
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.arborist v0.0.3 loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.arborist v0.0.4 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
 	}
 
-	[HarmonyPatch(typeof(Tree), "UpdateMetaOvernight")]
-	class HarmonyPatch_Tree_UpdateMetaOvernight {
+	[HarmonyPatch(typeof(DecorationUpdater), "Tree_UpdateMetaOvernight")]
+	class HarmonyPatch_DecorationUpdater_Tree_UpdateMetaOvernight {
 
-		private static bool Prefix(
-			Tree __instance, 
-			ref DecorationPositionData decorationData,
-			List<Sprite> ____treeStages,
-			List<Sprite> ____springStages,
-			List<Sprite> ____summerStages,
-			List<Sprite> ____fallStages,
-			List<Sprite> ____winterStages
-		) {
+		private static bool Prefix(ref DecorationPositionData decorationData) {
 			try {
 				if (!m_enabled.Value) {
 					return true;
 				}
-				List<Sprite> TreeStages;
-				switch (DayCycle.Instance.Season) {
-				case Season.Summer: TreeStages = (____summerStages == null || ____summerStages.Count <= 0 ? ____treeStages : ____summerStages); break;
-				case Season.Fall: TreeStages = (____fallStages == null || ____fallStages.Count <= 0 ? ____treeStages : ____fallStages); break;
-				case Season.Winter: TreeStages = (____winterStages == null || ____winterStages.Count <= 0 ? ____treeStages : ____winterStages); break;
-				default: TreeStages = (____springStages == null || ____springStages.Count <= 0 ? ____treeStages : ____springStages); break;
-				}
-				if (!Decoration.DeserializeMeta(decorationData.meta, ref __instance.data)) {
-					__instance.data.fallen = false;
-					__instance.data.mushroom = __instance.data.mushroom || Utilities.Chance(m_overnight_mushroom_chance.Value);
-					__instance.data.cobweb = __instance.data.cobweb || Utilities.Chance(m_overnight_cobweb_chance.Value);
-					__instance.data.stage = 1;
-				} else if (__instance.data.stage <= 2 || Utilities.Chance(m_overnight_growth_chance.Value)) {
-					__instance.data.stage = Mathf.Min(__instance.data.stage + 1, TreeStages.Count + 1);
-				}
-				try {
-					__instance.data.fallen = __instance.data.fallen;
-					__instance.data.mushroom = __instance.data.mushroom;
-					__instance.data.cobweb = __instance.data.cobweb;
-					__instance.data.stage = __instance.data.stage;
-				} catch {
-					__instance.data = new TreeSaveData {
-						fallen = false,
-						stage = TreeStages.Count + 1
-					};
-				}
-				SceneSettings value;
-				bool flag = SceneSettingsManager.Instance.sceneDictionary.TryGetValue(decorationData.sceneID, out value) && value.mapType != MapType.Farm;
-				if (__instance.data.fallen && flag) {
-					__instance.data.fallen = Utilities.Chance(0.5f);
-				}
-				if (!__instance.data.fallen && __instance.data.stage == TreeStages.Count + 1)
-				{
-					__instance.data.mushroom = __instance.data.mushroom || Utilities.Chance(m_overnight_mushroom_chance.Value);
-					__instance.data.cobweb = __instance.data.cobweb || Utilities.Chance(m_overnight_mushroom_chance.Value);
-				}
-				decorationData.meta = ZeroFormatterSerializer.Serialize(__instance.data);
+                if (!DecorationUpdater.DeserializeMeta(decorationData.meta, ref DecorationUpdater.treeData)) {
+                    DecorationUpdater.treeData.fallen = false;
+                    DecorationUpdater.treeData.mushroom = DecorationUpdater.treeData.mushroom || Utilities.Chance(m_overnight_mushroom_chance.Value);
+                    DecorationUpdater.treeData.cobweb = DecorationUpdater.treeData.cobweb || Utilities.Chance(m_overnight_cobweb_chance.Value);
+                    DecorationUpdater.treeData.stage = 1;
+                } else if (DecorationUpdater.treeData.stage <= 2 || Utilities.Chance(m_overnight_growth_chance.Value)) {
+                    DecorationUpdater.treeData.stage = Mathf.Min(DecorationUpdater.treeData.stage + 1, 7);
+                }
+                try {
+                    DecorationUpdater.treeData.fallen = DecorationUpdater.treeData.fallen;
+                    DecorationUpdater.treeData.mushroom = DecorationUpdater.treeData.mushroom;
+                    DecorationUpdater.treeData.cobweb = DecorationUpdater.treeData.cobweb;
+                    DecorationUpdater.treeData.stage = DecorationUpdater.treeData.stage;
+                } catch (Exception) {
+                    DecorationUpdater.treeData = new TreeSaveData {
+                        fallen = false,
+                        stage = 7
+                    };
+                }
+                SceneSettings value;
+                bool flag = SceneSettingsManager.Instance.sceneDictionary.TryGetValue(decorationData.sceneID, out value) && value.mapType != MapType.Farm;
+                if (DecorationUpdater.treeData.fallen && flag) {
+                    DecorationUpdater.treeData.fallen = Utilities.Chance(0.5f);
+                }
+                if (!DecorationUpdater.treeData.fallen && DecorationUpdater.FullyGrown) {
+                    DecorationUpdater.treeData.mushroom = DecorationUpdater.treeData.mushroom || Utilities.Chance(m_overnight_mushroom_chance.Value);
+                    DecorationUpdater.treeData.cobweb = DecorationUpdater.treeData.cobweb || Utilities.Chance(m_overnight_cobweb_chance.Value);
+                }
+                decorationData.meta = ZeroFormatterSerializer.Serialize(DecorationUpdater.treeData);
 				return false;
 			} catch (Exception e) {
-				logger.LogError("** Tree.UpdateMetaOvernight_Prefix ERROR - " + e);
+				logger.LogError("** HarmonyPatch_DecorationUpdater_Tree_UpdateMetaOvernight.Prefix ERROR - " + e);
 			}
 			return true;
 		}
@@ -122,11 +105,11 @@ public class ArboristPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Tree), "SpawnDrops")]
+	[HarmonyPatch(typeof(Wish.Tree), "SpawnDrops")]
 	class HarmonyPatch_Tree_SpawnDrops {
 
 		private static bool Prefix(
-			Tree __instance,
+            Wish.Tree __instance,
 			Vector3 fallPosition, 
 			bool stumpDrop,
 			Transform ___graphics,
@@ -211,7 +194,7 @@ public class ArboristPlugin : BaseUnityPlugin {
 						}
 					}
 					if (Utilities.Chance(stumpDrop ? m_museum_item_drop_chance.Value / 2 : m_museum_item_drop_chance.Value)) {
-						int num11 = Tree.explorationMuseumItems.RandomItem();
+						int num11 = Wish.Tree.explorationMuseumItems.RandomItem();
 						Pickup.Spawn(fallPosition.x, (fallPosition.y - 0.5f) * 1.41421354f, 0f, num11);
 					}
 				} else if (__instance.data.stage >= 3) {

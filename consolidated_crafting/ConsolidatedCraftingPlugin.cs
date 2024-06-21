@@ -136,10 +136,12 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 
 	class RecipeListSelector : MonoBehaviour {
 		
+		private CraftingTable m_table = null;
 		private TMP_Dropdown m_dropdown = null;
 		private RecipeList m_recipe_list;
 		
-		public void initialize(TMP_Dropdown dropdown, RecipeList recipe_list) {
+		public void initialize(CraftingTable table, TMP_Dropdown dropdown, RecipeList recipe_list) {
+			this.m_table = table;
 			this.m_dropdown = dropdown;
 			this.m_recipe_list = recipe_list;
 		}
@@ -151,6 +153,10 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 			List<string> sorted_names = new List<string>(m_table_recipes.Keys);
 			sorted_names.Sort();
 			foreach (string name in sorted_names) {
+				if (name == "Anvil" && !this.m_table.name.StartsWith("new_Anvil")) {
+					// TODO: anvil recipes don't want to come up for anything but anvil?
+					continue;
+				}
 				this.m_dropdown.options.Add(new TMP_Dropdown.OptionData(name));
 				if (m_table_recipes[name] == this.m_recipe_list) {
 					selected_index = index;
@@ -277,7 +283,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					}
 				}));
 				dropdown.gameObject.SetActive(true);
-				___ui.AddComponent<RecipeListSelector>().initialize(dropdown, ___recipeList);
+				___ui.AddComponent<RecipeListSelector>().initialize(__instance, dropdown, ___recipeList);
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_CraftingTable_Interact_Prefix ERROR - " + e);

@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.12")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.13")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -39,8 +39,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 	private static ConfigEntry<bool> m_water_after_harvest;
 	private static ConfigEntry<bool> m_weapons_harvest_crops;
 	private static ConfigEntry<bool> m_auto_mana;
-
-	
 
 	private void Awake() {
 		logger = this.Logger;
@@ -69,7 +67,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.12" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.13" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -148,44 +146,13 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 				if (!m_enabled.Value || !m_water_overnight.Value) {
 					return true;
 				}
-                int nodeAmount = GameSave.Farming.GetNodeAmount("Farming3a");
-                float num = 1f;
-                if (nodeAmount > 0) {
-                    num -= 0.05f * (float) nodeAmount;
-                }
-                bool flag = false;
-                foreach (KeyValuePair<PetPositionData, Pet> pet in SingletonBehaviour<NPCManager>.Instance.pets) {
-                    if (pet.Key.id == 13125) {
-                        flag = true;
-                        break;
-                    }
-                }
-                if (Player.Instance.PlayerPet != null && Player.Instance.PlayerPet.petItemData != null && Player.Instance.PlayerPet.petItemData.id == 13125) {
-                    flag = true;
-                }
-                if (GameManager.Multiplayer) {
-                    foreach (NetworkGamePlayer value in NetworkLobbyManager.Instance.GamePlayers.Values) {
-                        if ((bool) value.player && value.player.PlayerPet != null && value.player.PlayerPet.petItemData != null && value.player.PlayerPet.petItemData.id == 13125) {
-                            flag = true;
-                            break;
-                        }
-                    }
-                }
-                if (flag) {
-                    num -= 0.1f;
-                }
                 foreach (KeyValuePair<short, Dictionary<KeyTuple<ushort, ushort>, byte>> item in SingletonBehaviour<GameSave>.Instance.CurrentWorld.FarmingInfo.ToList()) {
                     short key = item.Key;
-                    int num2 = 0;
                     foreach (KeyValuePair<KeyTuple<ushort, ushort>, byte> item2 in item.Value.ToList()) {
                         Vector2Int position = new Vector2Int(item2.Key.Item1, item2.Key.Item2);
                         if (item2.Value == (int) FarmingTileInfo.Hoed) {
                             SingletonBehaviour<TileManager>.Instance.Water(position, key);
                         }
-                        if (item2.Value == (int) FarmingTileInfo.Watered && Utilities.Chance(num)) {
-                            SingletonBehaviour<TileManager>.Instance.Hoe(position, key);
-                        }
-                        num2++;
                     }
                 }
 				return false;
@@ -199,81 +166,254 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(DecorationUpdater), "Crop_UpdateMetaOvernight")]
 	class HarmonyPatch_DecorationUpdater_Crop_UpdateMetaOvernight {
 
-		private static bool Prefix(ref DecorationPositionData decorationData) {
+		private static bool Prefix(
+			ref DecorationPositionData decorationData
+		) {
 			try {
-				if (!m_enabled.Value) {
+
+                void SetCropPositionToUnwatered(DecorationPositionData _decorationData) {
+                    Vector2Int position = new Vector2Int(_decorationData.x / 6, _decorationData.y / 6);
+                    SingletonBehaviour<TileManager>.Instance.Hoe(position, _decorationData.sceneID);
+                }
+
+                void CropDie() {
+                    DecorationUpdater.cropData.dead = true;
+                    DecorationUpdater.cropData.onFire = false;
+                    DecorationUpdater.cropData.entangled = false;
+                    DecorationUpdater.cropData.frozen = false;
+                }
+
+                int AdjustedDaysToGrow(CropInfo _seedItem, int i) {
+                    float num = _seedItem.cropStages[Mathf.Clamp(i + 1, 0, _seedItem.cropStages.Length - 1)];
+                    float num2 = 1f;
+                    if (DecorationUpdater.cropData != null) {
+                        if (DecorationUpdater.cropData.scareCrowEffects != null && DecorationUpdater.cropData.scareCrowEffects.Count > 0) {
+                            num2 += (float) DecorationUpdater.cropData.scareCrowEffects.Count((ScareCrowEffect effect) => effect == ScareCrowEffect.Fire) * 0.15f;
+                        }
+                        if (m_fertilize_fire2.Value || DecorationUpdater.cropData.fertilizerType == FertilizerType.Fire2 || DecorationUpdater.cropData.fertilizerType == FertilizerType.Magic2) {
+                            num2 += 0.5f;
+                        } else if (DecorationUpdater.cropData.fertilizerType == FertilizerType.Fire1 || DecorationUpdater.cropData.fertilizerType == FertilizerType.Magic1) {
+                            num2 += 0.3f;
+                        }
+                        num /= num2;
+                    }
+                    return Mathf.CeilToInt(num);
+                }
+
+                int StageFromTimePlanted(CropInfo _seedItem) {
+                    int num = 0;
+                    if (_seedItem == null) {
+                        Debug.LogError("Error: _seedItem is null");
+                        return num;
+                    }
+                    if (_seedItem.cropStages == null) {
+                        Debug.LogError("Error: _seedItem.cropStages is null");
+                        return num;
+                    }
+                    for (int i = 0; i < _seedItem.cropStages.Length - 1 && DayCycle.Day - DecorationUpdater.cropData.dayPlanted - AdjustedDaysToGrow(_seedItem, i) >= 0; i++) {
+                        num++;
+                    }
+                    return Mathf.Clamp(num, 0, _seedItem.cropStages.Length - 1);
+                }
+
+                if (!m_enabled.Value) {
 					return true;
 				}
-				CropSaveData crop_data = null;
-				if (!Decoration.DeserializeMeta(decorationData.meta, ref crop_data)) {
-					crop_data.scareCrowEffects = new List<ScareCrowEffect>();
-					crop_data.dayPlanted = DayCycle.Day;
-					crop_data.stage = 0;
-				}
-				if (m_scarecrow.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.BasicSpring);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.BasicSummer);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.BasicFall);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.BasicWinter);
-				}
-				if (m_totem_seasons.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Spring);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Summer);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Fall);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Winter);
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Fire);
-				}
-				if (m_totem_sunhaven.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.SunHaven);
-				}
-				if (m_totem_nelvari.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Nelvari);
-				}
-				if (m_totem_withergate.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Withergate);
-				}
-				if (m_totem_royal.Value) {
-					crop_data.scareCrowEffects.Add(ScareCrowEffect.Royal);
-				}
-				if (m_auto_mana.Value && !crop_data.manaInfused) {
-					crop_data.manaInfused = true;
-				}
-				decorationData.meta = ZeroFormatterSerializer.Serialize(crop_data);
-				return true;
-			} catch (Exception e) {
+				if (!DecorationUpdater.DeserializeMeta(decorationData.meta, ref DecorationUpdater.cropData)) {
+                    DecorationUpdater.cropData.scareCrowEffects = new List<ScareCrowEffect>();
+                    DecorationUpdater.cropData.dayPlanted = DayCycle.Day;
+                    DecorationUpdater.cropData.stage = 0;
+                }
+                CropInfo cropInfo = SingletonBehaviour<ItemInfoDatabase>.Instance.cropInfos[decorationData.id];
+                if (!DecorationUpdater.cropData.watered) {
+                    DecorationUpdater.cropData.watered = m_water_overnight.Value || cropInfo.alwaysWatered || SingletonBehaviour<GameSave>.Instance.GetFarmingInfo(new Vector2Int(decorationData.x / 6, decorationData.y / 6), decorationData.sceneID) == FarmingTileInfo.Watered;
+                }
+                if ((!DecorationUpdater.cropData.watered && !cropInfo.alwaysWatered) || DecorationUpdater.cropData.frozen || DecorationUpdater.cropData.entangled || DecorationUpdater.cropData.onFire) {
+                    DecorationUpdater.cropData.dayPlanted++;
+                }
+                if (DecorationUpdater.cropData.watered) {
+                    if (cropInfo.alwaysWatered) {
+                        SingletonBehaviour<TileManager>.Instance.Water(new Vector2Int(decorationData.x / 6, decorationData.y / 6), decorationData.sceneID);
+                    }
+                    float num = 0f;
+                    if (DecorationUpdater.cropData.scareCrowEffects != null && DecorationUpdater.cropData.scareCrowEffects.Count > 0) {
+                        num += (float) DecorationUpdater.cropData.scareCrowEffects.Count((ScareCrowEffect effect) => effect == ScareCrowEffect.Water) * 0.2f;
+                    }
+                    if (DecorationUpdater.cropData.fertilizerType == FertilizerType.Sand) {
+                        num += 0.3f;
+                    }
+                    if (DecorationUpdater.cropData.fertilizerType == FertilizerType.Water1 || DecorationUpdater.cropData.fertilizerType == FertilizerType.Magic1) {
+                        num += 0.6f;
+                    }
+                    if (DecorationUpdater.cropData.fertilizerType == FertilizerType.Water2 || DecorationUpdater.cropData.fertilizerType == FertilizerType.Magic2 || DecorationUpdater.cropData.fertilizerType == FertilizerType.Slime) {
+                        num += 1f;
+                    }
+                    if (m_water_overnight.Value || Utilities.Chance(num)) {
+                        SingletonBehaviour<TileManager>.Instance.Water(new Vector2Int(decorationData.x / 6, decorationData.y / 6), decorationData.sceneID);
+                    }
+                    if (cropInfo.neverWatered) {
+                        SetCropPositionToUnwatered(decorationData);
+                    }
+                }
+                if (m_totem_royal.Value || DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Royal)) {
+                    DecorationUpdater.cropData.daysGeneratingGold++;
+                }
+                if (!cropInfo.alwaysWatered) {
+                    DecorationUpdater.cropData.watered = m_water_overnight.Value || SingletonBehaviour<GameSave>.Instance.GetFarmingInfo(new Vector2Int(decorationData.x / 6, decorationData.y / 6), decorationData.sceneID) == FarmingTileInfo.Watered;
+                }
+                if (!m_auto_mana.Value || (cropInfo.manaInfusable && !DecorationUpdater.cropData.manaInfused)) {
+                    CropDie();
+                }
+                string text = "";
+                if (SceneSettingsManager.Instance.sceneDictionary.TryGetValue(decorationData.sceneID, out var value)) {
+                    switch (cropInfo.farmType) {
+                    case FarmType.Normal:
+                    if (value.townType != 0 && !m_totem_sunhaven.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.SunHaven)) {
+                        CropDie();
+                    }
+                    break;
+                    case FarmType.Withergate:
+                    if (value.townType != TownType.Withergate && !m_totem_withergate.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Withergate)) {
+                        CropDie();
+                    }
+                    break;
+                    case FarmType.Nelvari:
+                    if (value.townType != TownType.Nelvari && !m_totem_nelvari.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Nelvari)) {
+                        CropDie();
+                    }
+                    break;
+                    }
+                    text = value.sceneName;
+                }
+                if (!cropInfo.isFlower && StageFromTimePlanted(cropInfo) < cropInfo.cropStages.Length - 1) {
+                    bool flag = !m_any_season_planting.Value;
+                    bool flag2 = !m_any_season_planting.Value;
+                    if (!flag2 && text.Contains("GreenHouse")) {
+                        flag2 = true;
+                        if (text.Contains("Spring") && cropInfo.seasons.Contains(Season.Spring)) {
+                            flag = true;
+                        }
+                        if (text.Contains("Summer") && cropInfo.seasons.Contains(Season.Summer)) {
+                            flag = true;
+                        }
+                        if (text.Contains("Fall") && cropInfo.seasons.Contains(Season.Fall)) {
+                            flag = true;
+                        }
+                        if (text.Contains("Winter") && cropInfo.seasons.Contains(Season.Winter)) {
+                            flag = true;
+                        }
+                    }
+                    if ((!flag2 && !cropInfo.seasons.Contains(SingletonBehaviour<DayCycle>.Instance.Season)) || (flag2 && !flag)) {
+                        CropDie();
+                    }
+                    float chance = ((Settings.DisableSeasonalPests || flag2) ? 0f : 0.0166667f);
+                    switch (SingletonBehaviour<DayCycle>.Instance.Season) {
+                    case Season.Spring:
+                    if (Utilities.Chance(chance) && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.BasicSpring)) {
+                        DecorationUpdater.cropData.stolen = true;
+                    }
+                    break;
+                    case Season.Summer:
+                    if (Utilities.Chance(chance) && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.BasicSummer)) {
+                        DecorationUpdater.cropData.stolen = true;
+                    }
+                    if (Utilities.Chance(Settings.DisableSeasonalCropEffects ? 0f : (SingletonBehaviour<DayCycle>.Instance.Heatwave ? 0.6f : 0.125f)) && (!DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Summer) || Utilities.Chance(0.2f)) && !SingletonBehaviour<DayCycle>.Instance.WorldRaining) {
+                        DecorationUpdater.cropData.onFire = true;
+                        DecorationUpdater.cropData.watered = false;
+                        SetCropPositionToUnwatered(decorationData);
+                    }
+                    break;
+                    case Season.Fall:
+                    if (Utilities.Chance(chance) && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.BasicFall)) {
+                        DecorationUpdater.cropData.stolen = true;
+                    }
+                    if (Utilities.Chance(Settings.DisableSeasonalCropEffects ? 0f : 0.125f) && (!DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Fall) || Utilities.Chance(0.2f))) {
+                        DecorationUpdater.cropData.entangled = true;
+                    }
+                    break;
+                    case Season.Winter:
+                    if (Utilities.Chance(chance) && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.BasicWinter)) {
+                        DecorationUpdater.cropData.stolen = true;
+                    }
+                    if (Utilities.Chance(Settings.DisableSeasonalCropEffects ? 0f : 0.15f) && (!DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Winter) || Utilities.Chance(0.2f))) {
+                        DecorationUpdater.cropData.frozen = true;
+                    }
+                    break;
+                    }
+                }
+                decorationData.meta = ZeroFormatterSerializer.Serialize(DecorationUpdater.cropData);
+				return false;
+            } catch (Exception e) {
 				logger.LogError("** HarmonyPatch_DecorationUpdater_Crop_UpdateMetaOvernight.Prefix ERROR - " + e);
 			}
 			return true;
 		}
 	}
 
-	[HarmonyPatch(typeof(Crop), "Awake")]
-	class HarmonyPatch_Crop_Awake {
+    [HarmonyPatch(typeof(Seeds), "Use1")]
+	class HarmonyPatch_Seeds_Use1 {
 
-		private static void Postfix(Crop __instance) {
+		private static bool Prefix(
+			Seeds __instance,
+            Vector2Int ___pos,
+            Vector2Int ___prevPos,
+            SeedData ____seedItem,
+			Crop ____crop
+        ) {
 			try {
-				if (!m_enabled.Value || !m_any_season_planting.Value) {
-					return;
+				if (!m_enabled.Value) {
+					return true;
 				}
-				__instance._seedItem.seasons = new List<Season>() {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_Crop_Awake.Prefix ERROR - " + e);
-			}
-		}
-	}
-
-	[HarmonyPatch(typeof(Seeds), "Awake")]
-	class HarmonyPatch_Seeds_Awake {
-
-		private static void Postfix(Seeds __instance) {
-			try {
-				if (!m_enabled.Value || !m_any_season_planting.Value) {
-					return;
+                if (!SingletonBehaviour<TileManager>.Instance.IsHoedOrWatered(___pos) || !(___prevPos != ___pos)) {
+                    return false;
+                }
+                SeedData seed = ____seedItem;
+                ___prevPos = ___pos;
+				if (!SingletonBehaviour<FarmAnimalHandler>.Instance.CanPlaceNewCrop(1)) {
+                    Player.Instance.PausePlayerWithDialogue("seeds", "You cannot plant any more than " + SingletonBehaviour<FarmAnimalHandler>.Instance.CropCapacity + " crops right now! Try placing more scarecrows or upgrading your house.");
+                    return false;
 				}
-				__instance._seedItem.seasons = new List<Season>() {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_Seeds_Awake.Prefix ERROR - " + e);
+                Vector3Int vector3Int = new Vector3Int(___pos.x * 6, ___pos.y * 6, 0);
+                bool flag = !m_any_season_planting.Value;
+                bool flag2 = !m_any_season_planting.Value;
+                string sceneName = SceneSettingsManager.Instance.GetCurrentSceneSettings.sceneName;
+                if (!flag2 && sceneName.Contains("GreenHouse")) {
+                    flag2 = true;
+                    if (sceneName.Contains("Spring") && seed.seasons.Contains(Season.Spring)) {
+                        flag = true;
+                    }
+                    if (sceneName.Contains("Summer") && seed.seasons.Contains(Season.Summer)) {
+                        flag = true;
+                    }
+                    if (sceneName.Contains("Fall") && seed.seasons.Contains(Season.Fall)) {
+                        flag = true;
+                    }
+                    if (sceneName.Contains("Winter") && seed.seasons.Contains(Season.Winter)) {
+                        flag = true;
+                    }
+                }
+				if (!(seed.farmType == FarmType.Any || seed.farmType == TileManager.farmType || (____crop is Crop crop && crop.CanBePlacedBecauseScarecrowNearby(new Vector2(___pos.x, (float) ___pos.y * 1.4142135f), vector3Int)))) {
+                    AudioManager.Instance.PlayAudio(SingletonBehaviour<Prefabs>.Instance.errorSound, 0.5f);
+                    SingletonBehaviour<NotificationStack>.Instance.SendNotification("This can't be planted here");
+					return false;
+                }
+				SingletonBehaviour<GameManager>.Instance.SetDecorationSubTile(vector3Int, seed.id, new byte[0], sendPlaceEvent: true, saveDecoration: true, animation: true, ignoreDataLayerPlacement: false, canDestroyDecorations: false, 0, delegate (Decoration decoration)
+				{
+					Crop crop2 = (Crop) decoration;
+					if ((bool) crop2) {
+						Player.Instance.Inventory.RemoveItemAt(Player.Instance.ItemIndex, 1);
+						__instance.HoldAnimation();
+						AudioManager.Instance.PlayOneShot(SingletonBehaviour<Prefabs>.Instance.plantSeedsSound, __instance.transform.position, 1f);
+						crop2.OnPlaced();
+						___prevPos = ___pos;
+						Seeds.onPlant?.Invoke(seed.id);
+					}
+				});
+				return false;
+            } catch (Exception e) {
+				logger.LogError("** HarmonyPatch_Seeds_Use1.Prefix ERROR - " + e);
 			}
+			return true;
 		}
 	}
 
@@ -411,23 +551,6 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 				return false;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_Crop_AdjustedDaysToGrow.Prefix ERROR - " + e);
-			}
-			return true;
-		}
-	}
-
-	[HarmonyPatch(typeof(Seeds), "Use1")]
-	class HarmonyPatch_Seeds_Use1 {
-
-		private static bool Prefix(SeedData ____seedItem) {
-			try {
-				if (!(m_enabled.Value && m_any_season_planting.Value)) {
-					return true;
-				}
-				____seedItem.seasons = new List<Season> {Season.Spring, Season.Summer, Season.Fall, Season.Winter};
-				return true;
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_Seeds_Use1.Prefix ERROR - " + e);
 			}
 			return true;
 		}
