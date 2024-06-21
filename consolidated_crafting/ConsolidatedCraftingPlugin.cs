@@ -178,6 +178,8 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 		}
 	}
 
+	private const int NUM_CRAFTING_IMAGES = 25;
+
 	[HarmonyPatch(typeof(CraftingTable), "Interact")]
 	class HarmonyPatch_CraftingTable_Interact {
 

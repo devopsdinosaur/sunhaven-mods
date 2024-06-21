@@ -488,4 +488,100 @@ public class TimeManagementPlugin : BaseUnityPlugin {
 			return true;
 		}
 	}
+
+	[HarmonyPatch(typeof(CraftingTable), "SetupCraftingQueue")]
+	class HarmonyPatch_CraftingTable_SetupCraftingQueue {
+
+		private static bool Prefix(ref bool ___needsRefresh) {
+			___needsRefresh = true;
+			return false;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "CancelCraft")]
+	class HarmonyPatch_CraftingTable_CancelCraft {
+
+		private static bool Prefix(ref bool ___needsRefresh) {
+			___needsRefresh = true;
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "CancelCrafting")]
+	class HarmonyPatch_CraftingTable_CancelCrafting {
+
+		private static bool Prefix(ref bool ___needsRefresh) {
+			___needsRefresh = true;
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(CraftingTable), "LateUpdate")]
+	class HarmonyPatch_CraftingTable_LateUpdate {
+
+		const float CHECK_FREQUENCY = 0.5f;
+		static float m_elapsed = CHECK_FREQUENCY;
+		static Dictionary<int, RecipeInfo> m_recipe_times = new Dictionary<int, RecipeInfo>();
+		
+		class RecipeInfo {
+			public int item_hash = 0;
+			public float m_total_time = -1;
+			public DateTime m_start_time;
+		}
+
+		private static bool Prefix(
+			CraftingTable __instance,
+			ref bool ___needsRefresh,
+			CraftingTableData ___craftingData,
+			CraftingUI ___craftingUI,
+			Animator ___animator
+		) {
+			try {
+				if ((m_elapsed += Time.deltaTime) < CHECK_FREQUENCY && !___needsRefresh) {
+					return false;
+				}
+				m_elapsed = 0f;
+				___needsRefresh = false;
+				if (___craftingData.items.Count == 0) {
+					___craftingUI.worldProgressSlider.gameObject.SetActive(value: false);
+					__instance.GetType().GetMethod("SetCraftingQueueImages", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
+					return false;
+				}
+				ItemCraftInfo item = ___craftingData.items[0];
+				if (!m_recipe_times.ContainsKey(__instance.GetHashCode())) {
+					m_recipe_times[__instance.GetHashCode()] = new RecipeInfo();
+				}
+				RecipeInfo recipe_info = m_recipe_times[__instance.GetHashCode()];
+				if (recipe_info.item_hash != item.GetHashCode() || recipe_info.m_total_time <= 0) {
+					recipe_info.item_hash = item.GetHashCode();
+					recipe_info.m_total_time = item.craftTime;
+					recipe_info.m_start_time = DayCycle.Instance.Time;
+				}
+				item.craftTime = (float) (DayCycle.Instance.Time - recipe_info.m_start_time).TotalSeconds / 60f;
+				logger.LogInfo($"instance: {__instance.name}, craftTime: {item.craftTime}, recipe_time: {recipe_info.m_total_time}, craftingUI.value: {___craftingUI.value}");
+				if (item.craftTime >= recipe_info.m_total_time) {
+					___craftingData.items.RemoveAt(0);
+					recipe_info.m_total_time = -1;
+					__instance.GetType().GetMethod("FinishItem", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {item});
+				} else {
+					___craftingUI.value = Math.Abs(1 - ((recipe_info.m_total_time - item.craftTime) / recipe_info.m_total_time));
+					___craftingUI.worldProgressSlider.value = ___craftingUI.value;
+					___craftingUI.screenProgressSlider.value = ___craftingUI.value;
+					___craftingUI.worldProgressSlider.gameObject.SetActive(value: true);
+					if (___craftingUI.value - ___craftingUI.worldProgressSlider.value > 0.025f) {
+						___craftingUI.worldProgressSlider.value = ___craftingUI.value;
+						___craftingUI.screenProgressSlider.value = ___craftingUI.value;
+					}
+					if (___animator != null) {
+						___animator.SetBool("Crafting", value: true);
+					}
+				}
+				__instance.GetType().GetMethod("SetCraftingQueueImages", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(__instance, new object[] {});
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_CraftingTable_LateUpdate.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+	}
 }
