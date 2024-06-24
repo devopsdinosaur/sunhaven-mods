@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.13")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.14")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -67,7 +67,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.13" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.14" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -286,8 +286,8 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                     text = value.sceneName;
                 }
                 if (!cropInfo.isFlower && StageFromTimePlanted(cropInfo) < cropInfo.cropStages.Length - 1) {
-                    bool flag = !m_any_season_planting.Value;
-                    bool flag2 = !m_any_season_planting.Value;
+                    bool flag = m_any_season_planting.Value;
+                    bool flag2 = m_any_season_planting.Value;
                     if (!flag2 && text.Contains("GreenHouse")) {
                         flag2 = true;
                         if (text.Contains("Spring") && cropInfo.seasons.Contains(Season.Spring)) {
@@ -374,8 +374,8 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                     return false;
 				}
                 Vector3Int vector3Int = new Vector3Int(___pos.x * 6, ___pos.y * 6, 0);
-                bool flag = !m_any_season_planting.Value;
-                bool flag2 = !m_any_season_planting.Value;
+                bool flag = m_any_season_planting.Value;
+                bool flag2 = m_any_season_planting.Value;
                 string sceneName = SceneSettingsManager.Instance.GetCurrentSceneSettings.sceneName;
                 if (!flag2 && sceneName.Contains("GreenHouse")) {
                     flag2 = true;

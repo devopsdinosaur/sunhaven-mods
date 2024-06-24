@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(SolutionDir)\solution_private.targets" />
+  <Import Project="$(SolutionDir)\solution.targets" />
+</Project>

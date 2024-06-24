@@ -14,9 +14,10 @@ using TMPro;
 using DG.Tweening;
 using ZeroFormatter;
 using UnityEngine.SceneManagement;
+using PSS;
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
-public class ActionSpeedPlugin : BaseUnityPlugin {
+public class TestingPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
 	public static ManualLogSource logger;
@@ -144,4 +145,50 @@ public class ActionSpeedPlugin : BaseUnityPlugin {
 			return false;
 		}
 	}
+
+	[HarmonyPatch(typeof(Player), "Update")]
+	class HarmonyPatch_Player_Update {
+
+		private static bool Prefix() {
+			try {
+				if (Input.GetKeyDown(KeyCode.F11)) {
+					//((ItemIcon) typeof(ItemIcon).GetField("_currentHoveredIcon", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null))?.DropIcon();
+					Inventory.CurrentItemIcon.DropIcon();
+				}
+			} catch (Exception e) {
+				logger.LogError("** ERROR - " + e);
+			}
+			return true;
+		}
+	}
+	
+	/*
+	[HarmonyPatch(typeof(), "")]
+	class HarmonyPatch_ {
+
+		private static bool Prefix() {
+			try {
+
+				return false;
+			} catch (Exception e) {
+				logger.LogError("** ERROR - " + e);
+			}
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(), "")]
+	class HarmonyPatch_ {
+
+		private static void Postfix() {
+			try {
+
+				
+			} catch (Exception e) {
+				logger.LogError("** ERROR - " + e);
+			}
+			return true;
+		}
+	}
+	*/
 }
