@@ -61,6 +61,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "green_man", "green_man\gree
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "inventory_first", "inventory_first\inventory_first.csproj", "{BADB1F2C-3B7B-4B1B-A8DA-D9723B05C840}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "font_scaler", "font_scaler\font_scaler.csproj", "{421DD509-81C2-49A7-878E-C42AA9C9AAD0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,10 @@ Global
 		{BADB1F2C-3B7B-4B1B-A8DA-D9723B05C840}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BADB1F2C-3B7B-4B1B-A8DA-D9723B05C840}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BADB1F2C-3B7B-4B1B-A8DA-D9723B05C840}.Release|Any CPU.Build.0 = Release|Any CPU
+		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

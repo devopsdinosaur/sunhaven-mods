@@ -12,7 +12,7 @@ using System;
 using System.Reflection;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.14")]
+[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.16")]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
@@ -67,7 +67,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.14" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.16" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
@@ -176,7 +176,8 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                     SingletonBehaviour<TileManager>.Instance.Hoe(position, _decorationData.sceneID);
                 }
 
-                void CropDie() {
+                void CropDie(string reason) {
+					//logger.LogInfo($"HarmonyPatch_DecorationUpdater_Crop_UpdateMetaOvernight.CropDie(reason: {reason})");
                     DecorationUpdater.cropData.dead = true;
                     DecorationUpdater.cropData.onFire = false;
                     DecorationUpdater.cropData.entangled = false;
@@ -261,50 +262,50 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                 if (!cropInfo.alwaysWatered) {
                     DecorationUpdater.cropData.watered = m_water_overnight.Value || SingletonBehaviour<GameSave>.Instance.GetFarmingInfo(new Vector2Int(decorationData.x / 6, decorationData.y / 6), decorationData.sceneID) == FarmingTileInfo.Watered;
                 }
-                if (!m_auto_mana.Value || (cropInfo.manaInfusable && !DecorationUpdater.cropData.manaInfused)) {
-                    CropDie();
+                if (cropInfo.manaInfusable && (!DecorationUpdater.cropData.manaInfused || !m_auto_mana.Value)) {
+                    CropDie("not mana infused");
                 }
                 string text = "";
                 if (SceneSettingsManager.Instance.sceneDictionary.TryGetValue(decorationData.sceneID, out var value)) {
                     switch (cropInfo.farmType) {
                     case FarmType.Normal:
                     if (value.townType != 0 && !m_totem_sunhaven.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.SunHaven)) {
-                        CropDie();
+                        CropDie("requires Sun Haven town");
                     }
                     break;
                     case FarmType.Withergate:
                     if (value.townType != TownType.Withergate && !m_totem_withergate.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Withergate)) {
-                        CropDie();
+                        CropDie("requires Withergate town");
                     }
                     break;
                     case FarmType.Nelvari:
                     if (value.townType != TownType.Nelvari && !m_totem_nelvari.Value && !DecorationUpdater.cropData.scareCrowEffects.Contains(ScareCrowEffect.Nelvari)) {
-                        CropDie();
+                        CropDie("requires Nevari town");
                     }
                     break;
                     }
                     text = value.sceneName;
                 }
                 if (!cropInfo.isFlower && StageFromTimePlanted(cropInfo) < cropInfo.cropStages.Length - 1) {
-                    bool flag = m_any_season_planting.Value;
-                    bool flag2 = m_any_season_planting.Value;
-                    if (!flag2 && text.Contains("GreenHouse")) {
+                    bool flag = false;
+                    bool flag2 = false;
+                    if (text.Contains("GreenHouse")) {
                         flag2 = true;
-                        if (text.Contains("Spring") && cropInfo.seasons.Contains(Season.Spring)) {
+                        if (m_any_season_planting.Value || (text.Contains("Spring") && cropInfo.seasons.Contains(Season.Spring))) {
                             flag = true;
                         }
-                        if (text.Contains("Summer") && cropInfo.seasons.Contains(Season.Summer)) {
+                        if (m_any_season_planting.Value || (text.Contains("Summer") && cropInfo.seasons.Contains(Season.Summer))) {
                             flag = true;
                         }
-                        if (text.Contains("Fall") && cropInfo.seasons.Contains(Season.Fall)) {
+                        if (m_any_season_planting.Value || (text.Contains("Fall") && cropInfo.seasons.Contains(Season.Fall))) {
                             flag = true;
                         }
-                        if (text.Contains("Winter") && cropInfo.seasons.Contains(Season.Winter)) {
+                        if (m_any_season_planting.Value || (text.Contains("Winter") && cropInfo.seasons.Contains(Season.Winter))) {
                             flag = true;
                         }
                     }
                     if ((!flag2 && !cropInfo.seasons.Contains(SingletonBehaviour<DayCycle>.Instance.Season)) || (flag2 && !flag)) {
-                        CropDie();
+                        CropDie("in the wrong greenhouse");
                     }
                     float chance = ((Settings.DisableSeasonalPests || flag2) ? 0f : 0.0166667f);
                     switch (SingletonBehaviour<DayCycle>.Instance.Season) {
@@ -357,8 +358,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			Seeds __instance,
             Vector2Int ___pos,
             Vector2Int ___prevPos,
-            SeedData ____seedItem,
-			Crop ____crop
+            Crop ____crop
         ) {
 			try {
 				if (!m_enabled.Value) {
@@ -367,7 +367,7 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                 if (!SingletonBehaviour<TileManager>.Instance.IsHoedOrWatered(___pos) || !(___prevPos != ___pos)) {
                     return false;
                 }
-                SeedData seed = ____seedItem;
+                SeedData seed = (SeedData) __instance.GetType().GetProperty("SeedItem", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.GetProperty).GetValue(__instance);
                 ___prevPos = ___pos;
 				if (!SingletonBehaviour<FarmAnimalHandler>.Instance.CanPlaceNewCrop(1)) {
                     Player.Instance.PausePlayerWithDialogue("seeds", "You cannot plant any more than " + SingletonBehaviour<FarmAnimalHandler>.Instance.CropCapacity + " crops right now! Try placing more scarecrows or upgrading your house.");

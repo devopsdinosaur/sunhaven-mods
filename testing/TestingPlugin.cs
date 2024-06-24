@@ -146,22 +146,6 @@ public class TestingPlugin : BaseUnityPlugin {
 		}
 	}
 
-	[HarmonyPatch(typeof(Player), "Update")]
-	class HarmonyPatch_Player_Update {
-
-		private static bool Prefix() {
-			try {
-				if (Input.GetKeyDown(KeyCode.F11)) {
-					//((ItemIcon) typeof(ItemIcon).GetField("_currentHoveredIcon", BindingFlags.Static | BindingFlags.NonPublic)?.GetValue(null))?.DropIcon();
-					Inventory.CurrentItemIcon.DropIcon();
-				}
-			} catch (Exception e) {
-				logger.LogError("** ERROR - " + e);
-			}
-			return true;
-		}
-	}
-	
 	/*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
@@ -171,7 +155,7 @@ public class TestingPlugin : BaseUnityPlugin {
 
 				return false;
 			} catch (Exception e) {
-				logger.LogError("** ERROR - " + e);
+				logger.LogError("** XXXXX.Prefix ERROR - " + e);
 			}
 			return true;
 		}
@@ -185,9 +169,8 @@ public class TestingPlugin : BaseUnityPlugin {
 
 				
 			} catch (Exception e) {
-				logger.LogError("** ERROR - " + e);
+				logger.LogError("** XXXXX.Postfix ERROR - " + e);
 			}
-			return true;
 		}
 	}
 	*/
