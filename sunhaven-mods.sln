@@ -63,6 +63,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "inventory_first", "inventor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "font_scaler", "font_scaler\font_scaler.csproj", "{421DD509-81C2-49A7-878E-C42AA9C9AAD0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{A95BC468-1CCB-4576-9C81-B6DF50EF15E7}"
+	ProjectSection(SolutionItems) = preProject
+		shared\dd_utils.cs = shared\dd_utils.cs
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "clingy_npcs", "clingy_npcs\clingy_npcs.csproj", "{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -173,6 +180,10 @@ Global
 		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{421DD509-81C2-49A7-878E-C42AA9C9AAD0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

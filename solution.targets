@@ -38,7 +38,7 @@
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <StartAction>Program</StartAction>
     <StartProgram>$(GamePath)\Sun Haven.exe</StartProgram>
-    <StartArguments>-console</StartArguments>
+    <StartArguments>--continue</StartArguments>
     <StartWorkingDirectory>$(GamePath)</StartWorkingDirectory>
   </PropertyGroup>
 

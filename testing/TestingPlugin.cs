@@ -8,6 +8,7 @@ using System;
 using System.Reflection;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 using TMPro;
@@ -22,7 +23,7 @@ public class TestingPlugin : BaseUnityPlugin {
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
 	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
-	
+
 	private void Awake() {
 		logger = this.Logger;
 		try {
@@ -34,6 +35,10 @@ public class TestingPlugin : BaseUnityPlugin {
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
+	}
+
+	private static void debug_log(object text) {
+		logger.LogInfo(text);
 	}
 
 	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
@@ -146,6 +151,7 @@ public class TestingPlugin : BaseUnityPlugin {
 		}
 	}
 
+	
 	/*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {

@@ -9,7 +9,7 @@ using System;
 using TMPro;
 using DG.Tweening;
 
-[BepInPlugin("devopsdinosaur.sunhaven.free_rides", "Free Rides", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.free_rides", "Free Rides", "0.0.4")]
 public class FreeRidesPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.free_rides");
@@ -23,7 +23,7 @@ public class FreeRidesPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.free_rides v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.free_rides v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -305,7 +305,7 @@ public class FreeRidesPlugin : BaseUnityPlugin {
 	class HarmonyPatch_Player_Awake {
 
 		private static bool Prefix() {
-			SingletonBehaviour<GameSave>.Instance.SetProgressBoolCharacter("FishingRoom", value: false);
+			SingletonBehaviour<GameSave>.Instance?.SetProgressBoolCharacter("FishingRoom", value: false);
 			return true;
 		}
 	}
