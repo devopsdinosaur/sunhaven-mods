@@ -16,11 +16,15 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 	public static ManualLogSource logger;
 
 	private static ConfigEntry<bool> m_enabled;
-	
+	private static ConfigEntry<bool> m_grant_pet_buffs;
+	private static ConfigEntry<float> m_pet_buff_multiplier;
+
 	private void Awake() {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+			m_grant_pet_buffs = this.Config.Bind<bool>("General", "Grant Pet Buffs", false, "Set to true to make one or more following NPCs grant the built-in pet buffs, as specified in talents (will also cause pets to be dismissed when NPC is following).");
+			m_pet_buff_multiplier = this.Config.Bind<float>("General", "Pet Buff Multiplier", 1f, "Multiplier applied to NPC 'pet' buffs (if enabled by 'Grant Pet Buffs') (float, default 1, 1 == no change).");
 			this.m_harmony.PatchAll();
 			logger.LogInfo("devopsdinosaur.sunhaven.clingy_npcs v0.0.1 loaded.");
 		} catch (Exception e) {
@@ -38,6 +42,7 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 		private bool m_is_following = false;
 
 		private static List<int> m_followers = new List<int>();
+		private static HourlyBuff m_pet_buff = null;
 
 		[HarmonyPatch(typeof(NPCAI), "Awake")]
 		class ClingyNpc_HarmonyPatch_NPCAI_Awake {
@@ -65,6 +70,9 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 			try {
 				if (!this.m_is_following) {
 					return;
+				}
+				if (m_grant_pet_buffs.Value && Player.Instance.PlayerPet != null) {
+					PetManager.Instance.DespawnPet(Player.Instance);
 				}
 				int distance = 1;
 				foreach (int hash in m_followers) {
@@ -174,7 +182,50 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 			this.stop_following();
 		}
 
+		private float get_movement_speed_bonus() {
+			switch (GameSave.Farming.GetNodeAmount("Farming7d")) {
+			case 1: return m_pet_buff_multiplier.Value;
+			case 2: return 2 * m_pet_buff_multiplier.Value;
+			}
+			return 5 * m_pet_buff_multiplier.Value;
+		}
+
+		[HarmonyPatch(typeof(SkillStats), "GetStat")]
+		class HarmonyPatch_SkillStats_GetStat {
+			private static void Postfix(StatType stat, ref float __result) {
+				if (stat == StatType.Movespeed && m_grant_pet_buffs.Value && m_followers.Count > 0) {
+					__result *= m_pet_buff_multiplier.Value;
+				}
+			}
+		}
+
+		[HarmonyPatch(typeof(PetManager), "SpawnPet", new Type[] {typeof(string), typeof(Player), typeof(PetItem), typeof(Action<Pet>)})]
+		class HarmonyPatch_PetManager_SpawnPet {
+			private static bool Prefix() {
+				return !(m_grant_pet_buffs.Value && m_followers.Count > 0);
+			}
+		}
+
 		private void start_following() {
+			if (m_grant_pet_buffs.Value && m_followers.Count == 0) {
+				if (m_pet_buff == null) {
+					m_pet_buff = new HourlyBuff {
+						entity = this.m_npc,
+						duration = 6000000f,
+						buffType = BuffType.PetParade,
+						buffName = "NPC Promenade",
+						buffDescription = "Gives exp over time"
+					};
+				}
+				float exp_amount = 2f * (float) GameSave.Farming.GetNodeAmount("Farming7d") * m_pet_buff_multiplier.Value;
+				m_pet_buff.onHourChange = delegate(int hour, int minute) {
+					if (minute == 0) {
+						Player.Instance.AddEXP(ProfessionType.Exploration, exp_amount);
+					}
+				};
+				m_pet_buff.buffDescription = $"Receive <color=#B7FFA3>{exp_amount} {ProfessionType.Exploration} experience</color> every hour and grants a <color=#B7FFA3>bonus movement speed of {this.get_movement_speed_bonus()}</color>.";
+				Player.Instance.ReceiveBuff(BuffType.PetParade, m_pet_buff);
+			}
 			m_followers.Add(this.GetHashCode());
 			this.m_is_following = true;
 			this.m_npc.SetAIState(AIState.Follow);
@@ -182,6 +233,9 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 		}
 
 		private void stop_following() {
+			if (m_followers.Count == 1 && (m_grant_pet_buffs.Value || (Player.Instance.PlayerPet == null))) {
+				Player.Instance.FinishBuff(BuffType.PetParade);
+			}
 			m_followers.Remove(this.GetHashCode());
 			this.m_is_following = false;
 			this.m_npc.SetAIState(AIState.Still);

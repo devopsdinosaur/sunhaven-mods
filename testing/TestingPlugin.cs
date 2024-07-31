@@ -151,7 +151,20 @@ public class TestingPlugin : BaseUnityPlugin {
 		}
 	}
 
-	
+	// Player(Clone) => UI => Dialogue => DialoguePanel
+
+	[HarmonyPatch(typeof(DialogueController), "Awake")]
+	class HarmonyPatch_DialogueController_Awake {
+
+		private static void Postfix(DialogueController __instance) {
+			try {
+				
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_DialogueController_Awake.Postfix ERROR - " + e);
+			}
+		}
+	}
+
 	/*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
