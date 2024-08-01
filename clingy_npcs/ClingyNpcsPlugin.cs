@@ -9,7 +9,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-[BepInPlugin("devopsdinosaur.sunhaven.clingy_npcs", "Clingy NPCs", "0.0.1")]
+[BepInPlugin("devopsdinosaur.sunhaven.clingy_npcs", "Clingy NPCs", "0.0.2")]
 public class ClingyNpcsPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.clingy_npcs");
@@ -26,23 +26,33 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 			m_grant_pet_buffs = this.Config.Bind<bool>("General", "Grant Pet Buffs", false, "Set to true to make one or more following NPCs grant the built-in pet buffs, as specified in talents (will also cause pets to be dismissed when NPC is following).");
 			m_pet_buff_multiplier = this.Config.Bind<float>("General", "Pet Buff Multiplier", 1f, "Multiplier applied to NPC 'pet' buffs (if enabled by 'Grant Pet Buffs') (float, default 1, 1 == no change).");
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.clingy_npcs v0.0.1 loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.clingy_npcs v0.0.2 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
+	}
+
+	private static void debug_log(object text) {
+		logger.LogInfo(text);
 	}
 
 	class ClingyNpc : MonoBehaviour {
 
 		private const int RESPONSE_KEY_FOLLOW_ME = 99998;
 		private const int RESPONSE_KEY_GO_AWAY = 99999;
-		private const float DISTANCE_MULTIPLIER = 1.5f;
+		private const float DISTANCE_MULTIPLIER = 2f;
 
 		private NPCAI m_npc = null;
 		private bool m_is_following = false;
 
 		private static List<int> m_followers = new List<int>();
-		private static HourlyBuff m_pet_buff = null;
+		private static HourlyBuff m_pet_buff = new HourlyBuff {
+			entity = Player.Instance,
+			duration = 6000000f,
+			buffType = BuffType.PetParade,
+			buffName = "NPC Promenade",
+			buffDescription = "Gives exp over time"
+		};
 
 		[HarmonyPatch(typeof(NPCAI), "Awake")]
 		class ClingyNpc_HarmonyPatch_NPCAI_Awake {
@@ -208,15 +218,6 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 
 		private void start_following() {
 			if (m_grant_pet_buffs.Value && m_followers.Count == 0) {
-				if (m_pet_buff == null) {
-					m_pet_buff = new HourlyBuff {
-						entity = this.m_npc,
-						duration = 6000000f,
-						buffType = BuffType.PetParade,
-						buffName = "NPC Promenade",
-						buffDescription = "Gives exp over time"
-					};
-				}
 				float exp_amount = 2f * (float) GameSave.Farming.GetNodeAmount("Farming7d") * m_pet_buff_multiplier.Value;
 				m_pet_buff.onHourChange = delegate(int hour, int minute) {
 					if (minute == 0) {
