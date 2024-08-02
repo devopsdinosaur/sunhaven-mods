@@ -151,6 +151,7 @@ public class TestingPlugin : BaseUnityPlugin {
 		}
 	}
 
+<<<<<<< HEAD
 	// Player(Clone) => UI => Dialogue => DialoguePanel => BustOffset => Bust
 
 	class SelfBustController : MonoBehaviour {
@@ -168,8 +169,7 @@ public class TestingPlugin : BaseUnityPlugin {
         }
     }
 
-	/*
-	class NpcSummoner : MonoBehaviour {
+    class NpcSummoner : MonoBehaviour {
 		
 		private NPCAI m_npc = null;
 		private bool m_is_summoned = false;
@@ -274,10 +274,8 @@ public class TestingPlugin : BaseUnityPlugin {
 			}
 		}
 	}
-	*/
-
-	/*
-	[HarmonyPatch(typeof(Player), "Update")]
+	
+    [HarmonyPatch(typeof(Player), "Update")]
     class HarmonyPatch_Player_Update {
 
         private static void Postfix(Player __instance) {
@@ -291,9 +289,54 @@ public class TestingPlugin : BaseUnityPlugin {
             }
         }
     }
-	*/
 
-	[HarmonyPatch(typeof(DialogueController), "Awake")]
+    // Player(Clone) => UI => Dialogue => DialoguePanel => BustOffset => Bust
+
+    class SelfBustController:MonoBehaviour {
+
+        private void Awake() {
+            try {
+                debug_log("self bust awake!");
+                Transform bust_offset = this.gameObject.transform.Find("BustOffset");
+                GameObject self_bust = GameObject.Instantiate<GameObject>(bust_offset.gameObject, this.gameObject.transform);
+                self_bust.name = "SelfBustOffset";
+                self_bust.transform.localPosition = self_bust.transform.position + Vector3.left * 20;
+            } catch (Exception e) {
+                logger.LogError("** SelfBustController.Awake ERROR - " + e);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] {typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool)})]
+    class HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized {
+
+        private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust) {
+            try {
+				isMarriageBust = false;
+				isSwimsuitBust = true;
+                return true;
+            } catch (Exception e) {
+                logger.LogError("** HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized.Prefix ERROR - " + e);
+            }
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(NPCAnimatorLoader), "LoadAnimator")]
+    class HarmonyPatch_NPCAnimatorLoader_LoadAnimator {
+
+        private static bool Prefix(ref int index) {
+            try {
+				index = 1;
+                return true;
+            } catch (Exception e) {
+                logger.LogError("** HarmonyPatch_NPCAnimatorLoader_LoadAnimator.Prefix ERROR - " + e);
+            }
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(DialogueController), "Awake")]
 	class HarmonyPatch_DialogueController_Awake {
 
 		private static bool Prefix(DialogueController __instance, GameObject ____dialoguePanel) {
