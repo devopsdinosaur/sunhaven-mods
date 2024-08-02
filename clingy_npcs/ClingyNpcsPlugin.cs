@@ -9,7 +9,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-[BepInPlugin("devopsdinosaur.sunhaven.clingy_npcs", "Clingy NPCs", "0.0.2")]
+[BepInPlugin("devopsdinosaur.sunhaven.clingy_npcs", "Clingy NPCs", "0.0.3")]
 public class ClingyNpcsPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.clingy_npcs");
@@ -26,7 +26,7 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 			m_grant_pet_buffs = this.Config.Bind<bool>("General", "Grant Pet Buffs", false, "Set to true to make one or more following NPCs grant the built-in pet buffs, as specified in talents (will also cause pets to be dismissed when NPC is following).");
 			m_pet_buff_multiplier = this.Config.Bind<float>("General", "Pet Buff Multiplier", 1f, "Multiplier applied to NPC 'pet' buffs (if enabled by 'Grant Pet Buffs') (float, default 1, 1 == no change).");
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.clingy_npcs v0.0.2 loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.clingy_npcs v0.0.3 loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -34,6 +34,112 @@ public class ClingyNpcsPlugin : BaseUnityPlugin {
 
 	private static void debug_log(object text) {
 		logger.LogInfo(text);
+	}
+
+	class NpcSummoner : MonoBehaviour {
+
+		private NPCAI m_npc = null;
+		private bool m_is_summoned = false;
+		private string m_prev_scene;
+		private Vector3 m_prev_pos;
+		private AIState m_prev_ai_state;
+		private Direction m_prev_face_direction;
+		private float m_update_elapsed = 0;
+
+		private void Awake() {
+			this.m_npc = this.gameObject.GetComponent<NPCAI>();
+		}
+
+		public static void summon_npc(string name, Player player) {
+			try {
+				foreach (NPCAI npc in Resources.FindObjectsOfTypeAll(typeof(NPCAI))) {
+					if (npc.ActualNPCName != name) {
+						continue;
+					}
+					NpcSummoner summoner = npc.gameObject.GetComponent<NpcSummoner>();
+					if (summoner == null) {
+						summoner = npc.gameObject.AddComponent<NpcSummoner>();
+					}
+					summoner.summon(player);
+					break;
+				}
+			} catch (Exception e) {
+				logger.LogError("** NpcSummoner.summon_npc ERROR - " + e);
+			}
+		}
+
+		private void summon(Player player) {
+			try {
+				const float OFFSET = 2f;
+				if (!m_is_summoned) {
+					this.m_is_summoned = true;
+					this.m_prev_ai_state = this.m_npc.AIState;
+					this.m_prev_scene = this.m_npc.Scene;
+					this.m_prev_pos = this.m_npc.transform.position;
+					this.m_prev_face_direction = m_npc.FacingDirection;
+				}
+				this.m_npc.Scene = ScenePortalManager.ActiveSceneName;
+				this.m_npc.SetAIState(AIState.Still);
+				switch (player.facingDirection) {
+				case Direction.North:
+				this.m_npc.transform.position = player.transform.position + Vector3.up * OFFSET;
+				this.m_npc.FacingDirection = Direction.South;
+				break;
+				case Direction.South:
+				this.m_npc.transform.position = player.transform.position + Vector3.down * OFFSET;
+				this.m_npc.FacingDirection = Direction.North;
+				break;
+				case Direction.East:
+				this.m_npc.transform.position = player.transform.position + Vector3.right * OFFSET;
+				this.m_npc.FacingDirection = Direction.West;
+				break;
+				case Direction.West:
+				this.m_npc.transform.position = player.transform.position + Vector3.left * OFFSET;
+				this.m_npc.FacingDirection = Direction.East;
+				break;
+				}
+				this.m_npc.gameObject.SetActive(true);
+			} catch (Exception e) {
+				logger.LogError("** NpcSummoner.summon ERROR - " + e);
+			}
+		}
+
+		private void Update() {
+			try {
+				if (!this.m_is_summoned || (this.m_update_elapsed += Time.deltaTime) < 1) {
+					return;
+				}
+				this.m_update_elapsed = 0;
+				if (ScenePortalManager.ActiveSceneName == this.m_npc.Scene) {
+					return;
+				}
+				//debug_log($"NpcSummoner.Update - player left scene (active scene: {ScenePortalManager.ActiveSceneName}, npc scene: {this.m_npc.Scene}; returning {this.m_npc.ActualNPCName} to previous scene: {this.m_prev_scene}, pos: {this.m_prev_pos}, state: {this.m_prev_ai_state}");
+				this.m_npc.Scene = this.m_prev_scene;
+				this.m_npc.transform.position = this.m_prev_pos;
+				this.m_npc.FacingDirection = this.m_prev_face_direction;
+				this.m_npc.SetAIState(this.m_prev_ai_state);
+				this.m_is_summoned = false;
+			} catch (Exception e) {
+				logger.LogError("** NpcSummoner.Update ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(Relationships), "OnEnable")]
+	class HarmonyPatch_Relationships_OnEnable {
+
+		private static void Postfix(Relationships __instance, Dictionary<string, RelationshipPanel> ___relationshipPanels) {
+			try {
+				foreach (KeyValuePair<string, RelationshipPanel> item in ___relationshipPanels) {
+					item.Value.npcImage.gameObject.AddComponent<UnityEngine.UI.Button>().onClick.AddListener(new UnityAction(delegate () {
+						NpcSummoner.summon_npc(item.Key, Player.Instance);
+						UIHandler.Instance.CloseInventory();
+					}));
+				}
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_Relationships_OnEnable.Postfix ERROR - " + e);
+			}
+		}
 	}
 
 	class ClingyNpc : MonoBehaviour {
