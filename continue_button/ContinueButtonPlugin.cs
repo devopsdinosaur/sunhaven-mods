@@ -9,7 +9,7 @@ using System.IO;
 using TMPro;
 using I2.Loc;
 
-[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.5")]
+[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.6")]
 public class ContinueButtonPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.continue_button");
@@ -23,7 +23,7 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.continue_button v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.continue_button v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -41,7 +41,7 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
 				int latest_save_index = -1;
 				DateTime latest_timestamp = DateTime.Now;
 				string full_path;
-				Transform play_button = ___homeMenu.transform.Find("Buttons").GetChild(0);
+				Transform play_button = ___homeMenu.transform.Find("PlayButtons").GetChild(0);
 
 				if (m_continue_button != null || !Directory.Exists(saves_dir)) {
 					return;

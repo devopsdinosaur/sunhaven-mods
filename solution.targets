@@ -122,6 +122,11 @@
       <HintPath>$(UnityPath)\UnityEngine.AccessibilityModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.AddressableAssets">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(UnityPath)\Unity.AddressableAssets.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="Unity.Addressables">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(UnityPath)\Unity.Addressables.dll</HintPath>

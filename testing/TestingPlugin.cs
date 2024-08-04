@@ -16,6 +16,9 @@ using DG.Tweening;
 using ZeroFormatter;
 using UnityEngine.SceneManagement;
 using PSS;
+using UnityEngine.AddressableAssets;
+using UnityEngine.ResourceManagement.AsyncOperations;
+using System.IO;
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
 public class TestingPlugin : BaseUnityPlugin {
@@ -151,24 +154,6 @@ public class TestingPlugin : BaseUnityPlugin {
 		}
 	}
 
-<<<<<<< HEAD
-	// Player(Clone) => UI => Dialogue => DialoguePanel => BustOffset => Bust
-
-	class SelfBustController : MonoBehaviour {
-
-		private void Awake() {
-			try {
-				debug_log("self bust awake!");
-				Transform bust_offset = this.gameObject.transform.Find("BustOffset");
-				GameObject self_bust = GameObject.Instantiate<GameObject>(bust_offset.gameObject, this.gameObject.transform);
-				self_bust.name = "SelfBustOffset";
-				self_bust.transform.localPosition = self_bust.transform.position + Vector3.left * 20;
-			} catch (Exception e) {
-                logger.LogError("** SelfBustController.Awake ERROR - " + e);
-            }
-        }
-    }
-
     class NpcSummoner : MonoBehaviour {
 		
 		private NPCAI m_npc = null;
@@ -292,7 +277,16 @@ public class TestingPlugin : BaseUnityPlugin {
 
     // Player(Clone) => UI => Dialogue => DialoguePanel => BustOffset => Bust
 
-    class SelfBustController:MonoBehaviour {
+    class SelfBustController : MonoBehaviour {
+
+		private static Dictionary<EmoteType, string> emote_map = new Dictionary<EmoteType, string>() {
+			{EmoteType.None, "None"},
+			{EmoteType.Romantic, "Romantic"},
+			{EmoteType.Happy, "Happy"},
+			{EmoteType.Mad, "Mad"},
+			{EmoteType.Embarrassed, "Embarrassed"},
+			{EmoteType.Sad, "Sad"}
+		};
 
         private void Awake() {
             try {
@@ -301,10 +295,37 @@ public class TestingPlugin : BaseUnityPlugin {
                 GameObject self_bust = GameObject.Instantiate<GameObject>(bust_offset.gameObject, this.gameObject.transform);
                 self_bust.name = "SelfBustOffset";
                 self_bust.transform.localPosition = self_bust.transform.position + Vector3.left * 20;
+
             } catch (Exception e) {
                 logger.LogError("** SelfBustController.Awake ERROR - " + e);
             }
         }
+
+		public void load_images(string root_dir, string player_name) {
+			/*
+			foreach (string subkey in new string[] { "", "Summer", "Fall", "Winter", "Wedding", "Swimsuit" }) {
+				string key = $"_npc{subkey}Emotes2";
+				FieldInfo field = ReflectionUtils.get_field(__instance, key);
+				Dictionary<string, AssetReferenceSprite[]> emotes = (Dictionary<string, AssetReferenceSprite[]>) field.GetValue(__instance);
+				AssetReferenceSprite[] template_emotes = emotes["Anne"];
+				AsyncOperationHandle<Sprite>[] load_handles = new AsyncOperationHandle<Sprite>[template_emotes.Length];
+				for (int index = 0; index < template_emotes.Length; index++) {
+					//AssetReferenceSprite emote = template_emotes[index];
+					//load_handles[index] = emote.LoadAssetAsync();
+					//load_handles[index].Completed += new Action on_asset_loaded;
+					new DummyAssetLoader
+					}
+			}
+			*/
+			try {
+				string player_files_dir = Path.Combine(root_dir, player_name);
+				logger.LogInfo($"Loading bust portrait files for player_name '{player_name}' from directory, '{player_files_dir}'.");
+				
+			} catch (Exception e) {
+				logger.LogError("** SelfBustController.load_images ERROR - " + e);
+				GameObject.Destroy(this);
+			}
+		}
     }
 
     [HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] {typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool)})]
@@ -312,8 +333,8 @@ public class TestingPlugin : BaseUnityPlugin {
 
         private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust) {
             try {
-				isMarriageBust = false;
-				isSwimsuitBust = true;
+				//isMarriageBust = false;
+				//isSwimsuitBust = true;
                 return true;
             } catch (Exception e) {
                 logger.LogError("** HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized.Prefix ERROR - " + e);
@@ -327,7 +348,7 @@ public class TestingPlugin : BaseUnityPlugin {
 
         private static bool Prefix(ref int index) {
             try {
-				index = 1;
+				//index = 1;
                 return true;
             } catch (Exception e) {
                 logger.LogError("** HarmonyPatch_NPCAnimatorLoader_LoadAnimator.Prefix ERROR - " + e);
@@ -341,7 +362,7 @@ public class TestingPlugin : BaseUnityPlugin {
 
 		private static bool Prefix(DialogueController __instance, GameObject ____dialoguePanel) {
 			try {
-				____dialoguePanel.AddComponent<SelfBustController>();
+				____dialoguePanel.AddComponent<SelfBustController>().load_images("C:/tmp/textures/sunhaven/self_portait_test", "devopsdinosaur");
 				return true;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_DialogueController_Awake.Postfix ERROR - " + e);
