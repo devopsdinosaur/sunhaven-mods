@@ -95,6 +95,14 @@ public class ContinueButtonPlugin : BaseUnityPlugin {
             
                 //set name for easier locating by other mods
                 m_continue_button.name = "ContinueButton";
+
+                //deselct play button (Red highlight)
+                var playHighlight = play_button.GetComponent<HighlightButton>();
+                playHighlight.Deselect();
+
+                //highlight continue button
+                var continueHighlight = m_continue_button.GetComponent<HighlightButton>();
+                continueHighlight.Select();
             
                 GameObject.Destroy(m_continue_button.transform?.GetChild(0)?.gameObject?.GetComponent<Localize>());
                 m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
