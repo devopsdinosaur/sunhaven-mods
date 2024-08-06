@@ -70,6 +70,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{A95BC4
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "clingy_npcs", "clingy_npcs\clingy_npcs.csproj", "{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "sound_manager", "sound_manager\sound_manager.csproj", "{1853D188-5B11-4514-B8D1-30C95F867349}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "self_portrait", "self_portrait\self_portrait.csproj", "{771B1AE0-4EB7-456A-829D-8130AA76BD71}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -184,6 +188,14 @@ Global
 		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64F2E453-26EC-4C4E-B3F4-335E5AE5FAC6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1853D188-5B11-4514-B8D1-30C95F867349}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1853D188-5B11-4514-B8D1-30C95F867349}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1853D188-5B11-4514-B8D1-30C95F867349}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1853D188-5B11-4514-B8D1-30C95F867349}.Release|Any CPU.Build.0 = Release|Any CPU
+		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

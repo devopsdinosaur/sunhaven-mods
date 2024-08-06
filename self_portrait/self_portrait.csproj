@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(SolutionDir)\solution_private.targets" />
+  <Import Project="$(SolutionDir)\solution.targets" />
+  <ItemGroup>
+    <Compile Include="..\shared\dd_utils.cs" Link="dd_utils.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="$(BepInExPath)\LogOutput.log" Link="LogOutput.log" />
+  </ItemGroup>
+</Project>
