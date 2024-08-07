@@ -10,21 +10,34 @@ using System.Linq;
 using TMPro;
 using I2.Loc;
 
-[BepInPlugin("devopsdinosaur.sunhaven.continue_button", "Continue Button", "0.0.7")]
-public class ContinueButtonPlugin : BaseUnityPlugin {
+public static class PluginInfo {
+
+    public const string TITLE = "Continue Button";
+    public const string NAME = "continue_button";
+
+    public const string VERSION = "0.0.7";
+    public static string[] CHANGELOG = new string[] {
+        "v0.0.7 - Updates from p1xel8ted to fix misc UI glitches with the button"
+    };
+
+    public const string AUTHOR = "devopsdinosaur";
+    public const string GAME = "sunhaven";
+    public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class ContinueButtonPlugin :BaseUnityPlugin {
+
+    private Harmony m_harmony = new Harmony(PluginInfo.GUID);
     public static ManualLogSource logger;
     private static ConfigEntry<bool> m_enabled;
-
-    private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.continue_button");
     
     private void Awake() {
         logger = this.Logger;
         try {
             m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-            if (m_enabled.Value) {
-                this.m_harmony.PatchAll();
-            }
-            logger.LogInfo("devopsdinosaur.sunhaven.continue_button v0.0.7" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+            this.m_harmony.PatchAll();
+            logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
         } catch (Exception e) {
             logger.LogError("** Awake FATAL - " + e);
         }
