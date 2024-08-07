@@ -276,20 +276,6 @@ public class TestingPlugin : BaseUnityPlugin {
         }
     }
 
-    [HarmonyPatch(typeof(DialogueController), "Update")]
-    class HarmonyPatch_DialogueController_Update {
-
-        private static bool Prefix(DialogueController __instance, GameObject ____dialoguePanel) {
-            try {
-				
-                return true;
-            } catch (Exception e) {
-                logger.LogError("** HarmonyPatch_DialogueController_Update.Prefix ERROR - " + e);
-            }
-            return true;
-        }
-    }
-
 	/*
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {

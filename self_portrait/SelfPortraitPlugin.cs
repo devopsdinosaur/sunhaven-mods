@@ -52,7 +52,12 @@ public class SoundManagerPlugin : BaseUnityPlugin {
         logger.LogInfo(text);
     }
 
-    private static void set_hotkey(string keys_string, int key_index) {
+	private static void notify(string message) {
+		logger.LogInfo(message);
+		NotificationStack.Instance.SendNotification(message);
+	}
+
+	private static void set_hotkey(string keys_string, int key_index) {
         m_hotkeys[key_index] = new List<KeyCode>();
         foreach (string key in keys_string.Split(',')) {
             string trimmed_key = key.Trim();
@@ -131,58 +136,79 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 			}
 		}
 
-		public void load_images(string root_dir, string player_name) {
+		public void load_images(bool do_notify = false) {
+			string result = "";
 			try {
 				if (m_instance == null) {
 					m_instance = this;
 					this.initialize();
 				}
 				this.m_is_loaded = false;
-				string player_files_dir = Path.Combine(root_dir, player_name);
-				logger.LogInfo($"Loading bust portrait files for player_name '{player_name}' from directory, '{player_files_dir}'.");
-				if (!Directory.Exists(player_files_dir)) {
-					logger.LogInfo($"Directory does not exist; creating empty.");
-					Directory.CreateDirectory(player_files_dir);
-					string original_player_files_dir = player_files_dir;
-                    player_files_dir = Path.Combine(root_dir, m_default_username.Value);
-                    logger.LogInfo($"Attempting to load default (from mod config) bust portrait files from directory, '{player_files_dir}'.");
+				string root_dir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), m_subdir.Value);
+				foreach (string player_name in new string[] {SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.characterName,  m_default_username.Value}) {
+					string player_files_dir = Path.Combine(root_dir, player_name);
+					result = $"Images loaded from '{player_files_dir}'.";
+					logger.LogInfo($"Loading bust portrait files from directory, '{player_files_dir}'.");
 					if (!Directory.Exists(player_files_dir)) {
-                        logger.LogInfo($"Directory does not exist; creating empty.");
-                        Directory.CreateDirectory(player_files_dir);
-						logger.LogInfo($"* Self portraits disabled.  Add images to '{original_player_files_dir}' and use the reload hotkey (see mod config) or reload the savegame.");
-                        return;
-					}
-				}
-				Sprite fallback = null;
-				foreach (KeyValuePair<PortraitKey, string> item in portrait_map) {
-					string file_name = $"{player_name}_{item.Value}.png";
-					string full_path = Path.Combine(player_files_dir, file_name);
-					if (!File.Exists(full_path)) {
-						logger.LogInfo($"'{file_name}' does not exist (fallback will be used).");
-						this.m_portrait_sprites[item.Key] = null;
+						logger.LogInfo($"Directory does not exist; creating empty.");
+						Directory.CreateDirectory(player_files_dir);
 						continue;
 					}
-					Texture2D texture = new Texture2D(1, 1, GraphicsFormat.R8G8B8A8_UNorm, new TextureCreationFlags());
-					texture.LoadImage(File.ReadAllBytes(full_path));
-					this.m_portrait_sprites[item.Key] = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.zero);
-					if (fallback == null) {
-						logger.LogInfo($"{item.Value} portrait will be used as fallback.");
-						fallback = this.m_portrait_sprites[item.Key];
+					Sprite fallback = null;
+					foreach (KeyValuePair<PortraitKey, string> item in portrait_map) {
+						string file_name = $"{player_name}_{item.Value}.png";
+						string full_path = Path.Combine(player_files_dir, file_name);
+						if (!File.Exists(full_path)) {
+							logger.LogInfo($"'{file_name}' does not exist.");
+							this.m_portrait_sprites[item.Key] = null;
+							continue;
+						}
+						Texture2D texture = new Texture2D(1, 1, GraphicsFormat.R8G8B8A8_UNorm, new TextureCreationFlags());
+						texture.LoadImage(File.ReadAllBytes(full_path));
+						this.m_portrait_sprites[item.Key] = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.zero);
+						if (fallback == null) {
+							logger.LogInfo($"{item.Value} portrait will be used as fallback.");
+							fallback = this.m_portrait_sprites[item.Key];
+						}
 					}
-				}
-				if (fallback == null) {
-					logger.LogInfo("Directory contains no portrait files; disabling self portraits for this player.");
+					if (fallback == null) {
+						logger.LogInfo("Directory contains no portrait files.");
+						continue;
+					}
+					foreach (KeyValuePair<PortraitKey, string> item in portrait_map) {
+						if (this.m_portrait_sprites[item.Key] == null) {
+							logger.LogInfo($"Using fallback portrait for {item.Value}.");
+							this.m_portrait_sprites[item.Key] = fallback;
+						}
+					}
+					this.m_is_loaded = true;
 					return;
 				}
-				foreach (KeyValuePair<PortraitKey, string> item in portrait_map) {
-					if (this.m_portrait_sprites[item.Key] == null) {
-						logger.LogInfo($"Using fallback portrait for {item.Value}.");
-						this.m_portrait_sprites[item.Key] = fallback;
-					}
+				if (!this.m_is_loaded) {
+					result = "No valid portrait files found.";
 				}
-				this.m_is_loaded = true;
 			} catch (Exception e) {
 				logger.LogError("** SelfBustController.load_images ERROR - " + e);
+			} finally {
+				if (do_notify) {
+					notify("[Self Portrait] " + result);
+				}
+			}
+		}
+
+		[HarmonyPatch(typeof(DialogueController), "Update")]
+		class HarmonyPatch_DialogueController_Update {
+
+			private static bool Prefix(DialogueController __instance, GameObject ____dialoguePanel) {
+				try {
+					if (m_enabled.Value && is_modifier_hotkey_down() && is_hotkey_down(HOTKEY_RELOAD)) {
+						SelfBustController.Instance.load_images(true);
+					}
+					return true;
+				} catch (Exception e) {
+					logger.LogError("** HarmonyPatch_DialogueController_Update.Prefix ERROR - " + e);
+				}
+				return true;
 			}
 		}
 
@@ -218,10 +244,7 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 
 			private static void Postfix(DialogueController __instance, GameObject ____dialoguePanel) {
 				try {
-					____dialoguePanel.AddComponent<SelfBustController>().load_images(
-                        Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), m_subdir.Value),
-                        SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.characterName
-                    );
+					____dialoguePanel.AddComponent<SelfBustController>().load_images();
 					SelfBustController controller = SelfBustController.Instance;
 					controller.m_npc_emotes[PortraitKey.Normal] = (Dictionary<string, List<Sprite>>) ReflectionUtils.get_field_value(__instance, "_npcEmotes");
                     controller.m_npc_emotes[PortraitKey.Summer] = (Dictionary<string, List<Sprite>>) ReflectionUtils.get_field_value(__instance, "_npcSummerEmotes");

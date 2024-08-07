@@ -1,7 +1,9 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <AssemblyName>devopsdinosaur.sunhaven.$(MSBuildProjectName)</AssemblyName>
+    <Author>devopsdinosaur</Author>
+    <GameName>sunhaven</GameName>
+    <AssemblyName>$(Author).$(GameName).$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
     <TargetFramework>net480</TargetFramework>
     <Platforms>AnyCPU</Platforms>

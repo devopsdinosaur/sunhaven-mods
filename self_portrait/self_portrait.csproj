@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(SolutionDir)\solution_private.targets" />
   <Import Project="$(SolutionDir)\solution.targets" />
   <ItemGroup>
@@ -6,5 +6,22 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="$(BepInExPath)\LogOutput.log" Link="LogOutput.log" />
+    <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="$(AssemblyName).cfg" />
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <ItemGroup>
+      <AllFiles Include="$(TargetDir)**\*.*" Exclude="$(TargetDir)**\*.pdb" />
+      <PortraitFiles Include="$(ProjectDir)\self_portrait\**\*.*" Exclude="$(ProjectDir)\self_portrait\**\*.xcf"/>
+      <Assets Include="$(ProjectDir)**\*.assetbundle" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AllFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\%(RecursiveDir)" />
+    <MakeDir Directories="$(GamePath)\BepInEx\plugins\self_portrait" />
+    <Copy SourceFiles="@(PortraitFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\self_portrait\%(RecursiveDir)" />
+    <Delete Files="$(ProjectDir)\bin\$(TargetName).zip" />
+    <Copy SourceFiles="@(AllFiles);@(Assets)" DestinationFolder="$(TargetDir)..\Release\%(RecursiveDir)"></Copy>
+    <MakeDir Directories="$(TargetDir)..\Release\self_portrait" />
+    <Copy SourceFiles="@(PortraitFiles);@(Assets)" DestinationFolder="$(TargetDir)..\Release\self_portrait\%(RecursiveDir)" />
+    <ZipDirectory SourceDirectory="$(TargetDir)..\Release" DestinationFile="$(ProjectDir)\bin\$(TargetName).zip" />
+    <RemoveDir Directories="$(TargetDir)..\Release" />
+  </Target>
 </Project>
