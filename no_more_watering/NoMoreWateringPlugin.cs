@@ -10,12 +10,27 @@ using System.Linq;
 using ZeroFormatter;
 using System;
 using System.Reflection;
+using DG.Tweening.Plugins;
 
+public static class PluginInfo {
+	
+	public const string TITLE = "No More Watering";
+	public const string NAME = "no_more_watering";
+	
+	public const string VERSION = "0.0.17";
+	public static string[] CHANGELOG = new string[] {
+		"v0.0.17 - Fixed for game v1.5.3"
+	};
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_more_watering", "No More Watering", "0.0.17")]
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+} 
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
 public class NoMoreWateringPlugin : BaseUnityPlugin {
-
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_more_watering");
+    
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	public static ManualLogSource logger;
 
 	private static ConfigEntry<bool> m_enabled;
@@ -64,10 +79,8 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 			m_any_season_planting = this.Config.Bind<bool>("General", "Any Season Planting", false, "If true then all seeds can be planted in all seasons");
 			m_weapons_harvest_crops = this.Config.Bind<bool>("General", "Weapons Harvest Crops", false, "If true then any weapon (sword / crossbow) hit will harvest a crop (note: axes and pickaxes have special code and will not work for this)");
 			m_auto_mana = this.Config.Bind<bool>("General", "Auto Mana", true, "If true then crops will automatically get mana infusion if needed (during day and overnight)");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
-			logger.LogInfo("devopsdinosaur.no_more_watering v0.0.17" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}	
