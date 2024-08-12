@@ -8,11 +8,25 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection;
 
+public static class PluginInfo {
 
-[BepInPlugin("devopsdinosaur.sunhaven.meteors", "Meteors", "0.0.1")]
+	public const string TITLE = "Meteors";
+	public const string NAME = "meteors";
+
+	public const string VERSION = "0.0.2";
+	public static string[] CHANGELOG = new string[] {
+		"v0.0.2 - Updated to work with game v1.5"
+	};
+
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
 public class EasyAnimalsPlugin : BaseUnityPlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.meteors");
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	public static ManualLogSource logger;
 	
 	private static ConfigEntry<bool> m_enabled;
@@ -30,8 +44,8 @@ public class EasyAnimalsPlugin : BaseUnityPlugin {
 					m_node_ids.Add((int) field_info.GetRawConstantValue());
 				}
 			}
-			this.m_harmony.PatchAll();	
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.meteors v0.0.1 loaded.");
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}

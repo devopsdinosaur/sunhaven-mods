@@ -74,6 +74,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "sound_manager", "sound_mana
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "self_portrait", "self_portrait\self_portrait.csproj", "{771B1AE0-4EB7-456A-829D-8130AA76BD71}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "meteors", "meteors\meteors.csproj", "{4800FF37-D0E8-489F-9D6E-6F272F2560CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -196,6 +198,10 @@ Global
 		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{771B1AE0-4EB7-456A-829D-8130AA76BD71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4800FF37-D0E8-489F-9D6E-6F272F2560CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4800FF37-D0E8-489F-9D6E-6F272F2560CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4800FF37-D0E8-489F-9D6E-6F272F2560CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4800FF37-D0E8-489F-9D6E-6F272F2560CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

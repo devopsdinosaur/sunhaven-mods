@@ -13,10 +13,25 @@ using System.Threading;
 using UnityEngine.UI;
 using PSS;
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_from_storage", "Craft From Storage", "0.0.19")]
+public static class PluginInfo {
+
+	public const string TITLE = "Craft from Storage";
+	public const string NAME = "craft_from_storage";
+
+	public const string VERSION = "0.0.20";
+	public static string[] CHANGELOG = new string[] {
+		"v0.0.20 - Fixed issue causing navigation buttons to close chests in 1.5.4"
+	};
+
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
 public class CraftFromStoragePlugin : BaseUnityPlugin {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_from_storage");
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	public static ManualLogSource logger;
 	
 	private static ConfigEntry<bool> m_enabled;
@@ -27,15 +42,17 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "If true then crafting stations will pull from inventory before storage chests.");
-			m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "If true then the transfer similar/same buttons will also pull from the action bar.");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
-			logger.LogInfo("devopsdinosaur.sunhaven.craft_from_storage v0.0.19" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			m_use_inventory_first = this.Config.Bind<bool>("General", "Use Inventory First", true, "(* Since game v1.4 this has no effect *) If true then crafting stations will pull from inventory before storage chests.");
+			m_transfer_from_action_bar = this.Config.Bind<bool>("General", "Transfer From Action Bar", false, "(* Since game v1.4 this has no effect [the Zone Send Similar button is built into the game] *) If true then the transfer similar/same buttons will also pull from the action bar.");
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
+	}
+
+	private static void _debug_log(object text) {
+		logger.LogInfo(text);
 	}
 
 	public class OmniChest {
@@ -233,7 +250,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 					this.m_chests[
 						(direction == Vector3.left ?
 							(index == 0 ?
-								this.m_chests.Count - 1 : 
+								this.m_chests.Count - 1 :
 								index - 1
 							) :
 							(index == this.m_chests.Count - 1 ?
@@ -241,7 +258,7 @@ public class CraftFromStoragePlugin : BaseUnityPlugin {
 								index + 1
 							)
 						)
-					].Interact((int) InteractionType.Both);
+					].Interact(0);
 					break;
 				}
 			} catch (Exception e) {
