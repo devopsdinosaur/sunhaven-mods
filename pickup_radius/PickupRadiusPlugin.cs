@@ -10,8 +10,9 @@ public static class PluginInfo {
 	public const string TITLE = "Pickup Radius";
 	public const string NAME = "pickup_radius";
 
-	public const string VERSION = "0.0.5";
+	public const string VERSION = "0.0.6";
 	public static string[] CHANGELOG = new string[] {
+		"v0.0.6 - Fixed issue causing player to get stuck when fishing",
 		"v0.0.5 - Fixed issue causing instant spawn code to not work"
 	};
 
@@ -54,7 +55,7 @@ public class PickupRadiusPlugin : BaseUnityPlugin {
 	class HarmonyPatch_Pickup_SpawnInternal {
 
 		private static bool Prefix(ref bool homeIn, ref Pickup.BounceAnimation bounceAnimation, ref float pickupTime) {
-			if (m_enabled.Value) {
+			if (m_enabled.Value && bounceAnimation != Pickup.BounceAnimation.Fish) {
 				homeIn = false;
 				bounceAnimation = Pickup.BounceAnimation.Normal;
 				pickupTime = 0;
