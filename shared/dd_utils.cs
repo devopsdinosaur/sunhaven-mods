@@ -2,11 +2,60 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using BepInEx;
 using BepInEx.Logging;
+using BepInEx.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+
+public abstract class DDPlugin : BaseUnityPlugin {
+    protected Dictionary<string, string> plugin_info = null;
+    protected static ManualLogSource logger;
+
+    protected void create_nexus_page() {
+        if (plugin_info == null) {
+            logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
+            return;
+        }
+        string nexus_dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"]));
+        string template_path = Path.Combine(nexus_dir, "template.txt");
+        string output_path = Path.Combine(nexus_dir, "generated.txt");
+        if (!File.Exists(template_path)) {
+            return;
+        }
+        string template_data = File.ReadAllText(template_path);
+        Dictionary<string, List<string[]>> categories = new Dictionary<string, List<string[]>>();
+        foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> kvp in this.Config.ToArray()) {
+            if (!categories.Keys.Contains(kvp.Key.Section)) {
+                categories[kvp.Key.Section] = new List<string[]>();
+            }
+            categories[kvp.Key.Section].Add(new string[] {
+                kvp.Key.Key,
+                $"[*][b][i]{kvp.Key.Key}[/i][/b] - {kvp.Value.Description.Description}"
+            });
+        }
+        List<string> ordered_categories = new List<string>(categories.Keys);
+        ordered_categories.Sort();
+        foreach (List<string[]> items in categories.Values) {
+            items.Sort((x, y) => x[0].CompareTo(y[0]));
+        }
+        string lines = "";
+        foreach (string category in ordered_categories) {
+            lines += $"[b][size=3]{category}[/size][/b]\n\n[list]\n";
+            foreach (string[] option in categories[category]) {
+                lines += option[1] + "\n";
+            }
+            lines += "[/list]\n";
+        }
+        this.plugin_info["config_options"] = lines;
+        foreach (KeyValuePair<string, string> kvp in this.plugin_info) {
+            template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
+        }
+        File.WriteAllText(output_path, template_data);
+    }
+}
 
 public static class UnityUtils {
 
