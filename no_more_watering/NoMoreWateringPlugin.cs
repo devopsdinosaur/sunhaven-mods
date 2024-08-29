@@ -17,8 +17,9 @@ public static class PluginInfo {
 	public const string TITLE = "No More Watering";
 	public const string NAME = "no_more_watering";
 	
-	public const string VERSION = "0.0.17";
+	public const string VERSION = "0.0.18";
 	public static string[] CHANGELOG = new string[] {
+		"v0.0.18 - Fixed issue causing seeds to be unplantable",
 		"v0.0.17 - Fixed for game v1.5.3"
 	};
 
@@ -364,7 +365,19 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
 		}
 	}
 
-    [HarmonyPatch(typeof(Seeds), "Use1")]
+	private static void play_audio(AudioClip clip, float volume) {
+		try {
+			AudioManager.Instance.PlayAudio(clip, volume);
+		} catch { }
+	}
+
+	private static void play_audio_one_shot(AudioClip clip, Vector3 position, float volume) {
+		try {
+			AudioManager.Instance.PlayOneShot(clip, position, volume);
+		} catch { }
+	}
+
+	[HarmonyPatch(typeof(Seeds), "Use1")]
 	class HarmonyPatch_Seeds_Use1 {
 
 		private static bool Prefix(
@@ -405,23 +418,25 @@ public class NoMoreWateringPlugin : BaseUnityPlugin {
                         flag = true;
                     }
                 }
-				if (!(seed.farmType == FarmType.Any || seed.farmType == TileManager.farmType || (____crop is Crop crop && crop.CanBePlacedBecauseScarecrowNearby(new Vector2(___pos.x, (float) ___pos.y * 1.4142135f), vector3Int)))) {
-                    AudioManager.Instance.PlayAudio(SingletonBehaviour<Prefabs>.Instance.errorSound, 0.5f);
-                    SingletonBehaviour<NotificationStack>.Instance.SendNotification("This can't be planted here");
-					return false;
-                }
-				SingletonBehaviour<GameManager>.Instance.SetDecorationSubTile(vector3Int, seed.id, new byte[0], sendPlaceEvent: true, saveDecoration: true, animation: true, ignoreDataLayerPlacement: false, canDestroyDecorations: false, 0, delegate (Decoration decoration)
-				{
-					Crop crop2 = (Crop) decoration;
-					if ((bool) crop2) {
-						Player.Instance.Inventory.RemoveItemAt(Player.Instance.ItemIndex, 1);
-						__instance.HoldAnimation();
-						AudioManager.Instance.PlayOneShot(SingletonBehaviour<Prefabs>.Instance.plantSeedsSound, __instance.transform.position, 1f);
-						crop2.OnPlaced();
-						___prevPos = ___pos;
-						Seeds.onPlant?.Invoke(seed.id);
-					}
-				});
+				if (flag2 && !flag) {
+					play_audio(SingletonBehaviour<Prefabs>.Instance.errorSound, 0.5f);
+					SingletonBehaviour<NotificationStack>.Instance.SendNotification("This can't be planted here");
+				} else if (!flag2 && !seed.seasons.Contains(SingletonBehaviour<DayCycle>.Instance.Season)) {
+					play_audio(SingletonBehaviour<Prefabs>.Instance.errorSound, 0.5f);
+					SingletonBehaviour<NotificationStack>.Instance.SendNotification(string.Concat("This can't be planted in ", SingletonBehaviour<DayCycle>.Instance.Season, "!"));
+				} else if (seed.farmType == FarmType.Any || seed.farmType == TileManager.farmType || (____crop is Crop crop && crop.CanBePlacedBecauseScarecrowNearby(new Vector2(___pos.x, (float) ___pos.y * 1.4142135f), vector3Int))) {
+					SingletonBehaviour<GameManager>.Instance.SetDecorationSubTile(vector3Int, seed.id, new byte[0], sendPlaceEvent: true, saveDecoration: true, animation: true, ignoreDataLayerPlacement: false, canDestroyDecorations: false, 0, delegate (Decoration decoration) {
+						Crop crop2 = (Crop) decoration;
+						if ((bool) crop2) {
+							Player.Instance.Inventory.RemoveItemAt(Player.Instance.ItemIndex, 1);
+							__instance.HoldAnimation();
+							AudioManager.Instance.PlayOneShot(SingletonBehaviour<Prefabs>.Instance.plantSeedsSound, __instance.transform.position, 1f);
+							crop2.OnPlaced();
+							___prevPos = ___pos;
+							Seeds.onPlant?.Invoke(seed.id);
+						}
+					});
+				}
 				return false;
             } catch (Exception e) {
 				logger.LogError("** HarmonyPatch_Seeds_Use1.Prefix ERROR - " + e);
