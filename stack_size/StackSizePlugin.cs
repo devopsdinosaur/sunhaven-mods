@@ -5,7 +5,7 @@ using HarmonyLib;
 using Wish;
 using System;
 
-[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.5")]
+[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.6")]
 public class StackSizePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.stack_size");
@@ -22,7 +22,7 @@ public class StackSizePlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.5" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.stack_size v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -36,7 +36,9 @@ public class StackSizePlugin : BaseUnityPlugin {
 				return;
 			}
 			foreach (ItemSellInfo item_info in ItemInfoDatabase.Instance.allItemSellInfos.Values) {
-				item_info.stackSize = m_stack_size.Value;
+				if (item_info.itemType != ItemType.Animal && item_info.itemType != ItemType.Pet) {
+					item_info.stackSize = m_stack_size.Value;
+				}
 			}
 		}
 	}
@@ -46,7 +48,9 @@ public class StackSizePlugin : BaseUnityPlugin {
 
 		private static void Postfix(ItemData __instance) {
 			if (m_enabled.Value) {
-				__instance.stackSize = m_stack_size.Value;
+				if (__instance.id < 13000) {
+					__instance.stackSize = m_stack_size.Value;
+				}
 			}
 		}
 	}
