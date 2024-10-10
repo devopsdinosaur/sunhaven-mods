@@ -15,8 +15,9 @@ public static class PluginInfo {
     public const string TITLE = "Continue Button";
     public const string NAME = "continue_button";
 
-    public const string VERSION = "0.0.7";
+    public const string VERSION = "0.0.8";
     public static string[] CHANGELOG = new string[] {
+        "v0.0.8 - Fixed to work with game v1.5.7",
         "v0.0.7 - Updates from p1xel8ted to fix misc UI glitches with the button"
     };
 
@@ -71,53 +72,42 @@ public class ContinueButtonPlugin :BaseUnityPlugin {
     [HarmonyPatch(typeof(MainMenuController), "HomeMenu")]
     [HarmonyBefore("p1xel8ted.sunhaven.keepalive")]
     class HarmonyPatch_MainMenuController_HomeMenu {
-
         private static GameObject m_continue_button = null;
         private static bool m_is_first_load = true;
 
         private static void Postfix(MainMenuController __instance, ref GameObject ___homeMenu) {
             try {
                 string saves_dir = Path.Combine(Application.persistentDataPath, "Saves");
-            
-                Transform playButtonsHolder = ___homeMenu.transform.Find("PlayButtons");
-                Transform play_button = playButtonsHolder.GetChild(0);
-
                 if (m_continue_button != null || !Directory.Exists(saves_dir)) {
                     return;
                 }
-            
-                //get last modified save
+                Transform play_buttons_container = null;
+                foreach (Transform child in ___homeMenu.transform) {
+                    if (child.gameObject.activeSelf) {
+                        if ((play_buttons_container = child.Find("PlayButtons")) == null) {
+                            continue;
+                        }
+                        break;
+                    }
+                }
+                Transform play_button = null;
+                if (play_buttons_container == null || (play_button = play_buttons_container.Find("PlayButton")) == null) {
+                    logger.LogError("** HarmonyPatch_MainMenuController_HomeMenu.Postfix ERROR - unable to locate platform menu container => PlayButtons.");
+                    return;
+                }
                 var lastModifiedSave = SingletonBehaviour<GameSave>.Instance.Saves
                     .OrderByDescending(save => File.GetLastWriteTime(Path.Combine(saves_dir, save.fileName)))
                     .FirstOrDefault();
-            
-                if (lastModifiedSave == null) return;
-            
-                //get index of last modified save
+                if (lastModifiedSave == null) {
+                    return;
+                }
                 var characterIndex = SingletonBehaviour<GameSave>.Instance.Saves.IndexOf(lastModifiedSave);
-         
-                //resize menu border to fit button
-                var menuRect = playButtonsHolder.GetComponent<RectTransform>();
+                var menuRect = play_buttons_container.GetComponent<RectTransform>();
                 menuRect.sizeDelta = new Vector2(menuRect.sizeDelta.x, 310);
-            
                 m_continue_button = GameObject.Instantiate<GameObject>(play_button.gameObject, play_button.parent);
-            
-                //get localized continue text
                 m_continue_button.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = GetLocalizedContinue();
                 m_continue_button.transform.SetAsFirstSibling();
-            
-                //set name for easier locating by other mods
                 m_continue_button.name = "ContinueButton";
-
-                //this gets overridden somewhere
-                //deselct play button (Red highlight)
-                //var playHighlight = play_button.GetComponent<HighlightButton>();
-                //playHighlight.Deselect();
-
-                //highlight continue button
-                //var continueHighlight = m_continue_button.GetComponent<HighlightButton>();
-                //continueHighlight.Select();
-            
                 GameObject.Destroy(m_continue_button.transform?.GetChild(0)?.gameObject?.GetComponent<Localize>());
                 m_continue_button.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(delegate {
                     __instance.PlayGame(characterIndex);
