@@ -11,7 +11,7 @@ using System.Reflection;
 using UnityEngine.Events;
 using PSS;
 
-[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.3")]
+[BepInPlugin("devopsdinosaur.sunhaven.consolidated_crafting", "Consolidated Crafting", "0.0.4")]
 public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 
 	private static int[] TABLE_IDS = new int[] {
@@ -86,7 +86,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.3" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo("devopsdinosaur.sunhaven.consolidated_crafting v0.0.4" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -260,12 +260,7 @@ public class ConsolidatedCraftingPlugin : BaseUnityPlugin {
 					}
 				}
 				TMP_Dropdown dropdown = GameObject.Instantiate<TMP_Dropdown>(m_dropdown_template, adjacent_transform.parent);
-				foreach (Component component in dropdown.gameObject.GetComponents<Component>()) {
-					if (component.GetType().Assembly.GetName().Name == "I2Localization") {
-						GameObject.Destroy(component);
-						break;
-					}
-				}
+				GameObject.Destroy(dropdown.gameObject.GetComponent<ConfirmLangaugeChange>());
 				RectTransform dropdown_rect = dropdown.GetComponent<RectTransform>();
 				dropdown_rect.localPosition = adjacent_rect.localPosition + Vector3.down * (adjacent_rect.rect.height / 2 + 30f) + Vector3.right * adjacent_rect.rect.width * 2;
                 dropdown.name = DROPDOWN_OBJECT_NAME;
