@@ -5,7 +5,7 @@ using HarmonyLib;
 using Wish;
 using System;
 
-[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.6")]
+[BepInPlugin("devopsdinosaur.sunhaven.stack_size", "Stack Size", "0.0.7")]
 public class StackSizePlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.stack_size");
@@ -48,7 +48,8 @@ public class StackSizePlugin : BaseUnityPlugin {
 
 		private static void Postfix(ItemData __instance) {
 			if (m_enabled.Value) {
-				if (__instance.id < 13000) {
+				logger.LogInfo(__instance.id);
+				if (__instance.id < 13000 || __instance.id >= 14000) {
 					__instance.stackSize = m_stack_size.Value;
 				}
 			}
