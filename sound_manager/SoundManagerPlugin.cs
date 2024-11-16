@@ -5,45 +5,44 @@ using HarmonyLib;
 using Wish;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 
-[BepInPlugin("devopsdinosaur.sunhaven.sound_manager", "Sound Manager", "0.0.1")]
-public class SoundManagerPlugin : BaseUnityPlugin {
+public static class PluginInfo {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.sound_manager");
-	public static ManualLogSource logger;
+	public const string TITLE = "Sound Manager";
+	public const string NAME = "sound_manager";
+	public const string SHORT_DESCRIPTION = "Adds more granularity to sound control. Silence or increase/decrease volume of specific game sounds. Add custom sounds.";
 
-	class ConfigDef<T> {
-		public string category;
-		public string key;
-		public string description;
-		public T default_value;
-		public ConfigEntry<T> config;
+	public const string VERSION = "0.0.2";
+
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME_TITLE = "Sun Haven";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+	public const string REPO = "sunhaven-mods";
+
+	public static Dictionary<string, string> to_dict() {
+		Dictionary<string, string> info = new Dictionary<string, string>();
+		foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+			info[field.Name.ToLower()] = (string) field.GetValue(null);
+		}
+		return info;
 	}
+}
 
-	enum ConfigId {
-		ID_SILENCE_SKILL_NODE_ROLLOVER
-	};
-
-	private static Dictionary<ConfigId, ConfigDef<bool>> m_bool_configs = new Dictionary<ConfigId, ConfigDef<bool>>() {
-		{ConfigId.ID_SILENCE_SKILL_NODE_ROLLOVER, new ConfigDef<bool>() {
-			category = "Silence",
-			key = "Silence - Skill Node Rollover",
-			default_value = false,
-			description = "Silence the dings when moving cursor over skill tree nodes"
-		}},
-	};
-
-	private static ConfigEntry<bool> m_enabled;
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class SoundManagerPlugin : DDPlugin {
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 
 	private void Awake() {
 		logger = this.Logger;
 		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			foreach (KeyValuePair<ConfigId, ConfigDef<bool>> item in m_bool_configs) {
-				item.Value.config = this.Config.Bind<bool>(item.Value.category, item.Value.key, item.Value.default_value, item.Value.description);
-			}
+			this.m_plugin_info = PluginInfo.to_dict();
+			Settings.Instance.load(this);
+			DDPlugin.set_log_level(Settings.m_log_level.Value);
+			this.create_nexus_page();
 			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.sound_manager v0.0.1 loaded.");
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
@@ -54,10 +53,10 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 
 		private static bool Prefix(UISoundElement __instance) {
 			try {
-				if (!m_enabled.Value) {
+				if (!Settings.m_enabled.Value) {
 					return true;
 				}
-				if (m_bool_configs[ConfigId.ID_SILENCE_SKILL_NODE_ROLLOVER].config.Value && __instance.gameObject.name.StartsWith("_node(Clone)")) {
+				if (Settings.m_bool_configs[Settings.ConfigId.ID_SILENCE_SKILL_NODE_ROLLOVER].config.Value && __instance.gameObject.name.StartsWith("_node(Clone)")) {
 					return false;
 				}
 				return true;

@@ -22,19 +22,17 @@ using System.IO;
 using UnityEngine.Experimental.Rendering;
 
 [BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
-public class TestingPlugin : BaseUnityPlugin {
+public class TestingPlugin : DDPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
-	public static ManualLogSource logger;
 	private static ConfigEntry<bool> m_enabled;
 
 	private void Awake() {
 		logger = this.Logger;
 		try {
 			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
+			DDPlugin.set_log_level(LogLevel.Debug);
+			this.m_harmony.PatchAll();
 			logger.LogInfo("devopsdinosaur.sunhaven.testing v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
@@ -276,7 +274,30 @@ public class TestingPlugin : BaseUnityPlugin {
         }
     }
 
+	[HarmonyPatch(typeof(DialogueNode), "ProcessText")]
+	class HarmonyPatch_DialogueNode_ProcessText {
+		private static void Postfix(DialogueNode __instance) {
+			DDPlugin._debug_log(string.Join("\n", __instance.dialogueText));
+		}
+	}
+
 	/*
+	
+	[HarmonyPatch(typeof(), "")]
+	class HarmonyPatch_ {
+		private static bool Prefix() {
+			
+			return true;
+		}
+	}
+
+	[HarmonyPatch(typeof(), "")]
+	class HarmonyPatch_ {
+		private static void Postfix() {
+			
+		}
+	}
+
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
 

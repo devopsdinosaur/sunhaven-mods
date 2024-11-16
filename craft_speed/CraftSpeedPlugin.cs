@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
-[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.6")]
+[BepInPlugin("devopsdinosaur.sunhaven.craft_speed", "Craft Speed", "0.0.7")]
 public class CraftSpeedPlugin : BaseUnityPlugin {
 
 	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.craft_speed");
@@ -49,7 +49,8 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 		"Furnace", 
 		"Furniture Table",
 		"Grinder", 
-		"Ice Cream Cart", 
+		"Ice Cream Cart",
+		"Industrial Cooking Stove",
 		"Jam Maker",
 		"Jewelry Table",
 		"Juicer", 
@@ -101,7 +102,7 @@ public class CraftSpeedPlugin : BaseUnityPlugin {
 			if (m_enabled.Value) {
 				this.m_harmony.PatchAll();
 			}
-			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.6" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+			logger.LogInfo((object) "devopsdinosaur.sunhaven.craft_speed v0.0.7" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}

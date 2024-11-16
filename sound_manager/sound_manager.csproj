@@ -5,6 +5,8 @@
     <Compile Include="..\shared\dd_utils.cs" Link="dd_utils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="$(BepInExPath)\LogOutput.log" Link="LogOutput.log" />
+    <Content Include="$(BepInExPath)\LogOutput.log" Link="logs\LogOutput.log" />
+    <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
+    <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
   </ItemGroup>
 </Project>

@@ -9,17 +9,88 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using UnityEngine.SceneManagement;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 public abstract class DDPlugin : BaseUnityPlugin {
-    protected Dictionary<string, string> plugin_info = null;
+    public Dictionary<string, string> m_plugin_info = null;
     protected static ManualLogSource logger;
+    public enum LogLevel {
+        None,
+        Error,
+        Warn,
+        Info,
+        Debug
+    }
+    private static readonly Dictionary<string, LogLevel> LOG_LEVEL_STRING_KEY_MAP = new Dictionary<string, LogLevel>() {
+        {"none", LogLevel.None},
+        {"error", LogLevel.Error},
+        {"warn", LogLevel.Warn},
+        {"info", LogLevel.Info},
+        {"debug", LogLevel.Debug},
+    };
+    protected static LogLevel m_log_level = LogLevel.Info;
+
+    public static LogLevel set_log_level(LogLevel level) {
+        _info_log($"Setting log level to {level.ToString().ToUpper()}.");
+        return (m_log_level = level);
+    }
+
+    public static LogLevel set_log_level(string level_string) {
+        if (LOG_LEVEL_STRING_KEY_MAP.TryGetValue(level_string.ToLower(), out LogLevel value)) {
+            return set_log_level(value);
+        }
+        return set_log_level(LogLevel.None);
+    }
+
+    public static void _debug_log(object text) {
+        if (m_log_level >= LogLevel.Debug) {
+            logger.LogInfo(text);
+        }
+    }
+
+    public static void _info_log(object text) {
+        if (m_log_level >= LogLevel.Info) {
+            logger.LogInfo(text);
+        }
+    }
+
+    public static void _warn_log(object text) {
+        if (m_log_level >= LogLevel.Warn) {
+            logger.LogWarning(text);
+        }
+    }
+
+    public static void _error_log(object text) {
+        if (m_log_level >= LogLevel.Error) {
+            logger.LogError(text);
+        }
+    }
+
+    public string get_nexus_dir() {
+        try {
+            string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            foreach (string file in new string[] { "nexus", this.m_plugin_info["guid"] }) {
+                if (!Directory.Exists(path = Path.Combine(path, file))) {
+                    return null;
+                }
+            }
+            return path;
+        } catch (Exception e) {
+            _error_log("** DDPlugin.get_nexus_dir ERROR - " + e);
+        }
+        return null;
+    }
 
     protected void create_nexus_page() {
-        if (plugin_info == null) {
-            logger.LogWarning("* create_nexus_page WARNING - plugin_info dict must be initialized before calling this method.");
+        if (m_plugin_info == null) {
+            logger.LogWarning("* create_nexus_page WARNING - m_plugin_info dict must be initialized before calling this method.");
             return;
         }
-        string nexus_dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "nexus", this.plugin_info["guid"]));
+        string nexus_dir = this.get_nexus_dir();
+        if (nexus_dir == null) {
+            return;
+        }
         string template_path = Path.Combine(nexus_dir, "template.txt");
         string output_path = Path.Combine(nexus_dir, "generated.txt");
         if (!File.Exists(template_path)) {
@@ -27,6 +98,7 @@ public abstract class DDPlugin : BaseUnityPlugin {
         }
         string template_data = File.ReadAllText(template_path);
         Dictionary<string, List<string[]>> categories = new Dictionary<string, List<string[]>>();
+        List<string> hotkey_lines = new List<string>();
         foreach (KeyValuePair<ConfigDefinition, ConfigEntryBase> kvp in this.Config.ToArray()) {
             if (!categories.Keys.Contains(kvp.Key.Section)) {
                 categories[kvp.Key.Section] = new List<string[]>();
@@ -35,7 +107,12 @@ public abstract class DDPlugin : BaseUnityPlugin {
                 kvp.Key.Key,
                 $"[*][b][i]{kvp.Key.Key}[/i][/b] - {kvp.Value.Description.Description}"
             });
+            if (kvp.Key.Section != "Hotkeys") {
+                continue;
+            }
+            hotkey_lines.Add($"[*][b][i]{(kvp.Key.Key.EndsWith("Modifier") ? "" : "[Modifier_Key] + ")}{kvp.Value.DefaultValue.ToString().Replace(",", " or ")}[/i][/b] - {kvp.Key.Key.Replace("Hotkey - ", "").Replace(" Hotkey", "")}");
         }
+        this.m_plugin_info["hotkeys"] = (hotkey_lines.Count > 0 ? $"\n[b][u][size=4]Hotkeys[/size][/u][/b]\n\n[list]\n{string.Join("\n", hotkey_lines)}\n[/list]" : "");
         List<string> ordered_categories = new List<string>(categories.Keys);
         ordered_categories.Sort();
         foreach (List<string[]> items in categories.Values) {
@@ -49,8 +126,8 @@ public abstract class DDPlugin : BaseUnityPlugin {
             }
             lines += "[/list]\n";
         }
-        this.plugin_info["config_options"] = lines;
-        foreach (KeyValuePair<string, string> kvp in this.plugin_info) {
+        this.m_plugin_info["config_options"] = lines;
+        foreach (KeyValuePair<string, string> kvp in this.m_plugin_info) {
             template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
         }
         File.WriteAllText(output_path, template_data);
@@ -105,9 +182,47 @@ public static class UnityUtils {
         return match;
     }
 
+    public static Transform find_by_path(string path) {
+        Transform __find_by_path__(Scene scene, Transform parent, string[] path_parts, int part_index) {
+            Transform result = null;
+            if (parent == null) {
+                foreach (GameObject obj in scene.GetRootGameObjects()) {
+                    if ((result = __find_by_path__(scene, obj.transform, path_parts, 0)) != null) {
+                        return result;
+                    }
+                }
+            } else {
+                if (parent.name == path_parts[part_index]) {
+                    if (part_index == path_parts.Length - 1) {
+                        return parent;
+                    }
+                    foreach (Transform child in parent) {
+                        if ((result = __find_by_path__(scene, child, path_parts, part_index + 1)) != null) {
+                            return result;
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        Transform result = null;
+        string[] parts = path.Replace("\\", "/").Trim('/').Trim().Split('/');
+        Scene active_scene = SceneManager.GetActiveScene();
+        if ((result = __find_by_path__(active_scene, null, parts, -1)) != null) {
+            return result;
+        }
+        for (int scene_index = 0; scene_index < SceneManager.sceneCount; scene_index++) {
+            Scene scene = SceneManager.GetSceneAt(scene_index);
+            if (scene != active_scene && (result = __find_by_path__(scene, null, parts, -1)) != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+
     public static void list_ancestors(Transform obj, Action<object> log_method) {
         List<string> strings = new List<string>();
-        for (;;) {
+        for (; ; ) {
             if (obj == null) {
                 break;
             }
@@ -147,7 +262,7 @@ public static class UnityUtils {
             add_line($"\"name\": \"{transform.name}\",");
             add_line("\"components\": [");
             tab_count++;
-            lines.Add(string.Join(",\n", transform.GetComponents<Component>().Select(component => 
+            lines.Add(string.Join(",\n", transform.GetComponents<Component>().Select(component =>
                 tabbed_text($"\"{component.GetType().ToString()}\"")))
             );
             tab_count--;
@@ -184,32 +299,37 @@ public static class UnityUtils {
 
 public static class ReflectionUtils {
 
-    public const BindingFlags BINDING_FLAGS_ALL = (BindingFlags) 65535;
+    public const BindingFlags BINDING_FLAGS_ALL = BindingFlags.Instance |
+        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic |
+        BindingFlags.FlattenHierarchy | BindingFlags.InvokeMethod | BindingFlags.CreateInstance;
 
-    public static string list_members(object obj) {
+    public static string list_members(object obj, Type type = null) {
+        if (type == null) {
+            type = obj.GetType();
+        }
         List<string> lines = new List<string>();
         if (obj == null) {
             return "object is null";
         }
-        lines.Add($"list_members (object type: {obj.GetType().Name})");
+        lines.Add($"list_members (object type: {type.Name})");
         foreach (FieldInfo field in obj.GetType().GetFields(BINDING_FLAGS_ALL)) {
             lines.Add($"--> field: {field.Name} ({field.FieldType.Name})");
         }
-        foreach (MethodInfo method in obj.GetType().GetMethods(BINDING_FLAGS_ALL)) {
+        foreach (MethodInfo method in type.GetMethods(BINDING_FLAGS_ALL)) {
             lines.Add($"--> method: {method.Name}");
         }
-        foreach (PropertyInfo property in obj.GetType().GetProperties(BINDING_FLAGS_ALL)) {
+        foreach (PropertyInfo property in type.GetProperties(BINDING_FLAGS_ALL)) {
             lines.Add($"--> property: {property.Name}");
         }
         return string.Join("\n", lines);
     }
 
-    public static FieldInfo get_field(object obj, string name) {
-        return obj.GetType().GetField(name, BINDING_FLAGS_ALL);
+    public static FieldInfo get_field(object obj, string name, Type type = null) {
+        return (type == null ? obj.GetType() : type).GetField(name, BINDING_FLAGS_ALL);
     }
 
-    public static object get_field_value(object obj, string name) {
-        return get_field(obj, name)?.GetValue(obj);
+    public static object get_field_value(object obj, string name, Type type = null) {
+        return get_field(obj, name, type)?.GetValue(obj);
     }
     /*
     public static Il2CppSystem.Reflection.FieldInfo il2cpp_get_field(Il2CppSystem.Object obj, string name) {
@@ -223,20 +343,20 @@ public static class ReflectionUtils {
         );
     }
     */
-    public static PropertyInfo get_property(object obj, string name) {
-        return obj.GetType().GetProperty(name, BINDING_FLAGS_ALL);
+    public static PropertyInfo get_property(object obj, string name, Type type = null) {
+        return (type == null ? obj.GetType() : type).GetProperty(name, BINDING_FLAGS_ALL);
     }
 
-    public static object get_property_value(object obj, string name) {
-        return get_property(obj, name)?.GetValue(obj);
+    public static object get_property_value(object obj, string name, Type type = null) {
+        return get_property(obj, name, type)?.GetValue(obj);
     }
 
-    public static MethodInfo get_method(object obj, string name) {
-        return obj.GetType().GetMethod(name, BINDING_FLAGS_ALL);
+    public static MethodInfo get_method(object obj, string name, Type type = null) {
+        return (type == null ? obj.GetType() : type).GetMethod(name, BINDING_FLAGS_ALL);
     }
 
-    public static object invoke_method(object obj, string name, object[] _params = null) {
-        return get_method(obj, name)?.Invoke(obj, (_params == null ? new object[] { } : _params));
+    public static object invoke_method(object obj, string name, object[] _params = null, Type type = null) {
+        return get_method(obj, name, type)?.Invoke(obj, (_params == null ? new object[] { } : _params));
     }
 
     public class EnumerateListEntriesCallbackParams {
@@ -326,14 +446,14 @@ public static class ReflectionUtils {
     }
 
     public static void generate_trace_patcher(
-        Type type, 
-        string path, 
-        string additional_usings = "", 
+        Type type,
+        string path,
+        string additional_usings = "",
         string[] skip_methods = null,
         bool echo_skip_messages = false
     ) {
         if (skip_methods == null) {
-            skip_methods = new string[] {};
+            skip_methods = new string[] { };
         }
         string type_name = type.Name;
         List<string> lines = new List<string>();
@@ -350,7 +470,7 @@ public class TracePatcher_{type_name} {{
     }}
 
     public static Action<TracerParams> callback = null;
-");   
+");
         List<string> field_accessor_names_list = new List<string>();
         foreach (FieldInfo field in type.GetFields(BINDING_FLAGS_ALL)) {
             string field_name = (field.Name.StartsWith("NativeFieldInfoPtr_") ? field.Name.Substring(19) : field.Name);
@@ -445,6 +565,7 @@ public class PluginUpdater : MonoBehaviour {
         };
         this.m_actions = new_actions;
         m_is_dirty = true;
+        DDPlugin._debug_log(this.m_actions.Length);
     }
 
     public void unregister(string name) {
@@ -463,6 +584,15 @@ public class PluginUpdater : MonoBehaviour {
         }
         this.m_actions = new_actions;
         this.m_is_dirty = true;
+    }
+
+    public void trigger(string name) {
+        foreach (UpdateInfo info in this.m_actions) {
+            if (info.name == name) {
+                info.elapsed = info.frequency;
+                return;
+            }
+        }
     }
 
     public void Update() {
