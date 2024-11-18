@@ -13,82 +13,54 @@ using UnityEngine.Experimental.Rendering;
 using UnityEngine.UI;
 using UnityEngine.AddressableAssets;
 
-[BepInPlugin("devopsdinosaur.sunhaven.self_portrait", "Self Portrait", "0.0.1")]
-public class SoundManagerPlugin : BaseUnityPlugin {
+public static class PluginInfo {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.self_portrait");
-	public static ManualLogSource logger;
-	private static ConfigEntry<bool> m_enabled;
-	private static ConfigEntry<string> m_subdir;
-	private static ConfigEntry<string> m_default_username;
-    private static ConfigEntry<string> m_hotkey_modifier;
-    private static ConfigEntry<string> m_hotkey_reload;
-	private static ConfigEntry<string> m_force_outfit;
+	public const string TITLE = "Self Portrait";
+	public const string NAME = "self_portrait";
+	public const string SHORT_DESCRIPTION = "Add custom bust portraits for your player for all seasons, wedding, and swimsuit just by dropping PNG files in a folder.  Additionally, can use config option to force NPC outfits regardless of season.";
 
-    private const int HOTKEY_MODIFIER = 0;
-    private const int HOTKEY_RELOAD = 1;
-	private static Dictionary<int, List<KeyCode>> m_hotkeys = null;
+	public const string VERSION = "0.0.2";
 
-    private void Awake() {
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME_TITLE = "Sun Haven";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+	public const string REPO = "sunhaven-mods";
+
+	public static Dictionary<string, string> to_dict() {
+		Dictionary<string, string> info = new Dictionary<string, string>();
+		foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+			info[field.Name.ToLower()] = (string) field.GetValue(null);
+		}
+		return info;
+	}
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class SelfPortraitPlugin : DDPlugin {
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
+
+	private void Awake() {
 		logger = this.Logger;
 		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			m_subdir = this.Config.Bind<string>("General", "Subfolder", "self_portrait", "Subfolder under 'plugins' in which per-user self portrait folders will be located (default: 'self_portrait').");
-			m_default_username = this.Config.Bind<string>("General", "Default Username", "default", "Fallback self portrait directory to use if there is none for current user (default: default).");
-            m_hotkey_modifier = this.Config.Bind<string>("General", "Hotkey Modifier", "LeftControl,RightControl", "Comma-separated list of Unity Keycodes used as the special modifier key (i.e. ctrl,alt,command) one of which is required to be down for hotkeys to work.  Set to '' (blank string) to not require a special key (not recommended).  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-            m_hotkey_reload = this.Config.Bind<string>("General", "Reload Hotkey", "F2", "Comma-separated list of Unity Keycodes, any of which (in combination with modifier key [if not blank]) will reload portrait images.  See this link for valid Unity KeyCode strings (https://docs.unity3d.com/ScriptReference/KeyCode.html)");
-            m_force_outfit = this.Config.Bind<string>("General", "Force Outfit", "", "Specify one of (Summer, Fall, Winter, Wedding, or Swimsuit) to override the game logic for portrait outfit selection for self and NPC (set to empty or invalid string to disable this setting).");
-            m_hotkeys = new Dictionary<int, List<KeyCode>>();
-            set_hotkey(m_hotkey_modifier.Value, HOTKEY_MODIFIER);
-            set_hotkey(m_hotkey_reload.Value, HOTKEY_RELOAD);
-            this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.self_portrait v0.0.1 loaded.");
+			this.m_plugin_info = PluginInfo.to_dict();
+			Settings.Instance.load(this);
+			DDPlugin.set_log_level(Settings.m_log_level.Value);
+			this.create_nexus_page();
+			Hotkeys.load();
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
 		}
 	}
-
-    private static void debug_log(object text) {
-        logger.LogInfo(text);
-    }
-
+	
 	private static void notify(string message) {
 		logger.LogInfo(message);
 		NotificationStack.Instance.SendNotification(message);
 	}
 
-	private static void set_hotkey(string keys_string, int key_index) {
-        m_hotkeys[key_index] = new List<KeyCode>();
-        foreach (string key in keys_string.Split(',')) {
-            string trimmed_key = key.Trim();
-            if (trimmed_key != "") {
-                m_hotkeys[key_index].Add((KeyCode) System.Enum.Parse(typeof(KeyCode), trimmed_key));
-            }
-        }
-    }
-
-    private static bool is_modifier_hotkey_down() {
-        if (m_hotkeys[HOTKEY_MODIFIER].Count == 0) {
-            return true;
-        }
-        foreach (KeyCode key in m_hotkeys[HOTKEY_MODIFIER]) {
-            if (Input.GetKey(key)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static bool is_hotkey_down(int key_index) {
-        foreach (KeyCode key in m_hotkeys[key_index]) {
-            if (Input.GetKeyDown(key)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    class SelfBustController : MonoBehaviour {
+    public class SelfBustController : MonoBehaviour {
 		private static SelfBustController m_instance = null;
 		public static SelfBustController Instance {
 			get {
@@ -102,6 +74,7 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 			Winter,
 			Wedding,
 			Swimsuit,
+			Halloween,
 			None
 		};
 		private bool m_is_loaded = false;
@@ -111,7 +84,8 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 			{PortraitKey.Fall, "Fall"},
 			{PortraitKey.Winter, "Winter"},
 			{PortraitKey.Wedding, "Wedding"},
-			{PortraitKey.Swimsuit, "Swimsuit"}
+			{PortraitKey.Swimsuit, "Swimsuit"},
+			{PortraitKey.Halloween, "Halloween"}
 		};
 		private Dictionary<PortraitKey, Sprite> m_portrait_sprites = new Dictionary<PortraitKey, Sprite>();
 		private GameObject m_bust = null;
@@ -144,8 +118,8 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 					this.initialize();
 				}
 				this.m_is_loaded = false;
-				string root_dir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), m_subdir.Value);
-				foreach (string player_name in new string[] {SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.characterName,  m_default_username.Value}) {
+				string root_dir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), Settings.m_subdir.Value);
+				foreach (string player_name in new string[] {SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.characterName,  Settings.m_default_username.Value}) {
 					string player_files_dir = Path.Combine(root_dir, player_name);
 					result = $"Images loaded from '{player_files_dir}'.";
 					logger.LogInfo($"Loading bust portrait files from directory, '{player_files_dir}'.");
@@ -196,31 +170,17 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 			}
 		}
 
-		[HarmonyPatch(typeof(DialogueController), "Update")]
-		class HarmonyPatch_DialogueController_Update {
-
-			private static bool Prefix(DialogueController __instance, GameObject ____dialoguePanel) {
-				try {
-					if (m_enabled.Value && is_modifier_hotkey_down() && is_hotkey_down(HOTKEY_RELOAD)) {
-						SelfBustController.Instance.load_images(true);
-					}
-					return true;
-				} catch (Exception e) {
-					logger.LogError("** HarmonyPatch_DialogueController_Update.Prefix ERROR - " + e);
-				}
-				return true;
-			}
-		}
-
-		public void show_self_portrait(bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust) {
+		public void show_self_portrait(bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
 			try {
-				if (!m_enabled.Value || !this.m_is_loaded) {
+				if (!Settings.m_enabled.Value || !this.m_is_loaded) {
                     this.m_image.gameObject.SetActive(false);
                     return;
 				}
 				this.m_image.gameObject.SetActive(!isRefreshBust);
 				if (isMarriageBust) {
 					this.m_image.sprite = this.m_portrait_sprites[PortraitKey.Wedding];
+				} else if (isSwimsuitBust) {
+					this.m_image.sprite = this.m_portrait_sprites[PortraitKey.Swimsuit];
 				} else if (isSwimsuitBust) {
 					this.m_image.sprite = this.m_portrait_sprites[PortraitKey.Swimsuit];
 				} else {
@@ -265,7 +225,7 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 		}
 
 		private static PortraitKey get_force_portrait_key() {
-			string val = m_force_outfit.Value;
+			string val = Settings.m_force_outfit.Value;
 			val = val.ToLower().Trim();
 			if (string.IsNullOrEmpty(val)) {
 				return PortraitKey.None;
@@ -294,12 +254,12 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 			return PortraitKey.Normal;
         }
 
-		[HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
+		[HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
 		class HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized {
 
-			private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust) {
+			private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
 				try {
-					if (!m_enabled.Value) {
+					if (!Settings.m_enabled.Value) {
 						return true;
 					}
 					PortraitKey key = get_force_portrait_key();
@@ -315,9 +275,9 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 				return true;
 			}
 
-			private static void Postfix(string name, bool small, bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust) {
+			private static void Postfix(string name, bool small, bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
 				try {
-					SelfBustController.Instance.show_self_portrait(isMarriageBust, isSwimsuitBust, hideName, isRefreshBust);
+					SelfBustController.Instance.show_self_portrait(isMarriageBust, isSwimsuitBust, hideName, isRefreshBust, isHalloweenBust);
 				} catch (Exception e) {
 					logger.LogError("** HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized.Postfix ERROR - " + e);
 				}
@@ -337,7 +297,7 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 						return false;
 					}
 
-					if (!m_enabled.Value) {
+					if (!Settings.m_enabled.Value) {
 						return true;
 					}
 					if (___npcName.IsNullOrWhiteSpace()) {
@@ -374,9 +334,9 @@ public class SoundManagerPlugin : BaseUnityPlugin {
                 return false;
             }
 
-            private static bool Prefix(ref AssetReferenceSprite __result, ref bool isMarriageBust, ref bool isSwimsuitBust, string ___npcName) {
+            private static bool Prefix(ref AssetReferenceSprite __result, ref bool isMarriageBust, ref bool isSwimsuitBust, ref bool isHalloweenBust, string ___npcName) {
 				try {
-					if (!m_enabled.Value) {
+					if (!Settings.m_enabled.Value) {
                         return true;
 					}
 					if (___npcName.IsNullOrWhiteSpace()) {
@@ -391,6 +351,10 @@ public class SoundManagerPlugin : BaseUnityPlugin {
 						isSwimsuitBust = true;
                         return get_sprite(PortraitKey.Swimsuit, ___npcName, ref __result);
                     }
+					if (isHalloweenBust || key == PortraitKey.Halloween) {
+						isHalloweenBust = true;
+						return get_sprite(PortraitKey.Halloween, ___npcName, ref __result);
+					}
 					return get_sprite(get_force_season_key(key), ___npcName, ref __result);
 				} catch (Exception e) {
 					logger.LogError("** HarmonyPatch_DialogueController_GetInitialBust.Prefix ERROR - " + e);
@@ -411,7 +375,7 @@ public class SoundManagerPlugin : BaseUnityPlugin {
                 Direction ____facingDirection
             ) {
                 try {
-					if (!m_enabled.Value) {
+					if (!Settings.m_enabled.Value) {
 						return true;
 					}
                     __instance.GetSluggedAnimator();

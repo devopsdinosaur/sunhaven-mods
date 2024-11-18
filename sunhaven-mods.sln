@@ -78,6 +78,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "meteors", "meteors\meteors.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "player_stats", "player_stats\player_stats.csproj", "{366D7036-1D80-475E-B69A-7FE4A6381DF0}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "expanded_storage", "expanded_storage\expanded_storage.csproj", "{A28D8A99-07B9-4425-9A4D-F01B4F299BC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -208,6 +210,10 @@ Global
 		{366D7036-1D80-475E-B69A-7FE4A6381DF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{366D7036-1D80-475E-B69A-7FE4A6381DF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{366D7036-1D80-475E-B69A-7FE4A6381DF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A28D8A99-07B9-4425-9A4D-F01B4F299BC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A28D8A99-07B9-4425-9A4D-F01B4F299BC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A28D8A99-07B9-4425-9A4D-F01B4F299BC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A28D8A99-07B9-4425-9A4D-F01B4F299BC0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

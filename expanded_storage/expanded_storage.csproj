@@ -2,30 +2,25 @@
   <Import Project="$(SolutionDir)\solution_private.targets" />
   <Import Project="$(SolutionDir)\solution.targets" />
   <ItemGroup>
-    <Compile Include="..\shared\dd_utils.cs" Link="dd_utils.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="$(BepInExPath)\LogOutput.log" Link="logs\LogOutput.log" />
     <Content Include="$(GamePath)\output_log.txt" Link="logs\output_log.txt" />
     <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
     <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\shared\dd_utils.cs" Link="shared\dd_utils.cs" />
+  </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <ItemGroup>
       <AllFiles Include="$(TargetDir)**\*.*" Exclude="$(TargetDir)**\*.pdb" />
-      <PortraitFiles Include="$(ProjectDir)\self_portrait\**\*.*" Exclude="$(ProjectDir)\self_portrait\**\*.xcf"/>
       <NexusFiles Include="$(ProjectDir)\nexus\**\*.*" />
-      <Assets Include="$(ProjectDir)**\*.assetbundle" />
     </ItemGroup>
+    <Delete Files="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" />
     <Copy SourceFiles="@(AllFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\%(RecursiveDir)" />
-    <MakeDir Directories="$(GamePath)\BepInEx\plugins\self_portrait" />
-    <Copy SourceFiles="@(PortraitFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\self_portrait\%(RecursiveDir)" />
     <MakeDir Directories="$(GamePath)\BepInEx\plugins\nexus\$(AssemblyName)" />
     <Copy SourceFiles="@(NexusFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\nexus\$(AssemblyName)\%(RecursiveDir)" />
     <Delete Files="$(ProjectDir)\bin\$(TargetName).zip" />
-    <Copy SourceFiles="@(AllFiles);@(Assets)" DestinationFolder="$(TargetDir)..\Release\%(RecursiveDir)"></Copy>
-    <MakeDir Directories="$(TargetDir)..\Release\self_portrait" />
-    <Copy SourceFiles="@(PortraitFiles);@(Assets)" DestinationFolder="$(TargetDir)..\Release\self_portrait\%(RecursiveDir)" />
+    <Copy SourceFiles="@(AllFiles)" DestinationFolder="$(TargetDir)..\Release\%(RecursiveDir)"></Copy>
     <ZipDirectory SourceDirectory="$(TargetDir)..\Release" DestinationFile="$(ProjectDir)\bin\$(TargetName).zip" />
     <RemoveDir Directories="$(TargetDir)..\Release" />
   </Target>

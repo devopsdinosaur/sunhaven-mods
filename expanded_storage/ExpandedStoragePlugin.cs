@@ -12,16 +12,33 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine.SceneManagement;
 
+public static class PluginInfo {
 
-[BepInPlugin("devopsdinosaur.sunhaven.expanded_storage", "Expanded Storage", "0.0.1")]
-public class ExpandedStoragePlugin : BaseUnityPlugin {
+	public const string TITLE = "Expanded Storage";
+	public const string NAME = "expanded_storage";
+	public const string SHORT_DESCRIPTION = "More storage and stuff...";
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.expanded_storage");
-	public static ManualLogSource logger;
+	public const string VERSION = "0.0.1";
+
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME_TITLE = "Sun Haven";
+	public const string GAME = "sunhaven";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+	public const string REPO = "sunhaven-mods";
+
+	public static Dictionary<string, string> to_dict() {
+		Dictionary<string, string> info = new Dictionary<string, string>();
+		foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+			info[field.Name.ToLower()] = (string) field.GetValue(null);
+		}
+		return info;
+	}
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class SoundManagerPlugin : DDPlugin {
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	
-	private static ConfigEntry<bool> m_enabled;
-	private static ConfigEntry<int> m_num_chest_slots;
-
 	private const int CHEST_ORIGINAL_SLOT_COUNT = 30;
 	private const int TEMPLATE_LEFT_ARROW_BUTTON = 0;
 	private const int TEMPLATE_RIGHT_ARROW_BUTTON = 1;
@@ -33,53 +50,14 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 	private void Awake() {
 		logger = this.Logger;
 		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			m_num_chest_slots = this.Config.Bind<int>("General", "Chest Slot Count", 100, "Number of chest inventory slots");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
-			logger.LogInfo("devopsdinosaur.sunhaven.expanded_storage v0.0.1 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
+			this.m_plugin_info = PluginInfo.to_dict();
+			Settings.Instance.load(this);
+			DDPlugin.set_log_level(Settings.m_log_level.Value);
+			this.create_nexus_page();
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
-		}
-	}
-
-	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
-		Transform child;
-		string indent_string = "";
-		for (int counter = 0; counter < indent; counter++) {
-			indent_string += " => ";
-		}
-		for (int index = 0; index < parent.childCount; index++) {
-			child = parent.GetChild(index);
-			logger.LogInfo(indent_string + child.gameObject);
-			if (callback != null) {
-				if (callback(child) == false) {
-					return false;
-				}
-			}
-			list_descendants(child, callback, indent + 1);
-		}
-		return true;
-	}
-
-	public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
-		Transform child;
-		for (int index = 0; index < parent.childCount; index++) {
-			child = parent.GetChild(index);
-			if (callback != null) {
-				if (callback(child) == false) {
-					return false;
-				}
-			}
-			enum_descendants(child, callback);
-		}
-		return true;
-	}
-
-	public static void list_component_types(Transform obj) {
-		foreach (Component component in obj.GetComponents<Component>()) {
-			logger.LogInfo(component.GetType().ToString());
 		}
 	}
 
@@ -95,8 +73,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 
 		private static void Postfix(Inventory __instance, Transform ____inventoryPanel) {
 			try {
-				return;
-				if (!m_enabled.Value) {
+				if (!Settings.m_enabled.Value) {
 					return;
 				}
 				Slot[] original_slots = ____inventoryPanel.GetComponentsInChildren<Slot>(includeInactive: true);
@@ -105,7 +82,7 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 				}
 				List<SlotItemData> slot_datas = new List<SlotItemData>(__instance.Items);
 				Slot slot0 = original_slots[0];
-				__instance.maxSlots = m_num_chest_slots.Value;
+				__instance.maxSlots = Settings.m_num_chest_slots.Value;
 				for (int index = original_slots.Length; index < __instance.maxSlots; index++) {
 					Slot slot = GameObject.Instantiate(slot0, slot0.transform.parent);
 					for (int child_index = 0; child_index < slot.transform.childCount; child_index++) {
@@ -140,11 +117,11 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 					if (counter++ % SLOTS_PER_ROW == 0) {
 						row_panel = GameObject.Instantiate(m_object_templates[TEMPLATE_ITEM_ROW_PANEL], content);
 						//row_panel = new GameObject("Scrolling_Item_Row");
-						//row_panel.transform.SetParent(content.transform, false);
+						row_panel.transform.SetParent(content.transform, false);
 						row_panel.SetActive(true);
-						//row_panel.AddComponent<RectTransform>().localScale = slot.GetComponent<RectTransform>().localScale;
+						row_panel.AddComponent<RectTransform>().localScale = slot.GetComponent<RectTransform>().localScale;
 					}
-					//slot.gameObject.transform.SetParent(row_panel.transform, false);
+					slot.gameObject.transform.SetParent(row_panel.transform, false);
 					//slot.gameObject.transform.SetParent(content, false);
 					slot.gameObject.SetActive(false);
 				}
@@ -173,13 +150,12 @@ public class ExpandedStoragePlugin : BaseUnityPlugin {
 			if (m_object_templates.ContainsKey(TEMPLATE_LEFT_ARROW_BUTTON) && m_object_templates.ContainsKey(TEMPLATE_RIGHT_ARROW_BUTTON)) {
 				return;
 			}
-			list_descendants(___daySpeedSlider.transform, find_buttons_callback, 0);
+			UnityUtils.list_descendants(___daySpeedSlider.transform, find_buttons_callback, 0, _debug_log);
 		}
 	}
 
 	[HarmonyPatch(typeof(Player), "Update")]
 	class HarmonyPatch_Player_Update {
-
 		private static bool m_one_shot = false;
 
 		private static void Postfix() {
