@@ -1,9 +1,9 @@
 ﻿
 [size=4][b][u]Description[/u][/b][/size]
 
-Current Version: [[version]] ([url=https://github.com/[[author]]/[[repo]]/blob/master/[[name]]/changelog.md]changelog[/url])
-
 [[short_description]]
+
+[url=https://github.com/[[author]]/[[repo]]/blob/master/[[name]]/changelog.md]Changelog[/url]
 
 See the config options below for a complete list of features and how to use them.  If you have ideas or issues see the [i]Source Code and Bug Reporting[/i] section at the bottom of the page.  Thanks!
 
