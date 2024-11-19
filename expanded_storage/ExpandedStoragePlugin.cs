@@ -113,17 +113,20 @@ public class SoundManagerPlugin : DDPlugin {
 				const int SLOTS_PER_ROW = 4;
 				int counter = 0;
 				GameObject row_panel = null;
+				int row_index = 0;
 				foreach (Slot slot in ____inventoryPanel.GetComponentsInChildren<Slot>(includeInactive: true)) {
 					if (counter++ % SLOTS_PER_ROW == 0) {
 						row_panel = GameObject.Instantiate(m_object_templates[TEMPLATE_ITEM_ROW_PANEL], content);
+						row_panel.name = $"Scrolling_Item_Row_{row_index++:D4}"
+						//UnityUtils.list_descendants(row_panel.transform, null, 0, DDPlugin._debug_log);
 						//row_panel = new GameObject("Scrolling_Item_Row");
-						row_panel.transform.SetParent(content.transform, false);
-						row_panel.SetActive(true);
-						row_panel.AddComponent<RectTransform>().localScale = slot.GetComponent<RectTransform>().localScale;
+						//row_panel.transform.SetParent(content.transform, false);
+						//row_panel.SetActive(true);
+						//row_panel.AddComponent<RectTransform>().localScale = slot.GetComponent<RectTransform>().localScale;
 					}
-					slot.gameObject.transform.SetParent(row_panel.transform, false);
-					//slot.gameObject.transform.SetParent(content, false);
-					slot.gameObject.SetActive(false);
+					//slot.gameObject.transform.SetParent(row_panel.transform, false);
+					slot.gameObject.transform.SetParent(content, true);
+					slot.gameObject.SetActive(true);
 				}
 				GameObject.Destroy(____inventoryPanel.GetChild(0).gameObject);
 				//list_descendants(____inventoryPanel, null, 0);
@@ -198,7 +201,11 @@ public class SoundManagerPlugin : DDPlugin {
 				for (int index = 0; index < content.childCount; index++) {
 					if (!m_object_templates.ContainsKey(TEMPLATE_ITEM_ROW_PANEL)) {
 						m_object_templates[TEMPLATE_ITEM_ROW_PANEL] = templatize(content.GetChild(index).gameObject);
-						GameObject.Destroy(m_object_templates[TEMPLATE_ITEM_ROW_PANEL].transform.GetChild(0));
+						foreach (Transform child in m_object_templates[TEMPLATE_ITEM_ROW_PANEL].transform.GetChild(0)) {
+							GameObject.Destroy(child.gameObject);
+						}
+						//UnityUtils.list_descendants(m_object_templates[TEMPLATE_ITEM_ROW_PANEL].transform, null, 0, _debug_log);
+						//GameObject.Destroy(m_object_templates[TEMPLATE_ITEM_ROW_PANEL].transform.GetChild(0));
 					}
 					GameObject.Destroy(content.GetChild(index).gameObject);
 				}

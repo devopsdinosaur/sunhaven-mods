@@ -1,6 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using HarmonyLib;
 using UnityEngine;
 using System;
@@ -10,29 +8,48 @@ using TMPro;
 using System.Reflection;
 using UnityEngine.Events;
 
+public static class PluginInfo {
 
-[BepInPlugin("devopsdinosaur.sunhaven.skill_reset", "Skill Reset", "0.0.2")]
-public class SkillResetPlugin : BaseUnityPlugin {
+    public const string TITLE = "Skill Reset";
+    public const string NAME = "skill_reset";
+    public const string SHORT_DESCRIPTION = "";
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.skill_reset");
-	public static ManualLogSource logger;
-    private static ConfigEntry<bool> m_enabled;
-    public static Dictionary<ProfessionType, GameObject> m_reset_buttons = new Dictionary<ProfessionType, GameObject>();
+    public const string VERSION = "0.0.3";
 
-	private void Awake() {
+    public const string AUTHOR = "devopsdinosaur";
+    public const string GAME_TITLE = "Sun Haven";
+    public const string GAME = "sunhaven";
+    public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+    public const string REPO = "sunhaven-mods";
+
+    public static Dictionary<string, string> to_dict() {
+        Dictionary<string, string> info = new Dictionary<string, string>();
+        foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+            info[field.Name.ToLower()] = (string) field.GetValue(null);
+        }
+        return info;
+    }
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class SelfPortraitPlugin:DDPlugin {
+    private Harmony m_harmony = new Harmony(PluginInfo.GUID);
+
+    private void Awake() {
         logger = this.Logger;
         try {
-            m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-            if (m_enabled.Value) {
-                this.m_harmony.PatchAll();
-            }
-            logger.LogInfo("devopsdinosaur.sunhaven.testing v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
+            this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
+            DDPlugin.set_log_level(Settings.m_log_level.Value);
+            this.create_nexus_page();
+            this.m_harmony.PatchAll();
+            logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
         } catch (Exception e) {
             logger.LogError("** Awake FATAL - " + e);
         }
     }
 
-	public static void reset_profession(Skills skills, ProfessionType profession_type) {
+    public static void reset_profession(Skills skills, ProfessionType profession_type) {
 		try {
 			Profession profession = GameSave.Instance.CurrentSave.characterData.Professions[profession_type];
 			string profession_string = profession_type.ToString();
