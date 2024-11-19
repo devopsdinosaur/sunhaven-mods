@@ -21,66 +21,46 @@ using UnityEngine.ResourceManagement.AsyncOperations;
 using System.IO;
 using UnityEngine.Experimental.Rendering;
 
-[BepInPlugin("devopsdinosaur.sunhaven.testing", "Testing", "0.0.1")]
-public class TestingPlugin : DDPlugin {
+public static class PluginInfo {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.testing");
-	private static ConfigEntry<bool> m_enabled;
+    public const string TITLE = "Testing";
+    public const string NAME = "testing";
+    public const string SHORT_DESCRIPTION = "For testing purposes only";
 
-	private void Awake() {
-		logger = this.Logger;
-		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			DDPlugin.set_log_level(LogLevel.Debug);
-			this.m_harmony.PatchAll();
-			logger.LogInfo("devopsdinosaur.sunhaven.testing v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
-		} catch (Exception e) {
-			logger.LogError("** Awake FATAL - " + e);
-		}
-	}
+    public const string VERSION = "0.0.0";
 
-	private static void debug_log(object text) {
-		logger.LogInfo(text);
-	}
+    public const string AUTHOR = "devopsdinosaur";
+    public const string GAME_TITLE = "Sun Haven";
+    public const string GAME = "sunhaven";
+    public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+    public const string REPO = "sunhaven-mods";
 
-	public static bool list_descendants(Transform parent, Func<Transform, bool> callback, int indent) {
-		Transform child;
-		string indent_string = "";
-		for (int counter = 0; counter < indent; counter++) {
-			indent_string += " => ";
-		}
-		for (int index = 0; index < parent.childCount; index++) {
-			child = parent.GetChild(index);
-			logger.LogInfo(indent_string + child.gameObject.name);
-			if (callback != null) {
-				if (callback(child) == false) {
-					return false;
-				}
-			}
-			list_descendants(child, callback, indent + 1);
-		}
-		return true;
-	}
+    public static Dictionary<string, string> to_dict() {
+        Dictionary<string, string> info = new Dictionary<string, string>();
+        foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+            info[field.Name.ToLower()] = (string) field.GetValue(null);
+        }
+        return info;
+    }
+}
 
-	public static bool enum_descendants(Transform parent, Func<Transform, bool> callback) {
-		Transform child;
-		for (int index = 0; index < parent.childCount; index++) {
-			child = parent.GetChild(index);
-			if (callback != null) {
-				if (callback(child) == false) {
-					return false;
-				}
-			}
-			enum_descendants(child, callback);
-		}
-		return true;
-	}
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class SelfPortraitPlugin:DDPlugin {
+    private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 
-	public static void list_component_types(Transform obj) {
-		foreach (Component component in obj.GetComponents<Component>()) {
-			logger.LogInfo(component.GetType().ToString());
-		}
-	}
+    private void Awake() {
+        logger = this.Logger;
+        try {
+            this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
+            DDPlugin.set_log_level(Settings.m_log_level.Value);
+            this.create_nexus_page();
+            this.m_harmony.PatchAll();
+            logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
+        } catch (Exception e) {
+            logger.LogError("** Awake FATAL - " + e);
+        }
+    }
 
     [HarmonyPatch(typeof(PlayerSettings), "SetCheatsEnabled")]
     class HarmonyPatch_PlayerSettings_SetCheatsEnabled {

@@ -12,7 +12,7 @@ public static class PluginInfo {
 
     public const string TITLE = "Skill Reset";
     public const string NAME = "skill_reset";
-    public const string SHORT_DESCRIPTION = "";
+    public const string SHORT_DESCRIPTION = "Regretting that \"Pen Pal\" thing?  Or decided crossbow is better than sword?  How about a skill reset!  This mod adds a \"Reset\" text button to each skill tab to enable instant reset of skills for free and as often as you need.";
 
     public const string VERSION = "0.0.3";
 
