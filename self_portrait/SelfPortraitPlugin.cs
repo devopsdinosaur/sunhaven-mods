@@ -1,11 +1,8 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
@@ -19,7 +16,7 @@ public static class PluginInfo {
 	public const string NAME = "self_portrait";
 	public const string SHORT_DESCRIPTION = "Add custom bust portraits for your player for all seasons, wedding, and swimsuit just by dropping PNG files in a folder.  Additionally, can use config option to force NPC outfits regardless of season.";
 
-	public const string VERSION = "0.0.2";
+	public const string VERSION = "0.0.3";
 
 	public const string AUTHOR = "devopsdinosaur";
 	public const string GAME_TITLE = "Sun Haven";
@@ -212,13 +209,14 @@ public class SelfPortraitPlugin : DDPlugin {
                     controller.m_npc_emotes[PortraitKey.Winter] = (Dictionary<string, List<Sprite>>) ReflectionUtils.get_field_value(__instance, "_npcWinterEmotes");
                     controller.m_npc_emotes[PortraitKey.Wedding] = (Dictionary<string, List<Sprite>>) ReflectionUtils.get_field_value(__instance, "_npcWeddingEmotes");
                     controller.m_npc_emotes[PortraitKey.Swimsuit] = (Dictionary<string, List<Sprite>>) ReflectionUtils.get_field_value(__instance, "_npcSwimsuitEmotes");
-                    controller.m_npc_emotes2[PortraitKey.Normal] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcEmotes2");
+					controller.m_npc_emotes2[PortraitKey.Normal] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcEmotes2");
                     controller.m_npc_emotes2[PortraitKey.Summer] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcSummerEmotes2");
                     controller.m_npc_emotes2[PortraitKey.Fall] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcFallEmotes2");
                     controller.m_npc_emotes2[PortraitKey.Winter] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcWinterEmotes2");
                     controller.m_npc_emotes2[PortraitKey.Wedding] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcWeddingEmotes2");
                     controller.m_npc_emotes2[PortraitKey.Swimsuit] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcSwimsuitEmotes2");
-                } catch (Exception e) {
+					controller.m_npc_emotes2[PortraitKey.Halloween] = (Dictionary<string, AssetReferenceSprite[]>) ReflectionUtils.get_field_value(__instance, "_npcHalloweenEmotes2");
+				} catch (Exception e) {
 					logger.LogError("** HarmonyPatch_DialogueController_Awake.Postfix ERROR - " + e);
 				}
 			}
@@ -372,13 +370,16 @@ public class SelfPortraitPlugin : DDPlugin {
 				bool ___hasSeasonalSprites, 
 				int ___currentAnimatorLayer,
                 MeshGenerator ____meshGenerator,
-                Direction ____facingDirection
-            ) {
+                Direction ____facingDirection,
+				bool ___isBSDSluggedNPC
+			) {
                 try {
 					if (!Settings.m_enabled.Value) {
 						return true;
 					}
-                    __instance.GetSluggedAnimator();
+					if (___isBSDSluggedNPC) {
+						__instance.GetSluggedAnimator();
+					}
                     if (!(___seasonAnimatorLoader != null)) {
                         return false;
                     }

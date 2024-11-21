@@ -36,7 +36,7 @@ public static class PluginInfo {
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
-public class SoundManagerPlugin : DDPlugin {
+public class ExpandedStoragePlugin : DDPlugin {
 	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	
 	private const int CHEST_ORIGINAL_SLOT_COUNT = 30;
@@ -117,7 +117,7 @@ public class SoundManagerPlugin : DDPlugin {
 				foreach (Slot slot in ____inventoryPanel.GetComponentsInChildren<Slot>(includeInactive: true)) {
 					if (counter++ % SLOTS_PER_ROW == 0) {
 						row_panel = GameObject.Instantiate(m_object_templates[TEMPLATE_ITEM_ROW_PANEL], content);
-						row_panel.name = $"Scrolling_Item_Row_{row_index++:D4}"
+						row_panel.name = $"Scrolling_Item_Row_{row_index++:D4}";
 						//UnityUtils.list_descendants(row_panel.transform, null, 0, DDPlugin._debug_log);
 						//row_panel = new GameObject("Scrolling_Item_Row");
 						//row_panel.transform.SetParent(content.transform, false);
@@ -253,7 +253,7 @@ public class SoundManagerPlugin : DDPlugin {
 	[HarmonyPatch(typeof(Slot), "LateUpdate")]
 	class HarmonyPatch_Slot_LateUpdate {
 
-		static bool one_shot = false;
+		//static bool one_shot = false;
 
 		private static void Postfix(Slot __instance) {
 			if (!__instance.transform.Find("Box_Overlay")) {

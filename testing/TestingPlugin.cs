@@ -53,7 +53,7 @@ public class SelfPortraitPlugin:DDPlugin {
         try {
             this.m_plugin_info = PluginInfo.to_dict();
             Settings.Instance.load(this);
-            DDPlugin.set_log_level(Settings.m_log_level.Value);
+            DDPlugin.set_log_level(LogLevel.Debug);
             this.create_nexus_page();
             this.m_harmony.PatchAll();
             logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
@@ -254,15 +254,79 @@ public class SelfPortraitPlugin:DDPlugin {
         }
     }
 
-	[HarmonyPatch(typeof(DialogueNode), "ProcessText")]
-	class HarmonyPatch_DialogueNode_ProcessText {
-		private static void Postfix(DialogueNode __instance) {
-			DDPlugin._debug_log(string.Join("\n", __instance.dialogueText));
+	[HarmonyPatch(typeof(Shop), "GenerateRandomItems")]
+	class HarmonyPatch_Shop_GenerateRandomItems {
+
+		private static void Postfix(Shop __instance) {
+			try {
+				_debug_log(__instance.name);
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_Shop_GenerateRandomItems.Postfix ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(RandomShopTable2), "GenerateShopItemList")]
+	class HarmonyPatch_RandomShopTable2_GenerateShopItemList {
+
+		private static bool Prefix(RandomShopTable2 __instance) {
+			try {
+				//_debug_log("!!!!!!!!!!!!!!!!!!!!");
+				__instance.randomShopItemAmount = 9999;
+				if (__instance.shopItems.Count == 0) {
+					_debug_log("Zero items!?");
+					return true;
+				}
+				Call Shop.SetupBuyableItem and add items in ShopUI.OpenUI.Prefix
+				ShopLoot2 template = __instance.shopItems[0];
+				__instance.shopItems.Add(new ShopLoot2() {
+					id = ItemID.DeadCrop,
+					price = 1,
+					orbs = 0,
+					tickets = 0,
+					chance = 1f,
+					amount = template.amount,
+					characterProgressIDs = template.characterProgressIDs,
+					worldProgressIDs = template.worldProgressIDs,
+					saleItem = true,
+					itemToUseAsCurrency = template.itemToUseAsCurrency
+				});
+				return true;
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_SaleManager_GenerateMerchantShops.Prefix ERROR - " + e);
+			}
+			return true;
+		}
+
+		private static void Postfix(RandomShopTable2 __instance, List<ShopLoot2> ___viableShopItems) {
+			try {
+				//foreach (ShopLoot2 item in ___viableShopItems) {
+				//	_debug_log(item.id);
+				//}
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_SaleManager_GenerateMerchantShops.Postfix ERROR - " + e);
+			}
+		}
+	}
+
+	[HarmonyPatch(typeof(Shop), "")]
+	class HarmonyPatch_SaleManager_GenerateMerchantShops {
+		private static void Postfix(SaleManager __instance) {
+			try {
+				foreach (MerchantTable merchantTable in __instance.merchantTables) {
+					foreach (List<ShopLoot2> items in __instance.merchantItems[merchantTable]) {
+						foreach (ShopLoot2 item in items) {
+							_debug_log(item.id);
+						}
+					}
+				}
+			} catch (Exception e) {
+				logger.LogError("** HarmonyPatch_SaleManager_GenerateMerchantShops.Postfix ERROR - " + e);
+			}
 		}
 	}
 
 	/*
-	
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
 		private static bool Prefix() {
@@ -280,7 +344,6 @@ public class SelfPortraitPlugin:DDPlugin {
 
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
-
 		private static bool Prefix() {
 			try {
 
@@ -294,10 +357,8 @@ public class SelfPortraitPlugin:DDPlugin {
 
 	[HarmonyPatch(typeof(), "")]
 	class HarmonyPatch_ {
-
 		private static void Postfix() {
 			try {
-
 				
 			} catch (Exception e) {
 				logger.LogError("** XXXXX.Postfix ERROR - " + e);

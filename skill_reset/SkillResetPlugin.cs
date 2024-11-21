@@ -34,6 +34,7 @@ public static class PluginInfo {
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
 public class SelfPortraitPlugin:DDPlugin {
     private Harmony m_harmony = new Harmony(PluginInfo.GUID);
+	private static Dictionary<ProfessionType, GameObject> m_reset_buttons = new Dictionary<ProfessionType, GameObject>();
 
     private void Awake() {
         logger = this.Logger;
