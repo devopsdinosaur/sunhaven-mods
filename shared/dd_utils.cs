@@ -45,7 +45,7 @@ public abstract class DDPlugin : BaseUnityPlugin {
 
     public static void _debug_log(object text) {
         if (m_log_level >= LogLevel.Debug) {
-            logger.LogInfo(text);
+            logger.LogInfo("[DEBUG] " + text);
         }
     }
 
@@ -127,6 +127,7 @@ public abstract class DDPlugin : BaseUnityPlugin {
             lines += "[/list]\n";
         }
         this.m_plugin_info["config_options"] = lines;
+        this.m_plugin_info["extra_details"] = (this.m_plugin_info.ContainsKey("extra_details") ? $"\n{this.m_plugin_info["extra_details"]}\n" : "");
         foreach (KeyValuePair<string, string> kvp in this.m_plugin_info) {
             template_data = template_data.Replace("[[" + kvp.Key + "]]", kvp.Value);
         }

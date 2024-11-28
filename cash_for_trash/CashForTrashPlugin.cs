@@ -1,6 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using UnityEngine;
@@ -8,32 +6,50 @@ using System;
 using System.Collections.Generic;
 using PSS;
 using System.Reflection;
-using TMPro;
 
-[BepInPlugin("devopsdinosaur.sunhaven.cash_for_trash", "Cash for Trash", "0.0.4")]
-public class CashForTrashPlugin : BaseUnityPlugin {
+public static class PluginInfo {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.cash_for_trash");
-	public static ManualLogSource logger;
+	public const string TITLE = "Cash for Trash";
+	public const string NAME = "cash_for_trash";
+	public const string SHORT_DESCRIPTION = "Slow down, speed up, stop, and even reverse time using configurable hotkeys.";
 
-	private static ConfigEntry<bool> m_enabled;
-	public static ConfigEntry<float> m_cash_multiplier;
+	public const string VERSION = "0.0.5";
+
+	public const string AUTHOR = "devopsdinosaur";
+	public const string GAME_TITLE = "Luma Island";
+	public const string GAME = "luma-island";
+	public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+	public const string REPO = "luma-island-mods";
+
+	public static Dictionary<string, string> to_dict() {
+		Dictionary<string, string> info = new Dictionary<string, string>();
+		foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+			info[field.Name.ToLower()] = (string) field.GetValue(null);
+		}
+		return info;
+	}
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class CashForTrashPlugin : DDPlugin {
 	const int TRASH_SLOT_TRASH = 0;
 	const int TRACK_SLOT_RECYCLE = 1;
+
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 	public static Dictionary<int, int> m_trash_slots = new Dictionary<int, int>();
 
 	private void Awake() {
 		logger = this.Logger;
 		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			m_cash_multiplier = this.Config.Bind<float>("General", "Sale Cash Multiplier", 1f, "Multiplier for sales multiplied times the value of the item trashed (float, 1f [default] == 100% value, 0.5f == 50% value, and 2.0f == 200% value, and so on)");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
-			logger.LogInfo("devopsdinosaur.sunhaven.cash_for_trash v0.0.4 " + (m_enabled.Value ? "" : "[inactive; disabled in config]") + " loaded.");
+			this.m_plugin_info = PluginInfo.to_dict();
+			Settings.Instance.load(this);
+			DDPlugin.set_log_level(Settings.m_log_level.Value);
+			this.create_nexus_page();
+			this.m_harmony.PatchAll();
+			logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
 		} catch (Exception e) {
 			logger.LogError("** Awake FATAL - " + e);
-		}		
+		}
 	}
 
 	[HarmonyPatch(typeof(PlayerInventory), "Awake")]
@@ -88,7 +104,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 					}
 				}
 
-				if (!m_enabled.Value || m_trash_button != null) {
+				if (!Settings.m_enabled.Value || m_trash_button != null) {
 					return;
 				}
 				enum_descendants(____actionBarPanel.parent.parent, enum_descendants_callback);
@@ -120,7 +136,7 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 
 		private static bool Prefix(ref TrashSlot __instance) {
 			try {
-				if (!m_enabled.Value) {
+				if (!Settings.m_enabled.Value) {
 					return true;
 				}
 				ItemIcon icon = Inventory.CurrentItemIcon;
@@ -138,9 +154,9 @@ public class CashForTrashPlugin : BaseUnityPlugin {
 				switch (m_trash_slots[__instance.GetHashCode()]) {
 				case TRASH_SLOT_TRASH:
 					if (data.canSell) {
-						Player.Instance.AddMoneyAndRegisterSource((int) (item.SellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
-						Player.Instance.AddOrbsAndRegisterSource((int) (item.OrbSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
-						Player.Instance.AddTicketsAndRegisterSource((int) (item.TicketSellPrice(icon.amount) * m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
+						Player.Instance.AddMoneyAndRegisterSource((int) (item.SellPrice(icon.amount) * Settings.m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
+						Player.Instance.AddOrbsAndRegisterSource((int) (item.OrbSellPrice(icon.amount) * Settings.m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
+						Player.Instance.AddTicketsAndRegisterSource((int) (item.TicketSellPrice(icon.amount) * Settings.m_cash_multiplier.Value), item.ID(), icon.amount, MoneySource.ShippingPortal, playAudio: true, showNotification: true);
 					}
 					icon.RemoveItemIcon();
 					__instance.inventory.UpdateInventory();

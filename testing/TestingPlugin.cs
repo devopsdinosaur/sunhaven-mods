@@ -45,7 +45,7 @@ public static class PluginInfo {
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
-public class SelfPortraitPlugin:DDPlugin {
+public class TestingPlugin:DDPlugin {
     private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 
     private void Awake() {
@@ -53,7 +53,7 @@ public class SelfPortraitPlugin:DDPlugin {
         try {
             this.m_plugin_info = PluginInfo.to_dict();
             Settings.Instance.load(this);
-            DDPlugin.set_log_level(LogLevel.Debug);
+            DDPlugin.set_log_level(Settings.m_log_level.Value);
             this.create_nexus_page();
             this.m_harmony.PatchAll();
             logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
@@ -277,7 +277,7 @@ public class SelfPortraitPlugin:DDPlugin {
 					_debug_log("Zero items!?");
 					return true;
 				}
-				Call Shop.SetupBuyableItem and add items in ShopUI.OpenUI.Prefix
+				//Call Shop.SetupBuyableItem and add items in ShopUI.OpenUI.Prefix
 				ShopLoot2 template = __instance.shopItems[0];
 				__instance.shopItems.Add(new ShopLoot2() {
 					id = ItemID.DeadCrop,
@@ -303,23 +303,6 @@ public class SelfPortraitPlugin:DDPlugin {
 				//foreach (ShopLoot2 item in ___viableShopItems) {
 				//	_debug_log(item.id);
 				//}
-			} catch (Exception e) {
-				logger.LogError("** HarmonyPatch_SaleManager_GenerateMerchantShops.Postfix ERROR - " + e);
-			}
-		}
-	}
-
-	[HarmonyPatch(typeof(Shop), "")]
-	class HarmonyPatch_SaleManager_GenerateMerchantShops {
-		private static void Postfix(SaleManager __instance) {
-			try {
-				foreach (MerchantTable merchantTable in __instance.merchantTables) {
-					foreach (List<ShopLoot2> items in __instance.merchantItems[merchantTable]) {
-						foreach (ShopLoot2 item in items) {
-							_debug_log(item.id);
-						}
-					}
-				}
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_SaleManager_GenerateMerchantShops.Postfix ERROR - " + e);
 			}

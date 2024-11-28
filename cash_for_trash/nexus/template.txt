@@ -1,0 +1,50 @@
+﻿
+[size=4][b][u]Description[/u][/b][/size]
+
+[[short_description]]
+
+[url=https://github.com/[[author]]/[[repo]]/blob/master/[[name]]/changelog.md]Changelog[/url]
+
+See the config options below for a complete list of features and how to use them.  If you have ideas or issues see the [i]Source Code and Bug Reporting[/i] section at the bottom of the page.  Thanks!
+
+[size=4][b][u]Installation[/u][/b][/size]
+
+[list=1]
+[*][url=https://www.nexusmods.com/lumaisland/mods/7]Install BepInEx[/url]﻿
+[*]Download and extract this mod.
+[*]Copy the extracted files to [i]<[[game]]-home>/BepInEx/plugins[/i] folder.
+[*]Start the game and exit.
+[*]Change configuration options (see below).
+[*]Once you have the settings you want, start the game again and enjoy!
+[/list]
+
+[[hotkeys]]
+[size=4][b][u]Config Options[/u][/b][/size]
+
+Note that all of the options in this mod default to off (false, zero, blank, etc) to enable the user to have as little of a "cheaty" experience as possible. 
+
+For information on how to modify these options, see the [i]Editing the Config File[/i] section below.
+
+[[config_options]]
+[size=4][b][u]Editing the Config File[/u][/b][/size]
+
+NOTE: If you used the premade BepInEx pack mod or downloaded ConfigurationManager then you can hit F1 to open a dialog to modify options.  Note that some options may not take effect without restarting the game.
+To edit the config file outside of the game:
+[list=1]
+[*]Open notepad or your favorite text editor (Windows Key + R then 'notepad').
+[*]File => Open.  Navigate to [i]<[[game]]-home>/BepInEx/config[/i] and open [i][[guid]].cfg[/i].
+[*]Each of the options listed above can be modified according to the description.  Lines starting with '#' are just comments.  Lines in [] are section headers.
+[*]After making changes, save the file and restart the game to try out the new settings!
+[/list]
+
+[size=4][b][u]Source Code and Bug Reporting[/u][/b][/size]
+
+All of my mods are open source on GitHub here: [url=https://github.com/[[author]]/[[repo]]]https://github.com/[[author]]/[[repo]][/url]
+Please let me know in the Posts section if you have problems or ideas for new mods/features.  Or, even better, you can submit issues directly on the GitHub page [url=https://github.com/[[author]]/[[repo]]/issues]here[/url]).
+
+[b]PSA[/b] - It's been hard to find the time to create new mods and support the ones I've made.  If you like my mods, please consider a small tip (any amount) on Ko-fi to help me convince my wife that this modding stuff is worth my time =)  Just scan the QR code below with your phone or click it to get started.
+
+[url=https://ko-fi.com/devopsdinosaur/][img]https://i.ibb.co/5cYLp2z/kofi-donate-qrcode.png[/img][/url]
+
+Thanks a ton, and enjoy the mods!!
+dd
