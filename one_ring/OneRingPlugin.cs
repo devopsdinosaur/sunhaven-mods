@@ -16,7 +16,7 @@ public static class PluginInfo {
     public const string SHORT_DESCRIPTION = "Tired of having to marry a dud just cuz the ring is good?  Now, regardless of your spouse, you can choose to get the stats of a particular ring (if you have a certain hearts level [configurable]), the best of all the stats, or the sum of all rings' stats (all based on configurable settings).  One ring to rule them all!";
 	public const string EXTRA_DETAILS = "This mod does not make any permanent changes to any items.  It simply modifies the stats on the item in memory for the duration of the game.  Removing the mod and restarting the game will revert the item to its default state.";
 
-	public const string VERSION = "0.0.1";
+	public const string VERSION = "0.0.2";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME_TITLE = "Sun Haven";
@@ -108,30 +108,32 @@ public class TestingPlugin:DDPlugin {
 
 		private IEnumerator periodic_update_routine() {
 			for (;;) {
-				if (this.m_settings_are_dirty) {
-					_debug_log("Settings changed; updating rings.");
-					this.update_ring_stats();
-				} else {
-					Dictionary<string, float> relationship_levels = new Dictionary<string, float>();
-					foreach (Settings.RingInfo ring_info in Settings.m_rings.Values) {
-						if (!SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.Relationships.TryGetValue(ring_info.name, out float relationship_level)) {
-							relationship_level = 0;
+				if (Settings.m_enabled.Value) {
+					if (this.m_settings_are_dirty) {
+						_debug_log("Settings changed; updating rings.");
+						this.update_ring_stats();
+					} else {
+						Dictionary<string, float> relationship_levels = new Dictionary<string, float>();
+						foreach (Settings.RingInfo ring_info in Settings.m_rings.Values) {
+							if (!SingletonBehaviour<GameSave>.Instance.CurrentSave.characterData.Relationships.TryGetValue(ring_info.name, out float relationship_level)) {
+								relationship_level = 0;
+							}
+							relationship_levels[ring_info.name] = relationship_level;
 						}
-						relationship_levels[ring_info.name] = relationship_level;
-					}
-					bool is_dirty = this.m_prev_relationship_levels == null;
-					if (!is_dirty) {
-						foreach (string key in relationship_levels.Keys) {
-							if (relationship_levels[key] != this.m_prev_relationship_levels[key]) {
-								is_dirty = true;
-								break;
+						bool is_dirty = this.m_prev_relationship_levels == null;
+						if (!is_dirty) {
+							foreach (string key in relationship_levels.Keys) {
+								if (relationship_levels[key] != this.m_prev_relationship_levels[key]) {
+									is_dirty = true;
+									break;
+								}
 							}
 						}
-					}
-					this.m_prev_relationship_levels = relationship_levels;
-					if (is_dirty) {
-						_debug_log("One or more relationships changed or first load; updating rings.");
-						this.update_ring_stats();
+						this.m_prev_relationship_levels = relationship_levels;
+						if (is_dirty) {
+							_debug_log("One or more relationships changed or first load; updating rings.");
+							this.update_ring_stats();
+						}
 					}
 				}
 				yield return new WaitForSeconds(STATS_UPDATE_FREQUENCY);
@@ -140,7 +142,7 @@ public class TestingPlugin:DDPlugin {
 
 		private void update_ring_stats() {
 			try {
-				if (!this.m_all_rings_loaded) {
+				if (!Settings.m_enabled.Value || !this.m_all_rings_loaded) {
 					return;
 				}
 				List<SlotItemData> ring_slots = new List<SlotItemData>();
