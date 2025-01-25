@@ -332,7 +332,7 @@ public class TestingPlugin:DDPlugin {
 
 				return false;
 			} catch (Exception e) {
-				logger.LogError("** XXXXX.Prefix ERROR - " + e);
+				_error_log("** XXXXX.Prefix ERROR - " + e);
 			}
 			return true;
 		}
@@ -344,7 +344,7 @@ public class TestingPlugin:DDPlugin {
 			try {
 				
 			} catch (Exception e) {
-				logger.LogError("** XXXXX.Postfix ERROR - " + e);
+				_error_log("** XXXXX.Postfix ERROR - " + e);
 			}
 		}
 	}

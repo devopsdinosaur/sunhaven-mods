@@ -82,6 +82,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "expanded_storage", "expande
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "one_ring", "one_ring\one_ring.csproj", "{E54F2A28-1282-4E4E-B564-2F2AB9CCDB6D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "npc_rename", "npc_rename\npc_rename.csproj", "{5453B462-5B22-4B98-9348-6BB7AFC51DD9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "skill_procs", "skill_procs\skill_procs.csproj", "{EC2DEBF4-9415-4CD3-A55E-3F00CBAFC51E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -220,6 +224,14 @@ Global
 		{E54F2A28-1282-4E4E-B564-2F2AB9CCDB6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E54F2A28-1282-4E4E-B564-2F2AB9CCDB6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E54F2A28-1282-4E4E-B564-2F2AB9CCDB6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5453B462-5B22-4B98-9348-6BB7AFC51DD9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5453B462-5B22-4B98-9348-6BB7AFC51DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5453B462-5B22-4B98-9348-6BB7AFC51DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5453B462-5B22-4B98-9348-6BB7AFC51DD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EC2DEBF4-9415-4CD3-A55E-3F00CBAFC51E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC2DEBF4-9415-4CD3-A55E-3F00CBAFC51E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC2DEBF4-9415-4CD3-A55E-3F00CBAFC51E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC2DEBF4-9415-4CD3-A55E-3F00CBAFC51E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -14,7 +14,7 @@ public class SkillNodeInfo {
     public int m_row;
     public string m_key;
     public SkillNodeAsset m_node;
-    public ConfigEntry<float> m_multiplier;
+    public ConfigEntry<int> m_multiplier;
 
     public SkillNodeInfo(SkillTreeAsset tree, int column, int row, EventHandler change_callback) {
         this.m_tree = tree;
@@ -29,11 +29,11 @@ public class SkillNodeInfo {
                 fixed_name += c;
             }
         }
-        this.m_multiplier = Settings.Instance.create_entry<float>("Skills", fixed_name, 1f, $"[float] Multiplier applied to the numeric values of the '{this.m_node.nodeTitle}' skill.  Has no effect if the skill does not use numeric values or this setting is 1 or less than or equal to zero.  Applies only during gameplay. [default 1, no effect]", change_callback);
+        this.m_multiplier = Settings.Instance.create_entry<int>("Skills", fixed_name, 1, $"[int] Multiplier applied to the number of skill points in the '{this.m_node.nodeTitle}' skill (i.e. a multiplier of 2 would mean 1 actual point in the skill would be treated as 2 [see this mod's webpage for detailed info]).  Has no effect if the skill does not use numeric values or this setting is 1 or less.  Applies only during gameplay. [default 1, no effect]", change_callback);
         this.update_description_items();
     }
 
-    public float get_multiplier() {
+    public int get_multiplier() {
         return (!Settings.m_enabled.Value || this.m_multiplier.Value <= 0 ? 1 : this.m_multiplier.Value);
     }
 
@@ -51,9 +51,9 @@ public class SkillNodeInfo {
             }
             return 
                 is_float ?
-                    (float.Parse(text) * this.get_multiplier()).ToString() :
+                    (float.Parse(text) * (float) this.get_multiplier()).ToString() :
                 is_int ?
-                    Mathf.CeilToInt((float) int.Parse(text) * this.get_multiplier()).ToString() :
+                    (int.Parse(text) * this.get_multiplier()).ToString() :
                 text;
         }
         

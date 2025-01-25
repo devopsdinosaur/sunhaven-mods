@@ -23,11 +23,8 @@ public class Settings {
     public static ConfigEntry<bool> m_enabled;
     public static ConfigEntry<string> m_log_level;
 
-    // Stats
-    public static Dictionary<StatType, ConfigEntry<float>> m_stats;
-
-    // Skills
-    public static SkillNodeDict m_skills;
+    // NPCs
+    public static Dictionary<string, ConfigEntry<string>> m_npc_names;
 
     public ConfigEntry<T> create_entry<T>(string category, string name, T default_value, string description, EventHandler change_callback) {
         ConfigEntry<T> result = this.m_plugin.Config.Bind<T>(category, name, default_value, description);
@@ -39,20 +36,35 @@ public class Settings {
 
     public void load(DDPlugin plugin, EventHandler change_callback = null) {
         this.m_plugin = plugin;
+        change_callback = on_setting_changed;
 
         // General
         m_enabled = this.create_entry("General", "Enabled", true, "Set to false to disable this mod.", change_callback);
         m_log_level = this.create_entry("General", "Log Level", "info", "[Advanced] Logging level, one of: 'none' (no logging), 'error' (only errors), 'warn' (errors and warnings), 'info' (normal logging), 'debug' (extra log messages for debugging issues).  Not case sensitive [string, default info].  Debug level not recommended unless you're noticing issues with the mod.  Changes to this setting require an application restart.", change_callback);
         DDPlugin.set_log_level(m_log_level.Value);
-        change_callback = on_setting_changed;
-        m_stats = new Dictionary<StatType, ConfigEntry<float>>();
-		foreach (string stat_name in System.Enum.GetNames(typeof(StatType))) {
-			m_stats[(StatType) System.Enum.Parse(typeof(StatType), stat_name)] = this.create_entry<float>("Stats", "Stats - Delta " + stat_name, 0f, "[float] Amount to increment/decrement the '" + stat_name + "' player stat (only during gameplay with mod enabled; not permanent).", change_callback);
-		}
-        m_skills = new SkillNodeDict(change_callback);
+
+        // NPCs
+        char[] INVALID_NAME_CHARS = new char[] { '\n', '\t', '\\', '"', '\'', '[', ']' };
+        m_npc_names = new Dictionary<string, ConfigEntry<string>>();
+        foreach (NPCAI npc in Resources.FindObjectsOfTypeAll<NPCAI>()) {
+            if (string.IsNullOrEmpty(npc.OriginalName)) {
+                continue;
+            }
+            bool is_valid = true;
+            foreach (char c in INVALID_NAME_CHARS) {
+                if (npc.OriginalName.Contains(c)) {
+                    is_valid = false;
+                    break;
+                }
+            }
+            if (!is_valid) {
+                continue;
+            }
+            m_npc_names["RNPCName." + npc.OriginalName] = this.create_entry("NPCs", npc.OriginalName, "", $"New name for NPC '{npc.OriginalName}'.  Leave blank to use default name.", change_callback);
+        }
     }
 
     public static void on_setting_changed(object sender, EventArgs e) {
-		m_skills.on_settings_changed();
+		
 	}
 }
