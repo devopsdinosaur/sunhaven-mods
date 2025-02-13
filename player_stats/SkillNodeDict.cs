@@ -40,9 +40,7 @@ public class SkillNodeDict {
                     __result *= item.get_multiplier();
                     //DDPlugin._debug_log($"get_node_amount({item.m_node.nodeTitle}) = {__result}");
                 }
-            } catch (Exception e) {
-                DDPlugin._error_log("** SkillNodeDict.get_node_amount ERROR - " + e);
-            }
+            } catch {}
         }
 	}
 }

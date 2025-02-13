@@ -12,12 +12,12 @@ using Wish;
 
 public static class PluginInfo {
 
-    public const string TITLE = "NPC Rename";
+    public const string TITLE = "Rename";
     public const string NAME = "npc_rename";
-    public const string SHORT_DESCRIPTION = "Enables configurable run-time (non-permanent) name changes of all NPCs!";
+    public const string SHORT_DESCRIPTION = "Enables configurable run-time (non-permanent) name changes of player character and all NPCs!";
 	public const string EXTRA_DETAILS = "This mod does not make any permanent changes to the game files.  It simply modifies the strings in memory for the duration of the game.  Removing the mod and restarting the game will revert everything to its default state.";
 
-	public const string VERSION = "0.0.1";
+	public const string VERSION = "0.0.2";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME_TITLE = "Sun Haven";
@@ -43,6 +43,8 @@ public class NpcRenamePlugin : DDPlugin {
         logger = this.Logger;
         try {
 			m_instance = this;
+            Settings.Instance.early_load(m_instance);
+            m_instance.create_nexus_page();
             this.m_plugin_info = PluginInfo.to_dict();
             this.m_harmony.PatchAll();
             logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
@@ -51,12 +53,21 @@ public class NpcRenamePlugin : DDPlugin {
         }
     }
 
-	[HarmonyPatch(typeof(GameManager), "Awake")]
+    private static string m_original_character_name = null;
+
+    [HarmonyPatch(typeof(GameManager), "Awake")]
 	class HarmonyPatch_GameManager_Awake {
 		private static void Postfix() {
 			try {
-				Settings.Instance.load(m_instance, null);
-                m_instance.create_nexus_page();
+                Settings.Instance.late_load();
+                PropertyInfo name_property = ReflectionUtils.get_property(GameSave.Instance.CurrentSave.characterData, "characterName");
+                if (m_original_character_name == null) {
+                    m_original_character_name = (string) name_property.GetValue(GameSave.Instance.CurrentSave.characterData);
+                }
+                if (m_original_character_name != null && Settings.m_enabled.Value && !string.IsNullOrEmpty(Settings.m_player_name.Value)) {
+                    name_property.SetValue(GameSave.Instance.CurrentSave.characterData, Settings.m_player_name.Value);
+                    _info_log($"** name: '{(string) name_property.GetValue(GameSave.Instance.CurrentSave.characterData)}'");
+                }
             } catch (Exception e) {
 				logger.LogError("** HarmonyPatch_GameManager_Awake.Postfix ERROR - " + e);
 			}
@@ -72,10 +83,40 @@ public class NpcRenamePlugin : DDPlugin {
                     return false;
                 }
                 return true;
-            } catch (Exception e) {
-                _error_log("** HarmonyPatch_LocalizeText_TranslateText.Prefix ERROR - " + e);
-            }
+            } catch {}
             return true;
+        }
+    }
+    /*
+    [HarmonyPatch(typeof(Player), "InitializeAsOwner")]
+    class HarmonyPatch_Player_InializeAsOwner {
+        private static void Postfix() {
+            try {
+                object name_instance = ReflectionUtils.get_field_value(GameSave.Instance.CurrentSave.characterData, "_characterName");
+                PropertyInfo name_property = ReflectionUtils.get_property(name_instance, "Value");
+                if (m_original_character_name == null) {
+                    m_original_character_name = (string) name_property.GetValue(name_instance);
+                }
+                if (m_original_character_name != null && Settings.m_enabled.Value && !string.IsNullOrEmpty(Settings.m_player_name.Value)) {
+                    name_property.SetValue(name_instance, Settings.m_player_name.Value);
+                    _info_log($"** name: '{(string) name_property.GetValue(name_instance)}'");
+                }
+            } catch (Exception e) {
+                _error_log("** HarmonyPatch_Player_InializeAsOwner.Postfix ERROR - " + e);
+            }
+        }
+    }
+    */
+    [HarmonyPatch(typeof(CharacterData), "characterName", MethodType.Getter)]
+    class HarmonyPatch_CharacterData_characterName_getter {
+        private static void Postfix(ref string __result) {
+            try {
+                if (m_original_character_name != null) {
+                    __result = m_original_character_name;
+                }
+            } catch (Exception e) {
+                _error_log("** HarmonyPatch_CharacterData_characterName_getter.Postfix ERROR - " + e);
+            }
         }
     }
 }

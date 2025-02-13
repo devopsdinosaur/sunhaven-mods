@@ -22,6 +22,7 @@ public class Settings {
     // General
     public static ConfigEntry<bool> m_enabled;
     public static ConfigEntry<string> m_log_level;
+    public static ConfigEntry<string> m_player_name;
 
     // NPCs
     public static Dictionary<string, ConfigEntry<string>> m_npc_names;
@@ -34,15 +35,17 @@ public class Settings {
         return result;
     }
 
-    public void load(DDPlugin plugin, EventHandler change_callback = null) {
+    public void early_load(DDPlugin plugin) {
         this.m_plugin = plugin;
-        change_callback = on_setting_changed;
-
+        
         // General
-        m_enabled = this.create_entry("General", "Enabled", true, "Set to false to disable this mod.", change_callback);
-        m_log_level = this.create_entry("General", "Log Level", "info", "[Advanced] Logging level, one of: 'none' (no logging), 'error' (only errors), 'warn' (errors and warnings), 'info' (normal logging), 'debug' (extra log messages for debugging issues).  Not case sensitive [string, default info].  Debug level not recommended unless you're noticing issues with the mod.  Changes to this setting require an application restart.", change_callback);
+        m_enabled = this.create_entry("General", "Enabled", true, "Set to false to disable this mod.", on_setting_changed);
+        m_log_level = this.create_entry("General", "Log Level", "info", "[Advanced] Logging level, one of: 'none' (no logging), 'error' (only errors), 'warn' (errors and warnings), 'info' (normal logging), 'debug' (extra log messages for debugging issues).  Not case sensitive [string, default info].  Debug level not recommended unless you're noticing issues with the mod.  Changes to this setting require an application restart.", on_setting_changed);
         DDPlugin.set_log_level(m_log_level.Value);
+        m_player_name = this.create_entry("General", "Player Name", "", "New name for the player character.  Leave blank to use default name.  Changing this value requires a game reload.", on_setting_changed);
+    }
 
+    public void late_load() {
         // NPCs
         char[] INVALID_NAME_CHARS = new char[] { '\n', '\t', '\\', '"', '\'', '[', ']' };
         m_npc_names = new Dictionary<string, ConfigEntry<string>>();
@@ -60,7 +63,7 @@ public class Settings {
             if (!is_valid) {
                 continue;
             }
-            m_npc_names["RNPCName." + npc.OriginalName] = this.create_entry("NPCs", npc.OriginalName, "", $"New name for NPC '{npc.OriginalName}'.  Leave blank to use default name.", change_callback);
+            m_npc_names["RNPCName." + npc.OriginalName] = this.create_entry("NPCs", npc.OriginalName, "", $"New name for NPC '{npc.OriginalName}'.  Leave blank to use default name.  Changing this value requires a game reload.", on_setting_changed);
         }
     }
 
