@@ -3,6 +3,7 @@
   <PropertyGroup>
     <Author>devopsdinosaur</Author>
     <GameName>sunhaven</GameName>
+    <FolderName>Sun Haven</FolderName>
     <AssemblyName>$(Author).$(GameName).$(MSBuildProjectName)</AssemblyName>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
     <TargetFramework>net480</TargetFramework>
@@ -33,14 +34,14 @@
   <!-- Manual overrides -->
   <PropertyGroup>
     <BepInExPath>$(GamePath)\BepInEx</BepInExPath>
-    <ManagedDataPath>$(GamePath)\Sun Haven_Data\Managed</ManagedDataPath>
-    <UnityPath>$(GamePath)\Sun Haven_Data\Managed</UnityPath>
+    <ManagedDataPath>$(GamePath)\$(FolderName)_Data\Managed</ManagedDataPath>
+    <UnityPath>$(GamePath)\$(FolderName)_Data\Managed</UnityPath>
   </PropertyGroup>
 
   <!-- Set start action -->
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <StartAction>Program</StartAction>
-    <StartProgram>$(GamePath)\Sun Haven.exe</StartProgram>
+    <StartProgram>$(GamePath)\$(FolderName).exe</StartProgram>
     <StartArguments>--continue</StartArguments>
     <StartWorkingDirectory>$(GamePath)</StartWorkingDirectory>
   </PropertyGroup>

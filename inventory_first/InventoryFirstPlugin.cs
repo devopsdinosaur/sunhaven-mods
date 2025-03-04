@@ -99,7 +99,7 @@ public class InventoryFirstPlugin : BaseUnityPlugin {
 					SlotItemData slot_data = inventory.Items[slot_index];
 					int can_accept = Mathf.Min((slot_data.slot.onlyAcceptSpecificItem ? slot_data.slot.numberOfItemToAccept : itemData.stackSize) - slot_data.amount, item_count);
 					if (slot_data.item.ID() == 0) {
-						slot_data.item = item.DeepClone();
+						slot_data.item = item.DeepCloneItem();
 					}
 					slot_data.id = item.ID();
 					slot_data.amount += can_accept;

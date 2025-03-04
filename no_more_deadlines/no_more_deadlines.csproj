@@ -1,4 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(SolutionDir)\solution_private.targets" />
   <Import Project="$(SolutionDir)\solution.targets" />
+  <ItemGroup>
+    <Content Include="$(BepInExPath)\LogOutput.log" Link="logs\LogOutput.log" />
+    <Content Include="$(GamePath)\output_log.txt" Link="logs\output_log.txt" />
+    <Content Remove="C:\collin\apps\steam\steamapps\common\Sun Haven\BepInEx\config\devopsdinosaur.sunhaven.player_stats.cfg" />
+    <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
+    <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\shared\dd_utils.cs" Link="shared\dd_utils.cs" />
+  </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <ItemGroup>
+      <AllFiles Include="$(TargetDir)**\*.*" Exclude="$(TargetDir)**\*.pdb" />
+      <NexusFiles Include="$(ProjectDir)\nexus\**\*.*" />
+    </ItemGroup>
+    <Delete Files="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" />
+    <Copy SourceFiles="@(AllFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\%(RecursiveDir)" />
+    <MakeDir Directories="$(GamePath)\BepInEx\plugins\nexus\$(AssemblyName)" />
+    <Copy SourceFiles="@(NexusFiles)" DestinationFolder="$(GamePath)\BepInEx\plugins\nexus\$(AssemblyName)\%(RecursiveDir)" />
+    <Delete Files="$(ProjectDir)\bin\$(TargetName).zip" />
+    <Copy SourceFiles="@(AllFiles)" DestinationFolder="$(TargetDir)..\Release\%(RecursiveDir)"></Copy>
+    <ZipDirectory SourceDirectory="$(TargetDir)..\Release" DestinationFile="$(ProjectDir)\bin\$(TargetName).zip" />
+    <RemoveDir Directories="$(TargetDir)..\Release" />
+  </Target>
 </Project>
