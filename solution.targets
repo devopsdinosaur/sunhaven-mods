@@ -102,6 +102,21 @@
       <HintPath>$(ManagedDataPath)\Sirenix.Serialization.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="SunHaven.Core">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(UnityPath)\SunHaven.Core.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SunHaven.External">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(UnityPath)\SunHaven.External.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="SunHaven.Loading">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(UnityPath)\SunHaven.Loading.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="ZeroFormatter">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(ManagedDataPath)\ZeroFormatter.dll</HintPath>
@@ -274,16 +289,6 @@
     <Reference Include="UnityEngine.AssetBundleModule">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>$(UnityPath)\UnityEngine.AssetBundleModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SunHaven.Core">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(UnityPath)\SunHaven.Core.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="SunHaven.External">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(UnityPath)\SunHaven.External.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
