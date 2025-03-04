@@ -1,36 +1,58 @@
 ﻿using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using HarmonyLib;
-using Wish;
-using UnityEngine;
+using PSS;
 using System;
-using UnityEngine.SceneManagement;
+using System.Linq;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Wish;
 
-[BepInPlugin("devopsdinosaur.sunhaven.no_logo", "No Logo", "0.0.1")]
-public class NoLogoPlugin : BaseUnityPlugin {
+public static class PluginInfo {
 
-	private Harmony m_harmony = new Harmony("devopsdinosaur.sunhaven.no_logo");
-	public static ManualLogSource logger;
-	private static ConfigEntry<bool> m_enabled;
+    public const string TITLE = "No Mo Logo";
+    public const string NAME = "no_logo";
+    public const string SHORT_DESCRIPTION = "Cuts out the ten-second logo animation at the start of the game, simply displaying the final Pixel Sprout emblem for the quick initial load.";
+	public const string EXTRA_DETAILS = "Cuts out the ten-second logo animation at the start of the game, simply displaying the final Pixel Sprout emblem for the quick initial load.  This mod is *not* designed to diminish the efforts of Pixel Sprout studios, but simply to speed up the load time without the extra fanfare.  To be honest, like Continue Button, I just made this to speed up my debugging, but I thought others might want it.  Enjoy!";
+
+	public const string VERSION = "0.0.2";
+
+    public const string AUTHOR = "devopsdinosaur";
+    public const string GAME_TITLE = "Sun Haven";
+    public const string GAME = "sunhaven";
+    public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+    public const string REPO = "sunhaven-mods";
+
+    public static Dictionary<string, string> to_dict() {
+        Dictionary<string, string> info = new Dictionary<string, string>();
+        foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+            info[field.Name.ToLower()] = (string) field.GetValue(null);
+        }
+        return info;
+    }
+}
+
+[BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
+public class NoLogoPlugin : DDPlugin {
+    private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 
 	private void Awake() {
-		logger = this.Logger;
-		try {
-			m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
-			if (m_enabled.Value) {
-				this.m_harmony.PatchAll();
-			}
-			logger.LogInfo("devopsdinosaur.sunhaven.no_logo v0.0.1" + (m_enabled.Value ? "" : " [inactive; disabled in config]") + " loaded.");
-		} catch (Exception e) {
-			logger.LogError("** Awake FATAL - " + e);
-		}
-	}
+        logger = this.Logger;
+        try {
+            this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
+            this.create_nexus_page();
+            this.m_harmony.PatchAll();
+            logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
+        } catch (Exception e) {
+            _error_log("** Awake FATAL - " + e);
+        }
+    }
 
-	[HarmonyPatch(typeof(LoadMainMenu), "LoadMasterContent")]
-	class HarmonyPatch_LoadMainMenu_LoadMasterContent {
+	[HarmonyPatch(typeof(GameLoader), "LateUpdate")]
+	class HarmonyPatch_GameLoader_LateUpdate {
 
 		class QuickLoader : MonoBehaviour {
 			private static QuickLoader m_instance;
@@ -39,9 +61,9 @@ public class NoLogoPlugin : BaseUnityPlugin {
 					return m_instance;
 				}
 			}
-			private LoadMainMenu m_loader;
+			private GameLoader m_loader;
 
-			public static QuickLoader create(LoadMainMenu loader) {
+			public static QuickLoader create(GameLoader loader) {
 				if (m_instance != null) {
 					return m_instance;
 				}
@@ -55,6 +77,22 @@ public class NoLogoPlugin : BaseUnityPlugin {
 			}
 
 			private IEnumerator quick_load_coroutine() {
+				for (;;) {
+					bool found = false;
+					foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
+						if (obj.name == "UI_SplashScreen") {
+							obj.SetActive(false);
+							found = true;
+							break;
+						}
+					}
+					if (found) {
+						break;
+					}
+					yield return new WaitForSeconds(0.1f);
+				}
+				
+				/*
 				foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
 					if (obj.name == "UI_SplashScreen") {
 						obj.SetActive(false);
@@ -78,12 +116,13 @@ public class NoLogoPlugin : BaseUnityPlugin {
 				AsyncOperation unloadOperation = SceneManager.UnloadSceneAsync("Content");
 				yield return new WaitUntil(() => unloadOperation.isDone);
 				this.m_loader.LoadLevel(1);
+				*/
 			}
 		}
 
-		private static bool Prefix(LoadMainMenu __instance) {
+		private static bool Prefix(GameLoader __instance) {
 			try {
-				if (!m_enabled.Value) {
+				if (!Settings.m_enabled.Value) {
 					return true;
 				}
 				QuickLoader.create(__instance);

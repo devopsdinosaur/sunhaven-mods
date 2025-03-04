@@ -1,12 +1,12 @@
 using BepInEx;
-using BepInEx.Logging;
-using BepInEx.Configuration;
 using HarmonyLib;
 using Wish;
 using UnityEngine;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using TMPro;
 using I2.Loc;
 
@@ -14,33 +14,40 @@ public static class PluginInfo {
 
     public const string TITLE = "Continue Button";
     public const string NAME = "continue_button";
+    public const string SHORT_DESCRIPTION = "Single Player only. Adds a 'Continue' option to the main menu to jump straight to the last save written. Also adds a '--continue' option to the command-line to auto load your game right at launch!";
+	public const string EXTRA_DETAILS = "";
 
-    public const string VERSION = "0.0.8";
-    public static string[] CHANGELOG = new string[] {
-        "v0.0.8 - Fixed to work with game v1.5.7",
-        "v0.0.7 - Updates from p1xel8ted to fix misc UI glitches with the button"
-    };
+	public const string VERSION = "0.0.9";
 
     public const string AUTHOR = "devopsdinosaur";
+    public const string GAME_TITLE = "Sun Haven";
     public const string GAME = "sunhaven";
     public const string GUID = AUTHOR + "." + GAME + "." + NAME;
+    public const string REPO = "sunhaven-mods";
+
+    public static Dictionary<string, string> to_dict() {
+        Dictionary<string, string> info = new Dictionary<string, string>();
+        foreach (FieldInfo field in typeof(PluginInfo).GetFields((BindingFlags) 0xFFFFFFF)) {
+            info[field.Name.ToLower()] = (string) field.GetValue(null);
+        }
+        return info;
+    }
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
-public class ContinueButtonPlugin :BaseUnityPlugin {
-
+public class TestingPlugin:DDPlugin {
     private Harmony m_harmony = new Harmony(PluginInfo.GUID);
-    public static ManualLogSource logger;
-    private static ConfigEntry<bool> m_enabled;
-    
-    private void Awake() {
+
+	private void Awake() {
         logger = this.Logger;
         try {
-            m_enabled = this.Config.Bind<bool>("General", "Enabled", true, "Set to false to disable this mod.");
+            this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
+            this.create_nexus_page();
             this.m_harmony.PatchAll();
             logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
         } catch (Exception e) {
-            logger.LogError("** Awake FATAL - " + e);
+            _error_log("** Awake FATAL - " + e);
         }
     }
 
@@ -77,6 +84,9 @@ public class ContinueButtonPlugin :BaseUnityPlugin {
 
         private static void Postfix(MainMenuController __instance, ref GameObject ___homeMenu) {
             try {
+                if (!Settings.m_enabled.Value) {
+                    return;
+                }
                 string saves_dir = Path.Combine(Application.persistentDataPath, "Saves");
                 if (m_continue_button != null || !Directory.Exists(saves_dir)) {
                     return;
