@@ -96,6 +96,7 @@ public class NoLogoPlugin : DDPlugin {
 				int _assetsToPreloadCount = (int) ReflectionUtils.get_field_value(this.m_loader, "_assetsToPreloadCount");
 				MethodInfo UpdateProgressDuringStep = ReflectionUtils.get_method(this.m_loader, "UpdateProgressDuringStep");
 				if (_assetsToPreloadCount > 0) {
+					_info_log($"Preloading {_assetsToPreloadCount} assets.");
 					AssetReference[] array = (AssetReference[]) ReflectionUtils.get_field_value(this.m_loader, "assetReferencesToPreload");
 					int _assetsPreloadedCount = 0;
 					List<ClothingLayerSprites> _preloadedAssets = (List<ClothingLayerSprites>) ReflectionUtils.get_field_value(this.m_loader, "_preloadedAssets");
@@ -114,9 +115,11 @@ public class NoLogoPlugin : DDPlugin {
 						yield return null;
 					}
 				}
+				_info_log("Launching main menu scene loader async operation.");
 				ReflectionUtils.get_field(this.m_loader, "_currentProgress").SetValue(this.m_loader, 0.2f);
 				AsyncOperation operation = SceneManager.LoadSceneAsync(1);
 				operation.allowSceneActivation = false;
+				_info_log("Waiting for operation completion.");
 				while (!operation.isDone) {
 					float stepProgress = Mathf.Clamp01(operation.progress / 0.9f);
 					UpdateProgressDuringStep.Invoke(this.m_loader, new object[] { stepProgress, 0.2f, 0.8f });
@@ -129,6 +132,7 @@ public class NoLogoPlugin : DDPlugin {
 					}
 					yield return null;
 				}
+				_info_log("Main menu scene load complete.");
 				Application.runInBackground = GameManager.Multiplayer || Wish.Settings.RunInBackground;
 			}
 		}
@@ -138,8 +142,12 @@ public class NoLogoPlugin : DDPlugin {
 				if (!Settings.m_enabled.Value) {
 					return true;
 				}
-				QuickLoader.create(__instance);
-				QuickLoader.Instance.quick_load();
+				//QuickLoader.create(__instance);
+				//QuickLoader.Instance.quick_load();
+				//return false;
+				foreach (MemberInfo member in __instance.GetType().GetMembers(ReflectionUtils.BINDING_FLAGS_ALL)) {
+					_info_log($"member: {member.Name}, type: {member.MemberType}");
+				}
 				return false;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_MainMenuLoader_Start.Prefix ERROR - " + e);

@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
     <StartAction>Program</StartAction>
     <StartProgram>$(GamePath)\$(FolderName).exe</StartProgram>
-    <StartArguments>--continue</StartArguments>
+    <StartArguments>--_continue</StartArguments>
     <StartWorkingDirectory>$(GamePath)</StartWorkingDirectory>
   </PropertyGroup>
 
