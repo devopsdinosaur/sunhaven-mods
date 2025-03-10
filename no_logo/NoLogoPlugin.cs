@@ -1,11 +1,13 @@
 ﻿using BepInEx;
 using HarmonyLib;
+using I2.Loc;
 using PSS;
 using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using TMPro;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -16,8 +18,8 @@ public static class PluginInfo {
 
     public const string TITLE = "No Mo Logo";
     public const string NAME = "no_logo";
-    public const string SHORT_DESCRIPTION = "Cuts out the ten-second logo animation at the start of the game, simply displaying the final Pixel Sprout emblem for the quick initial load.";
-	public const string EXTRA_DETAILS = "Cuts out the ten-second logo animation at the start of the game, simply displaying the final Pixel Sprout emblem for the quick initial load.  This mod is *not* designed to diminish the efforts of Pixel Sprout studios, but simply to speed up the load time without the extra fanfare.  To be honest, like Continue Button, I just made this to speed up my debugging, but I thought others might want it.  Enjoy!";
+    public const string SHORT_DESCRIPTION = "Cuts out the ten-second logo animation at the start of the game.";
+	public const string EXTRA_DETAILS = "This mod is *not* designed to diminish the efforts of Pixel Sprout studios, but simply to speed up the load time without the extra fanfare.  To be honest, like Continue Button, I just made this to speed up my debugging, but I thought others might want it.  Enjoy!";
 
 	public const string VERSION = "0.0.2";
 
@@ -79,20 +81,6 @@ public class NoLogoPlugin : DDPlugin {
 			}
 
 			private IEnumerator quick_load_coroutine() {
-				for (;;) {
-					bool found = false;
-					foreach (GameObject obj in SceneManager.GetActiveScene().GetRootGameObjects()) {
-						if (obj.name == "UI_Loading") {
-							obj.transform.Find("Animation").gameObject.SetActive(false);
-							found = true;
-							break;
-						}
-					}
-					if (found) {
-						break;
-					}
-					yield return new WaitForSeconds(0.1f);
-				}
 				int _assetsToPreloadCount = (int) ReflectionUtils.get_field_value(this.m_loader, "_assetsToPreloadCount");
 				MethodInfo UpdateProgressDuringStep = ReflectionUtils.get_method(this.m_loader, "UpdateProgressDuringStep");
 				if (_assetsToPreloadCount > 0) {
@@ -127,27 +115,43 @@ public class NoLogoPlugin : DDPlugin {
 						ReflectionUtils.get_field(this.m_loader, "_currentProgress").SetValue(this.m_loader, 1f);
 						ReflectionUtils.get_field(this.m_loader, "_displayProgress").SetValue(this.m_loader, 1f);
 						((UnityEngine.UI.Image) ReflectionUtils.get_field_value(this.m_loader, "fill")).fillAmount = 1f;
+						_info_log("Main menu scene load complete.");
 						yield return new WaitForSeconds(0.25f);
 						operation.allowSceneActivation = true;
 					}
 					yield return null;
 				}
-				_info_log("Main menu scene load complete.");
 				Application.runInBackground = GameManager.Multiplayer || Wish.Settings.RunInBackground;
 			}
 		}
 
-		private static bool Prefix(MainMenuLoader __instance) {
+		private static bool Prefix(MainMenuLoader __instance, GameObject ___logo, CanvasGroup ___animationCanvasGroup, CanvasGroup ___logoCanvasGroup, CanvasGroup ___loadingCanvasGroup, CanvasGroup ___logoNameCanvasGroup, ref bool ___enableDebugText, TextMeshProUGUI ___text, TextMeshProUGUI ___debugText, int ____assetsToPreloadCount, AssetReference[] ___assetReferencesToPreload) {
 			try {
 				if (!Settings.m_enabled.Value) {
 					return true;
 				}
-				//QuickLoader.create(__instance);
-				//QuickLoader.Instance.quick_load();
-				//return false;
-				foreach (MemberInfo member in __instance.GetType().GetMembers(ReflectionUtils.BINDING_FLAGS_ALL)) {
-					_info_log($"member: {member.Name}, type: {member.MemberType}");
+				ReflectionUtils.invoke_method(__instance, "ResetProgressBar");
+				___logo.SetActive(value: false);
+				___animationCanvasGroup.alpha = 1f;
+				___logoCanvasGroup.alpha = 0f;
+				___loadingCanvasGroup.alpha = 0f;
+				___logoNameCanvasGroup.alpha = 0f;
+				ReflectionUtils.invoke_method(__instance, "EnsureValidScreenResolution");
+				___enableDebugText = true;
+				if (___enableDebugText && ___text != null) {
+					___debugText = UnityEngine.Object.Instantiate(___text, ___text.transform.parent);
+					___debugText.transform.localPosition += Vector3.up * 50f;
+					___debugText.color = Color.yellow;
 				}
+				____assetsToPreloadCount = ___assetReferencesToPreload.Length;
+				string systemLanguage = LocalizationManager.GetCurrentDeviceLanguage();
+				LanguageLoader.LoadLanguageAsync(systemLanguage, delegate {
+					if (LocalizationManager.HasLanguage(systemLanguage)) {
+						LocalizationManager.CurrentLanguage = systemLanguage;
+					}
+					QuickLoader.create(__instance);
+					QuickLoader.Instance.quick_load();
+				});
 				return false;
 			} catch (Exception e) {
 				logger.LogError("** HarmonyPatch_MainMenuLoader_Start.Prefix ERROR - " + e);
