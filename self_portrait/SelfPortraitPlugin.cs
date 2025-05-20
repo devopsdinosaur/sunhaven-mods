@@ -167,7 +167,7 @@ public class SelfPortraitPlugin : DDPlugin {
 			}
 		}
 
-		public void show_self_portrait(bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
+		public void show_self_portrait(bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust, bool isWitherballBust) {
 			try {
 				if (!Settings.m_enabled.Value || !this.m_is_loaded) {
                     this.m_image.gameObject.SetActive(false);
@@ -252,10 +252,10 @@ public class SelfPortraitPlugin : DDPlugin {
 			return PortraitKey.Normal;
         }
 
-		[HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
+		[HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
 		class HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized {
 
-			private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
+			private static bool Prefix(string name, bool small, ref bool isMarriageBust, ref bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust, bool isWitherballBust) {
 				try {
 					if (!Settings.m_enabled.Value) {
 						return true;
@@ -273,9 +273,9 @@ public class SelfPortraitPlugin : DDPlugin {
 				return true;
 			}
 
-			private static void Postfix(string name, bool small, bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust) {
+			private static void Postfix(string name, bool small, bool isMarriageBust, bool isSwimsuitBust, bool hideName, bool isRefreshBust, bool isHalloweenBust, bool isWitherballBust) {
 				try {
-					SelfBustController.Instance.show_self_portrait(isMarriageBust, isSwimsuitBust, hideName, isRefreshBust, isHalloweenBust);
+					SelfBustController.Instance.show_self_portrait(isMarriageBust, isSwimsuitBust, hideName, isRefreshBust, isHalloweenBust, isWitherballBust);
 				} catch (Exception e) {
 					logger.LogError("** HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized.Postfix ERROR - " + e);
 				}
