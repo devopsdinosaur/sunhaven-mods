@@ -4,7 +4,7 @@
   <ItemGroup>
     <Content Include="$(BepInExPath)\LogOutput.log" Link="logs\LogOutput.log" />
     <Content Include="$(GamePath)\output_log.txt" Link="logs\output_log.txt" />
-    <Content Remove="C:\collin\apps\steam\steamapps\common\Sun Haven\BepInEx\config\devopsdinosaur.sunhaven.player_stats.cfg" />
+    <Content Include="C:\collin\apps\steam\steamapps\common\Sun Haven\BepInEx\config\devopsdinosaur.sunhaven.player_stats.cfg" />
     <Content Include="$(BepInExPath)\config\$(AssemblyName).cfg" Link="config\$(AssemblyName).cfg" />
     <Content Include="$(BepInExPath)\plugins\nexus\$(AssemblyName)\generated.txt" Link="nexus\generated.txt" />
   </ItemGroup>

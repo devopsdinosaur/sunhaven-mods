@@ -251,7 +251,7 @@ public class SelfPortraitPlugin : DDPlugin {
 			}
 			return PortraitKey.Normal;
         }
-
+		//																						  string          bool          bool          bool          bool          bool          bool isHalloweenBust = false
 		[HarmonyPatch(typeof(DialogueController), "SetDialogueBustVisualsOptimized", new Type[] { typeof(string), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool) })]
 		class HarmonyPatch_DialogueController_SetDialogueBustVisualsOptimized {
 

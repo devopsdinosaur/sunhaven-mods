@@ -14,7 +14,7 @@ public static class PluginInfo {
     public const string NAME = "skill_reset";
     public const string SHORT_DESCRIPTION = "Regretting that \"Pen Pal\" thing?  Or decided crossbow is better than sword?  How about a skill reset!  This mod adds a \"Reset\" text button to each skill tab to enable instant reset of skills for free and as often as you need.";
 
-    public const string VERSION = "0.0.3";
+    public const string VERSION = "0.0.4";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME_TITLE = "Sun Haven";
@@ -86,12 +86,14 @@ public class SelfPortraitPlugin:DDPlugin {
 					GetValue(panel);
 				GameObject reset_button = GameObject.Instantiate<GameObject>(_skillPointsTMP.gameObject, _skillPointsTMP.transform.parent);
 				TextMeshProUGUI label = reset_button.GetComponent<TextMeshProUGUI>();
-				reset_button.transform.position = _skillPointsTMP.transform.position + Vector3.down * _skillPointsTMP.GetComponent<RectTransform>().rect.height;
+				reset_button.transform.localPosition = _skillPointsTMP.transform.localPosition + Vector3.down * _skillPointsTMP.GetComponent<RectTransform>().rect.height;
 				label.fontSize = 12;
 				label.text = "[Reset]";
 				reset_button.AddComponent<UnityEngine.UI.Button>().onClick.AddListener((UnityAction) delegate {
 					reset_profession(__instance, profession);
 				});
+				reset_button.SetActive(true);
+				GameObject.Destroy(reset_button.transform.GetComponent<I2.Loc.Localize>());
 				m_reset_buttons[profession] = reset_button;
             } catch (Exception e) {
                 logger.LogError("** HarmonyPatch_Skills_SetupProfession.Postfix ERROR - " + e);

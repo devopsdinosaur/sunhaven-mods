@@ -16,7 +16,7 @@ public static class PluginInfo {
     public const string SHORT_DESCRIPTION = "Quests (and dates) no longer expire on a given day.  If you miss the that date time window at 10 AM then just go the next day!";
 	public const string EXTRA_DETAILS = "";
 
-	public const string VERSION = "0.0.3";
+	public const string VERSION = "0.0.4";
 
     public const string AUTHOR = "devopsdinosaur";
     public const string GAME_TITLE = "Sun Haven";
@@ -34,15 +34,14 @@ public static class PluginInfo {
 }
 
 [BepInPlugin(PluginInfo.GUID, PluginInfo.TITLE, PluginInfo.VERSION)]
-public class TestingPlugin : DDPlugin {
-	private static TestingPlugin m_instance = null;
-    private Harmony m_harmony = new Harmony(PluginInfo.GUID);
+public class NoMoreDeadlinesPlugin : DDPlugin {
+	private Harmony m_harmony = new Harmony(PluginInfo.GUID);
 
 	private void Awake() {
         logger = this.Logger;
         try {
-			m_instance = this;
             this.m_plugin_info = PluginInfo.to_dict();
+            Settings.Instance.load(this);
             this.create_nexus_page();
             this.m_harmony.PatchAll();
             logger.LogInfo($"{PluginInfo.GUID} v{PluginInfo.VERSION} loaded.");
@@ -51,15 +50,17 @@ public class TestingPlugin : DDPlugin {
         }
     }
 
-	[HarmonyPatch(typeof(QuestManager), "Awake")]
-    class HarmonyPatch_QuestManager_Awake {
+	[HarmonyPatch(typeof(QuestManager), "SetupQuestDictionary")]
+    class HarmonyPatch_QuestManager_SetupQuestDictionary {
 
         private static void Postfix() {
             if (!Settings.m_enabled.Value) {
 				return;
 			}
-			foreach (QuestAsset quest in QuestManager.Instance.AllQuests) {
-				quest.daysToDo = -1;
+            foreach (QuestAsset quest in QuestManager.Instance.AllQuests) {
+                if (quest != null) {
+                    quest.daysToDo = -1;
+                }
 			}
         }
     }

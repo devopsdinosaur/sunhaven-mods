@@ -144,10 +144,11 @@ public class NoLogoPlugin : DDPlugin {
 					___debugText.color = Color.yellow;
 				}
 				____assetsToPreloadCount = ___assetReferencesToPreload.Length;
-				string systemLanguage = LocalizationManager.GetCurrentDeviceLanguage();
-				LanguageLoader.LoadLanguageAsync(systemLanguage, delegate {
-					if (LocalizationManager.HasLanguage(systemLanguage)) {
-						LocalizationManager.CurrentLanguage = systemLanguage;
+				string savedLanguage = LanguageLoader.GetSavedLanguage();
+				string languageToLoad = (!string.IsNullOrEmpty(savedLanguage) ? savedLanguage : LocalizationManager.GetCurrentDeviceLanguage());
+				LanguageLoader.LoadLanguageAsync(languageToLoad, delegate {
+					if (LocalizationManager.HasLanguage(languageToLoad)) {
+						LocalizationManager.CurrentLanguage = languageToLoad;
 					}
 					QuickLoader.create(__instance);
 					QuickLoader.Instance.quick_load();
